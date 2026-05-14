@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rain Control Tower — Tata 1mg</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #07090d;
+    --bg2:      #0c1018;
+    --bg3:      #111820;
+    --border:   #1c2a3a;
+    --border2:  #243040;
+    --text:     #c8d8ea;
+    --muted:    #4a6070;
+    --dim:      #2a3a4a;
+    --green:    #22c55e;
+    --amber:    #f59e0b;
+    --red:      #ef4444;
+    --blue:     #3b82f6;
+    --purple:   #a78bfa;
+    --teal:     #2dd4bf;
+    --orange:   #fb923c;
+    --green-bg: #071a0f;
+    --amber-bg: #1a1200;
+    --red-bg:   #1a0808;
+    --blue-bg:  #070f1a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .wrap { position: relative; z-index: 1; padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+
+  /* ── HEADER ── */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .header-left { }
+  .header-tag { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .header-tag span { font-family: 'DM Mono'; font-size: 11px; color: var(--blue); letter-spacing: 2px; text-transform: uppercase; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  .live-label { font-family: 'DM Mono'; font-size: 11px; color: var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  h1 { font-family: 'Syne'; font-size: 28px; font-weight: 800; color: #e8f2ff; letter-spacing: -0.5px; }
+  .header-right { text-align: right; }
+  .refresh-info { font-family: 'DM Mono'; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+  .refresh-time { font-family: 'DM Mono'; font-size: 12px; color: var(--text); }
+  .btn-refresh { margin-top: 6px; background: var(--bg3); border: 1px solid var(--border2); color: var(--blue); font-family: 'DM Mono'; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all .2s; }
+  .btn-refresh:hover { background: var(--blue); color: #fff; }
+
+  /* ── CONFIG BANNER ── */
+  .config-banner { background: #0a1525; border: 1px dashed #2a4060; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
+  .config-banner a { color: var(--blue); text-decoration: none; font-family: 'DM Mono'; }
+  .config-banner a:hover { text-decoration: underline; }
+  .sheet-url-input { flex: 1; background: var(--bg); border: 1px solid var(--border2); color: var(--text); font-family: 'DM Mono'; font-size: 11px; padding: 4px 8px; border-radius: 4px; }
+  .btn-load { background: var(--blue); border: none; color: #fff; font-family: 'DM Mono'; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+
+  /* ── KPI STRIP ── */
+  .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+  .kpi { border-radius: 8px; padding: 14px 16px; border: 1px solid; }
+  .kpi-label { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 8px; }
+  .kpi-val { font-family: 'Syne'; font-size: 28px; font-weight: 700; }
+  .kpi-unit { font-size: 11px; color: var(--muted); margin-left: 4px; font-family: 'DM Sans'; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--muted); font-family: 'DM Sans'; font-size: 13px; font-weight: 500; padding: 8px 16px; cursor: pointer; margin-bottom: -1px; transition: all .15s; }
+  .tab.active { color: #e8f2ff; border-bottom-color: var(--blue); background: var(--bg3); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* ── SLIDER BAR ── */
+  .slider-bar { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; font-size: 12px; }
+  .slider-bar label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .slider-bar input[type=range] { flex: 1; accent-color: var(--blue); }
+  .slider-val { font-family: 'DM Mono'; font-size: 13px; color: var(--blue); min-width: 36px; }
+  .slider-desc { font-size: 11px; color: var(--muted); }
+
+  /* ── CITY TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { border-bottom: 1px solid var(--border2); }
+  th { padding: 7px 10px; text-align: left; font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid #0e1620; cursor: pointer; transition: background .12s; }
+  tbody tr:hover { background: #0d1825; }
+  tbody tr.selected { background: #0e1e30; }
+  td { padding: 10px 10px; vertical-align: middle; }
+
+  /* ── RAG BADGE ── */
+  .rag { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 4px; font-family: 'DM Mono'; font-size: 11px; font-weight: 600; border: 1px solid; }
+  .rag-green { background: var(--green-bg); color: var(--green); border-color: #22c55e33; }
+  .rag-amber { background: var(--amber-bg); color: var(--amber); border-color: #f59e0b33; }
+  .rag-red   { background: var(--red-bg);   color: var(--red);   border-color: #ef444433; }
+  .rag-dot   { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  /* ── AIR BADGE ── */
+  .air-on  { color: var(--blue); font-weight: 700; font-size: 12px; }
+  .air-off { color: var(--dim);  font-weight: 600; font-size: 12px; }
+
+  /* ── AGING BAR ── */
+  .aging-bar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; gap: 1px; min-width: 120px; }
+  .ab-seg { transition: width .4s; }
+
+  /* ── DRILLDOWN ── */
+  .drilldown { margin-top: 14px; background: #0a1420; border: 1px solid #1e3050; border-radius: 10px; padding: 20px; }
+  .drilldown-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .drilldown-title { font-family: 'Syne'; font-size: 18px; color: #e8f2ff; }
+  .drilldown-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+  .drilldown-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .dd-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .dd-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+  .dd-row { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 12px; }
+  .dd-row-label { color: var(--muted); }
+  .dd-row-val { font-family: 'DM Mono'; color: #e8f2ff; }
+  .dd-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+  .bucket-row { margin-bottom: 9px; }
+  .bucket-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .bucket-bar-bg { height: 5px; background: var(--border); border-radius: 2px; }
+  .bucket-bar-fill { height: 5px; border-radius: 2px; transition: width .4s; }
+
+  /* ── COST SIM ── */
+  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .sim-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .sim-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+  .cost-bar-row { margin-bottom: 9px; }
+  .cost-bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+  .cost-bar-bg { height: 6px; background: var(--border); border-radius: 3px; }
+  .cost-bar-fill { height: 6px; border-radius: 3px; background: #6366f1; transition: width .4s; }
+  .rollup-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #0f1820; font-size: 13px; }
+  .rollup-label { color: var(--muted); }
+  .rollup-val { font-family: 'DM Mono'; font-weight: 600; color: #e8f2ff; }
+  .tip-box { background: #061510; border: 1px solid #143020; border-radius: 6px; padding: 10px 12px; font-size: 11px; color: var(--green); margin-top: 12px; }
+
+  /* ── SENSITIVITY TABLE ── */
+  .sens-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .sens-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+  .sens-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .sens-table th { padding: 5px 8px; text-align: left; font-family: 'DM Mono'; font-size: 10px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .sens-table td { padding: 6px 8px; border-bottom: 1px solid #0e1620; font-family: 'DM Mono'; }
+  .sens-table tr.active-row td { background: #0e1e30; }
+  .active-marker { color: var(--blue); font-weight: 700; }
+
+  /* ── LOGIC TAB ── */
+  .logic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .logic-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+  .logic-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 14px; }
+  .step-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .step-num { min-width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono'; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .step-body { }
+  .step-title { font-size: 13px; font-weight: 600; color: #e8f2ff; margin-bottom: 3px; }
+  .step-logic { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .step-trigger { font-size: 11px; font-style: italic; }
+  .thresh-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .thresh-table th { padding: 5px 8px; text-align: left; font-family: 'DM Mono'; font-size: 10px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .thresh-table td { padding: 6px 8px; border-bottom: 1px solid #0e1620; }
+  .constraint-row { display: flex; gap: 8px; margin-bottom: 7px; font-size: 12px; }
+  .constraint-check { color: var(--green); margin-top: 1px; }
+  .constraint-text { color: var(--muted); }
+
+  /* ── ERROR / LOADING ── */
+  .status-bar { text-align: center; padding: 40px; font-family: 'DM Mono'; font-size: 13px; color: var(--muted); }
+  .error-bar { background: var(--red-bg); border: 1px solid #ef444433; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; font-size: 12px; color: var(--red); font-family: 'DM Mono'; }
+
+  /* ── FOOTER ── */
+  .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #0f1820; display: flex; justify-content: space-between; font-family: 'DM Mono'; font-size: 10px; color: var(--dim); }
+
+  @media (max-width: 900px) {
+    .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+    .drilldown-grid { grid-template-columns: 1fr; }
+    .sim-grid { grid-template-columns: 1fr; }
+    .logic-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-tag">
+        <span>Tata 1mg · 3PL Network</span>
+        <div class="live-dot"></div>
+        <span class="live-label">LIVE</span>
+      </div>
+      <h1>Rain Control Tower</h1>
+    </div>
+    <div class="header-right">
+      <div class="refresh-info">Last data refresh</div>
+      <div class="refresh-time" id="refresh-time">—</div>
+      <button class="btn-refresh" onclick="loadData()">↻ Refresh Now</button>
+    </div>
+  </div>
+
+  <!-- SHEET CONFIG BANNER -->
+  <div class="config-banner">
+    <span style="white-space:nowrap;font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;">Sheet CSV URL</span>
+    <input class="sheet-url-input" id="sheet-url" placeholder="Paste your Google Sheet CSV export URL here — see setup guide" />
+    <button class="btn-load" onclick="loadFromSheet()">Load Sheet</button>
+    <span style="font-size:11px;">·</span>
+    <a href="#" onclick="loadSampleData(); return false;">Load sample data</a>
+  </div>
+
+  <div id="error-bar" class="error-bar" style="display:none;"></div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip" id="kpi-strip">
+    <div class="kpi" style="background:#0d0808;border-color:#ef444422;">
+      <div class="kpi-label">Cities Critical</div>
+      <div><span class="kpi-val" style="color:#ef4444;" id="kpi-red">—</span><span class="kpi-unit">cities</span></div>
+    </div>
+    <div class="kpi" style="background:#0d0d00;border-color:#f59e0b22;">
+      <div class="kpi-label">Cities Watch</div>
+      <div><span class="kpi-val" style="color:#f59e0b;" id="kpi-amber">—</span><span class="kpi-unit">cities</span></div>
+    </div>
+    <div class="kpi" style="background:#07090f;border-color:#3b82f622;">
+      <div class="kpi-label">Air Active</div>
+      <div><span class="kpi-val" style="color:#3b82f6;" id="kpi-air">—</span><span class="kpi-unit">cities</span></div>
+    </div>
+    <div class="kpi" style="background:#0a0710;border-color:#a78bfa22;">
+      <div class="kpi-label">Est. Air Orders/Day</div>
+      <div><span class="kpi-val" style="color:#a78bfa;" id="kpi-orders">—</span></div>
+    </div>
+    <div class="kpi" style="background:#060f0a;border-color:#2dd4bf22;">
+      <div class="kpi-label">Est. Incremental Cost</div>
+      <div><span class="kpi-val" style="color:#2dd4bf;" id="kpi-cost">—</span><span class="kpi-unit">/day</span></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview',this)">City Overview</button>
+    <button class="tab" onclick="switchTab('sim',this)">Cost Simulator</button>
+    <button class="tab" onclick="switchTab('logic',this)">Decision Logic</button>
+  </div>
+
+  <!-- TAB CONTENT -->
+  <div id="tab-overview">
+    <div class="slider-bar">
+      <label>Trigger Sensitivity</label>
+      <input type="range" min="0.8" max="1.4" step="0.05" value="1.0" id="trigger-mult" oninput="onSlider()"/>
+      <span class="slider-val" id="slider-val">1.00×</span>
+      <span class="slider-desc" id="slider-desc">BAU threshold</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>City</th>
+            <th>Pipeline Days</th>
+            <th>Trigger At</th>
+            <th>Long Tail %</th>
+            <th>SLA Breach %</th>
+            <th>I/O Ratio</th>
+            <th>Aging Spread</th>
+            <th>BD Air</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="city-tbody"></tbody>
+      </table>
+    </div>
+    <div id="drilldown" style="display:none;"></div>
+  </div>
+
+  <div id="tab-sim" style="display:none;">
+    <div class="slider-bar">
+      <label>Trigger Sensitivity</label>
+      <input type="range" min="0.8" max="1.4" step="0.05" value="1.0" id="trigger-mult-sim" oninput="onSliderSim()"/>
+      <span class="slider-val" id="slider-val-sim">1.00×</span>
+      <span class="slider-desc" id="slider-desc-sim">BAU threshold</span>
+    </div>
+    <div class="sim-grid">
+      <div class="sim-card">
+        <div class="sim-card-title">Daily Air Cost by City</div>
+        <div id="cost-bars"></div>
+      </div>
+      <div class="sim-card">
+        <div class="sim-card-title">Cost Roll-up</div>
+        <div id="cost-rollup"></div>
+        <div class="tip-box" id="cost-tip"></div>
+      </div>
+    </div>
+    <div class="sens-card">
+      <div class="sens-card-title">Sensitivity Table — Daily Cost vs Trigger Multiplier</div>
+      <div style="overflow-x:auto;"><table class="sens-table" id="sens-table"></table></div>
+    </div>
+  </div>
+
+  <div id="tab-logic" style="display:none;">
+    <div class="logic-grid">
+      <div class="logic-card">
+        <div class="logic-card-title">Decision Flow — Every 4 Hours per City</div>
+        <div id="logic-steps"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="logic-card">
+          <div class="logic-card-title">Metric Thresholds</div>
+          <table class="thresh-table" id="thresh-table"></table>
+        </div>
+        <div class="logic-card" style="background:#061510;border-color:#14301e;">
+          <div class="logic-card-title" style="color:#22c55e;">Constraints Baked In</div>
+          <div id="constraints"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>TATA 1MG · RAIN CONTROL TOWER · MONSOON PLANNING</span>
+    <span id="footer-sheet">SHEET: NOT CONNECTED</span>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const DELTA_C = 35;
+const AIR_SHARE = 0.35;
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let cityData = [];
+let triggerMult = 1.0;
+let selectedCity = null;
+let currentTab = 'overview';
+let sheetUrl = '';
+
+// ─── SAMPLE DATA ─────────────────────────────────────────────────────────────
+// Your SQL query writes ONE ROW PER CITY to the Sheet with these exact columns:
+// city | bau_pipeline | surface_tat | air_tat | pipeline_days | long_tail_pct
+// | sla_breach_pct | inflow | outflow | aging_1d | aging_2d | aging_3d | aging_gt3d
+const SAMPLE = [
+  {city:"Mumbai",    bau:3.5, surface_tat:5, air_tat:2, pipeline_days:6.8, long_tail_pct:9.2,  sla_breach_pct:13.1, inflow:420, outflow:310, aging_1d:180, aging_2d:90, aging_3d:55, aging_gt3d:35},
+  {city:"Delhi",     bau:3.0, surface_tat:4, air_tat:2, pipeline_days:5.9, long_tail_pct:7.8,  sla_breach_pct:10.4, inflow:510, outflow:390, aging_1d:210, aging_2d:100,aging_3d:60, aging_gt3d:40},
+  {city:"Bengaluru", bau:3.2, surface_tat:5, air_tat:2, pipeline_days:4.1, long_tail_pct:3.1,  sla_breach_pct:4.8,  inflow:380, outflow:360, aging_1d:300, aging_2d:50, aging_3d:20, aging_gt3d:8},
+  {city:"Chennai",   bau:3.8, surface_tat:5, air_tat:3, pipeline_days:7.2, long_tail_pct:11.4, sla_breach_pct:15.6, inflow:290, outflow:190, aging_1d:110, aging_2d:70, aging_3d:50, aging_gt3d:45},
+  {city:"Hyderabad", bau:3.3, surface_tat:5, air_tat:2, pipeline_days:5.2, long_tail_pct:5.4,  sla_breach_pct:7.2,  inflow:310, outflow:265, aging_1d:180, aging_2d:60, aging_3d:30, aging_gt3d:18},
+  {city:"Kolkata",   bau:4.0, surface_tat:6, air_tat:3, pipeline_days:8.1, long_tail_pct:14.2, sla_breach_pct:18.3, inflow:260, outflow:160, aging_1d:100, aging_2d:65, aging_3d:55, aging_gt3d:50},
+  {city:"Pune",      bau:3.0, surface_tat:4, air_tat:2, pipeline_days:4.8, long_tail_pct:4.2,  sla_breach_pct:5.9,  inflow:220, outflow:200, aging_1d:160, aging_2d:40, aging_3d:18, aging_gt3d:10},
+  {city:"Ahmedabad", bau:3.5, surface_tat:5, air_tat:2, pipeline_days:5.5, long_tail_pct:6.1,  sla_breach_pct:8.8,  inflow:195, outflow:160, aging_1d:120, aging_2d:50, aging_3d:28, aging_gt3d:20},
+];
+
+// ─── COMPUTE ─────────────────────────────────────────────────────────────────
+function compute(raw, mult) {
+  return raw.map(r => {
+    const tat_adv   = r.surface_tat - r.air_tat;
+    const trigger   = (r.bau + tat_adv) * mult;
+    const air_on    = r.pipeline_days > trigger;
+    const io_ratio  = r.outflow > 0 ? (r.inflow / r.outflow) : 0;
+    const total_aging = r.aging_1d + r.aging_2d + r.aging_3d + r.aging_gt3d;
+    const daily_air_orders = air_on ? Math.round(r.inflow * AIR_SHARE) : 0;
+    const daily_air_cost   = daily_air_orders * DELTA_C;
+
+    const p_rag = r.pipeline_days > trigger ? 'red' : r.pipeline_days > r.bau + 0.5 ? 'amber' : 'green';
+    const l_rag = r.long_tail_pct > 8 ? 'red' : r.long_tail_pct > 3 ? 'amber' : 'green';
+    const s_rag = r.sla_breach_pct > 12 ? 'red' : r.sla_breach_pct > 5 ? 'amber' : 'green';
+    const io_rag = io_ratio > 1.3 ? 'red' : io_ratio > 1.1 ? 'amber' : 'green';
+
+    let action, action_color;
+    if (p_rag === 'red' && air_on)  { action = '✈ AIR ACTIVE — MONITOR SPEND'; action_color = '#3b82f6'; }
+    else if (p_rag === 'red')       { action = '⚠ CRITICAL — ACTIVATE AIR';   action_color = '#ef4444'; }
+    else if (p_rag === 'amber' && io_rag === 'red') { action = '↑ WATCH — I/O RISING'; action_color = '#f59e0b'; }
+    else if (p_rag === 'amber')     { action = '~ APPROACHING TRIGGER';        action_color = '#f59e0b'; }
+    else                            { action = '✓ NORMAL OPS';                 action_color = '#22c55e'; }
+
+    return { ...r, tat_adv, trigger, air_on, io_ratio, total_aging,
+             daily_air_orders, daily_air_cost, p_rag, l_rag, s_rag, io_rag, action, action_color };
+  });
+}
+
+// ─── RAG BADGE HTML ──────────────────────────────────────────────────────────
+function rag(status, val) {
+  return `<span class="rag rag-${status}"><span class="rag-dot"></span>${val}</span>`;
+}
+
+// ─── AGING BAR HTML ──────────────────────────────────────────────────────────
+function agingBar(m) {
+  const t = m.total_aging || 1;
+  const segs = [
+    {v: m.aging_1d,    c:'#f59e0b', label:'1d'},
+    {v: m.aging_2d,    c:'#fb923c', label:'2d'},
+    {v: m.aging_3d,    c:'#ef4444', label:'3d'},
+    {v: m.aging_gt3d,  c:'#991b1b', label:'>3d'},
+  ];
+  return `<div class="aging-bar">${segs.map(s =>
+    `<div class="ab-seg" style="width:${(s.v/t*100).toFixed(1)}%;background:${s.c};min-width:${s.v>0?2:0}px" title="${s.label}: ${s.v} orders (${(s.v/t*100).toFixed(0)}%)"></div>`
+  ).join('')}</div>`;
+}
+
+// ─── RENDER OVERVIEW ─────────────────────────────────────────────────────────
+function renderOverview() {
+  const cities = compute(cityData, triggerMult).sort((a,b) => b.pipeline_days - a.pipeline_days);
+
+  // KPIs
+  const airCities = cities.filter(c => c.air_on);
+  document.getElementById('kpi-red').textContent    = cities.filter(c => c.p_rag==='red').length;
+  document.getElementById('kpi-amber').textContent  = cities.filter(c => c.p_rag==='amber').length;
+  document.getElementById('kpi-air').textContent    = airCities.length;
+  document.getElementById('kpi-orders').textContent = airCities.reduce((s,c)=>s+c.daily_air_orders,0).toLocaleString('en-IN');
+  const totalCost = airCities.reduce((s,c)=>s+c.daily_air_cost,0);
+  document.getElementById('kpi-cost').textContent   = '₹' + (totalCost/1000).toFixed(1) + 'K';
+
+  // Table
+  const tbody = document.getElementById('city-tbody');
+  tbody.innerHTML = cities.map(m => `
+    <tr class="${selectedCity===m.city?'selected':''}" onclick="toggleDrilldown('${m.city}')">
+      <td style="font-weight:600;color:#e8f2ff;">${m.city}</td>
+      <td>${rag(m.p_rag, m.pipeline_days.toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px;">BAU:${m.bau}</span></td>
+      <td style="font-family:'DM Mono';font-size:12px;color:var(--muted);">&gt;${m.trigger.toFixed(1)}d</td>
+      <td>${rag(m.l_rag, m.long_tail_pct.toFixed(1)+'%')}</td>
+      <td>${rag(m.s_rag, m.sla_breach_pct.toFixed(1)+'%')}</td>
+      <td>${rag(m.io_rag, m.io_ratio.toFixed(2))}</td>
+      <td>${agingBar(m)}</td>
+      <td>${m.air_on ? '<span class="air-on">✈ ON</span>' : '<span class="air-off">— OFF</span>'}</td>
+      <td style="font-size:11px;font-weight:600;color:${m.action_color};">${m.action}</td>
+    </tr>
+  `).join('');
+
+  // Drilldown
+  renderDrilldown(cities);
+}
+
+function toggleDrilldown(city) {
+  selectedCity = selectedCity === city ? null : city;
+  renderOverview();
+}
+
+function renderDrilldown(cities) {
+  const dd = document.getElementById('drilldown');
+  if (!selectedCity) { dd.style.display = 'none'; return; }
+  const m = cities.find(c => c.city === selectedCity);
+  if (!m) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  const t = m.total_aging || 1;
+  const buckets = [
+    {label:'1 Day Over', val: m.aging_1d,   color:'#f59e0b'},
+    {label:'2 Days Over',val: m.aging_2d,   color:'#fb923c'},
+    {label:'3 Days Over',val: m.aging_3d,   color:'#ef4444'},
+    {label:'> 3 Days',   val: m.aging_gt3d, color:'#991b1b'},
+  ];
+  dd.innerHTML = `
+    <div class="drilldown-header">
+      <div class="drilldown-title">${m.city} — Drilldown</div>
+      <button class="drilldown-close" onclick="selectedCity=null;renderOverview()">×</button>
+    </div>
+    <div class="drilldown-grid">
+      <div class="dd-card">
+        <div class="dd-card-title">Trigger Calculation</div>
+        ${[['BAU Pipeline',m.bau+'d'],['Surface TAT',m.surface_tat+'d'],['Air TAT',m.air_tat+'d'],['TAT Advantage',m.tat_adv+'d'],['Trigger Threshold',m.trigger.toFixed(1)+'d'],['Current Pipeline',m.pipeline_days.toFixed(1)+'d'],['Excess vs BAU','+'+(m.pipeline_days-m.bau).toFixed(1)+'d']].map(([k,v])=>`
+          <div class="dd-row"><span class="dd-row-label">${k}</span><span class="dd-row-val">${v}</span></div>`).join('')}
+        <hr class="dd-divider"/>
+        <div class="dd-row">
+          <span class="dd-row-label">Air Triggered?</span>
+          <span style="font-family:'DM Mono';font-weight:700;color:${m.air_on?'#3b82f6':'#22c55e'};">${m.air_on?'YES ✈':'NO ✓'}</span>
+        </div>
+      </div>
+      <div class="dd-card">
+        <div class="dd-card-title">Aging Buckets (Days Over ETA)</div>
+        ${buckets.map(b => `
+          <div class="bucket-row">
+            <div class="bucket-header">
+              <span style="color:${b.color};font-weight:600;">${b.label}</span>
+              <span style="font-family:'DM Mono';color:#e8f2ff;">${b.val.toLocaleString('en-IN')} <span style="color:var(--muted);font-size:10px;">(${(b.val/t*100).toFixed(0)}%)</span></span>
+            </div>
+            <div class="bucket-bar-bg"><div class="bucket-bar-fill" style="width:${(b.val/t*100).toFixed(1)}%;background:${b.color};"></div></div>
+          </div>`).join('')}
+        <hr class="dd-divider"/>
+        <div class="dd-row"><span class="dd-row-label">Total Aging Orders</span><span class="dd-row-val">${m.total_aging.toLocaleString('en-IN')}</span></div>
+      </div>
+      <div class="dd-card">
+        <div class="dd-card-title">Cost Impact (Air)</div>
+        ${[['ΔC per order','₹'+DELTA_C],['Air share of inflow','35%'],['Today inflow',m.inflow.toLocaleString('en-IN')],['Air orders/day',m.daily_air_orders.toLocaleString('en-IN')],['Daily incremental cost','₹'+m.daily_air_cost.toLocaleString('en-IN')],['Weekly projection','₹'+(m.daily_air_cost*7).toLocaleString('en-IN')],['I/O Ratio',m.io_ratio.toFixed(2)]].map(([k,v])=>`
+          <div class="dd-row"><span class="dd-row-label">${k}</span><span class="dd-row-val">${v}</span></div>`).join('')}
+        <hr class="dd-divider"/>
+        <div style="font-size:11px;color:var(--muted);">Air targets new orders only. In-transit stays on surface.</div>
+      </div>
+    </div>`;
+}
+
+// ─── RENDER COST SIM ─────────────────────────────────────────────────────────
+function renderSim() {
+  const mult = parseFloat(document.getElementById('trigger-mult-sim').value);
+  const cities = compute(cityData, mult).sort((a,b) => b.daily_air_cost - a.daily_air_cost);
+  const maxCost = Math.max(...cities.map(c => c.daily_air_cost), 1);
+  const totalCost = cities.reduce((s,c) => s + c.daily_air_cost, 0);
+  const airCount = cities.filter(c => c.air_on).length;
+
+  document.getElementById('cost-bars').innerHTML = cities.map(m => `
+    <div class="cost-bar-row">
+      <div class="cost-bar-label">
+        <span style="color:${m.air_on?'#e8f2ff':'var(--dim)'};">${m.city} ${m.air_on?'✈':''}</span>
+        <span style="font-family:'DM Mono';color:${m.air_on?'#a78bfa':'var(--dim)'};">${m.air_on?'₹'+m.daily_air_cost.toLocaleString('en-IN'):'—'}</span>
+      </div>
+      <div class="cost-bar-bg"><div class="cost-bar-fill" style="width:${(m.daily_air_cost/maxCost*100).toFixed(1)}%;"></div></div>
+    </div>`).join('');
+
+  document.getElementById('cost-rollup').innerHTML = [
+    ['Cities on Air', airCount + ' / ' + cities.length],
+    ['Total Air orders/day', cities.reduce((s,c)=>s+c.daily_air_orders,0).toLocaleString('en-IN')],
+    ['ΔC per order', '₹'+DELTA_C],
+    ['Daily incremental cost', '₹'+totalCost.toLocaleString('en-IN')],
+    ['Weekly projection', '₹'+(totalCost*7).toLocaleString('en-IN')],
+    ['30-day projection', '₹'+(totalCost*30).toLocaleString('en-IN')],
+    ['Trigger sensitivity', mult.toFixed(2)+'×'],
+  ].map(([k,v]) => `<div class="rollup-row"><span class="rollup-label">${k}</span><span class="rollup-val">${v}</span></div>`).join('');
+
+  document.getElementById('cost-tip').textContent = mult < 1
+    ? '⚠ Aggressive mode — more cities on Air, higher cost, better protection.'
+    : mult > 1.1
+    ? '💡 Conservative mode — fewer cities on Air. Ensure long tail stays under 8%.'
+    : '💡 To reduce cost: increase multiplier to 1.1–1.2×. To protect pipeline: keep at 1.0×.';
+
+  // Sensitivity table
+  const mults = [0.8,0.9,1.0,1.1,1.2,1.3,1.4];
+  const thead = `<thead><tr><th>Mult</th>${cityData.map(c=>`<th>${c.city.slice(0,3)}</th>`).join('')}<th>Total/Day</th><th>30-Day</th></tr></thead>`;
+  const tbody = mults.map(m2 => {
+    const sim = compute(cityData, m2);
+    const tot = sim.reduce((s,c)=>s+c.daily_air_cost,0);
+    const isActive = Math.abs(m2-mult)<0.01;
+    return `<tr class="${isActive?'active-row':''}">
+      <td class="${isActive?'active-marker':''}" style="font-family:'DM Mono';">${m2.toFixed(1)}×${isActive?' ◀':''}</td>
+      ${sim.map(c=>`<td style="color:${c.air_on?'#a78bfa':'var(--dim)'};">${c.air_on?'₹'+(c.daily_air_cost/1000).toFixed(1)+'K':'—'}</td>`).join('')}
+      <td style="color:#e8f2ff;font-weight:600;">₹${tot.toLocaleString('en-IN')}</td>
+      <td style="color:#2dd4bf;">₹${(tot*30/100000).toFixed(1)}L</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('sens-table').innerHTML = thead + '<tbody>' + tbody + '</tbody>';
+}
+
+// ─── RENDER LOGIC ─────────────────────────────────────────────────────────────
+function renderLogic() {
+  const steps = [
+    {n:'01',title:'Check Pipeline Days',logic:'Pipeline Days = In-Transit Orders ÷ Avg Daily Outflow (7-day rolling)',trigger:'If pipeline > BAU + TAT Advantage → AIR ON via Clickpost rule',color:'#3b82f6'},
+    {n:'02',title:'Check Long Tail %',logic:'Long Tail % = Orders delivered after ETA+24h ÷ Total delivered (last 24h)',trigger:'If Long Tail > 8% AND pipeline > BAU+1 → Escalate + activate Air if not already ON',color:'#fb923c'},
+    {n:'03',title:'Check SLA Breach %',logic:'SLA Breach % = Orders delivered after promised ETA ÷ Total delivered today',trigger:'If SLA > 12% → Flag city. Review air spend vs budget cap if already ON.',color:'#ef4444'},
+    {n:'04',title:'Check I/O Ratio',logic:'I/O Ratio = Today inflow ÷ Today outflow. Constant inflow means ratio rise = outflow drop.',trigger:'If I/O > 1.2 for 2 consecutive checks → Pre-arm Air even if pipeline not yet at trigger.',color:'#f59e0b'},
+    {n:'05',title:'Air Volume Decision',logic:'New orders only. 35% of city inflow routed to BD Air via Clickpost city/pincode rule.',trigger:'Focus pincodes with highest aging_gt3d concentration first.',color:'#22c55e'},
+    {n:'06',title:'Deactivate Air (Hysteresis)',logic:'Turn OFF only when pipeline stays below trigger for 2 consecutive 4-hour checks.',trigger:'Prevents toggling. Log every ON/OFF with timestamp in Decision Log sheet.',color:'#a78bfa'},
+  ];
+  document.getElementById('logic-steps').innerHTML = steps.map(s => `
+    <div class="step-row">
+      <div class="step-num" style="background:${s.color}22;border:1px solid ${s.color}44;color:${s.color};">${s.n}</div>
+      <div class="step-body">
+        <div class="step-title">${s.title}</div>
+        <div class="step-logic">${s.logic}</div>
+        <div class="step-trigger" style="color:${s.color};">→ ${s.trigger}</div>
+      </div>
+    </div>`).join('');
+
+  const thresholds = [
+    ['Pipeline Days','< BAU+0.5','BAU+0.5 → +TAT adv','> BAU+TAT adv'],
+    ['Long Tail %','< 3%','3%–8%','> 8%'],
+    ['SLA Breach %','< 5%','5%–12%','> 12%'],
+    ['I/O Ratio','0.9–1.1','1.1–1.3','> 1.3'],
+    ['Air Share %','< 8%','8%–15%','> 15% (cost alert)'],
+  ];
+  document.getElementById('thresh-table').innerHTML =
+    `<thead><tr><th>Metric</th><th style="color:#22c55e;">Green</th><th style="color:#f59e0b;">Amber</th><th style="color:#ef4444;">Red</th></tr></thead>` +
+    `<tbody>${thresholds.map(([m,g,a,r])=>`<tr>
+      <td style="font-weight:600;color:#e8f2ff;">${m}</td>
+      <td style="color:#22c55e;font-family:'DM Mono';font-size:10px;">${g}</td>
+      <td style="color:#f59e0b;font-family:'DM Mono';font-size:10px;">${a}</td>
+      <td style="color:#ef4444;font-family:'DM Mono';font-size:10px;">${r}</td>
+    </tr>`).join('')}</tbody>`;
+
+  const constraints = [
+    'Air applies to new orders only — in-transit orders remain on surface.',
+    'ETA buffer fixed at +24h — not a variable in this model.',
+    'Inflow treated as constant — no demand shaping lever.',
+    'Clickpost rules target city or pincode only — no lane-level rules.',
+    'ΔC fixed at ₹35/order (BD Air ₹72 − Surface CPOL ₹37).',
+    'Deactivate Air only after pipeline below trigger for 2 consecutive 4h checks.',
+  ];
+  document.getElementById('constraints').innerHTML = constraints.map(c =>
+    `<div class="constraint-row"><span class="constraint-check">✓</span><span class="constraint-text">${c}</span></div>`
+  ).join('');
+}
+
+// ─── TAB SWITCHING ───────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  ['overview','sim','logic'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+  });
+  if (tab==='sim') renderSim();
+  if (tab==='logic') renderLogic();
+}
+
+// ─── SLIDERS ─────────────────────────────────────────────────────────────────
+function onSlider() {
+  triggerMult = parseFloat(document.getElementById('trigger-mult').value);
+  document.getElementById('slider-val').textContent = triggerMult.toFixed(2)+'×';
+  document.getElementById('slider-desc').textContent = triggerMult < 1 ? '← More aggressive' : triggerMult > 1 ? 'More conservative →' : 'BAU threshold';
+  renderOverview();
+}
+function onSliderSim() {
+  const v = parseFloat(document.getElementById('trigger-mult-sim').value);
+  document.getElementById('slider-val-sim').textContent = v.toFixed(2)+'×';
+  document.getElementById('slider-desc-sim').textContent = v < 1 ? '← More aggressive' : v > 1 ? 'More conservative →' : 'BAU threshold';
+  renderSim();
+}
+
+// ─── DATA LOADING ────────────────────────────────────────────────────────────
+function loadSampleData() {
+  cityData = SAMPLE;
+  document.getElementById('footer-sheet').textContent = 'DATA: SAMPLE (replace with your Sheet URL)';
+  document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString('en-IN') + ' (sample)';
+  renderOverview();
+  if (currentTab==='sim') renderSim();
+  if (currentTab==='logic') renderLogic();
+  showError('');
+}
+
+async function loadFromSheet() {
+  const url = document.getElementById('sheet-url').value.trim();
+  if (!url) { showError('Please paste your Google Sheet CSV URL first.'); return; }
+  await loadData(url);
+}
+
+async function loadData(url) {
+  url = url || sheetUrl;
+  if (!url) return;
+  sheetUrl = url;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    const rows = text.trim().split('\n');
+    const headers = rows[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g,'_'));
+    cityData = rows.slice(1).filter(r=>r.trim()).map(row => {
+      const vals = row.split(',');
+      const obj = {};
+      headers.forEach((h,i) => { obj[h] = isNaN(vals[i]) ? vals[i].trim() : parseFloat(vals[i]); });
+      return obj;
+    });
+    document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString('en-IN');
+    document.getElementById('footer-sheet').textContent = 'SHEET: CONNECTED · ' + cityData.length + ' CITIES';
+    renderOverview();
+    if (currentTab==='sim') renderSim();
+    showError('');
+    localStorage.setItem('rct_sheet_url', url);
+  } catch(e) {
+    showError('Could not load Sheet: ' + e.message + '. Make sure the Sheet is published as CSV (File → Share → Publish to web → CSV).');
+  }
+}
+
+function showError(msg) {
+  const bar = document.getElementById('error-bar');
+  bar.style.display = msg ? 'block' : 'none';
+  bar.textContent = msg;
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  const saved = localStorage.getItem('rct_sheet_url');
+  if (saved) { document.getElementById('sheet-url').value = saved; loadData(saved); }
+  else { loadSampleData(); }
+  renderLogic();
+};
+</script>
+</body>
+</html>
