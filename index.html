@@ -335,8 +335,8 @@ td{padding:9px 10px;vertical-align:middle;}
     </div>
     <div class="config-field">
       <label>Config PIN</label>
-      <input type="text" id="cfg-pin" value="1mg2025" maxlength="16"/>
-      <span class="config-hint">Change this after first deploy.</span>
+      <input type="password" id="cfg-pin" value="1mg2025" maxlength="16" autocomplete="new-password"/>
+      <span class="config-hint">Change this after first deploy. Masked for security.</span>
     </div>
     <div class="config-field trigger-field">
       <label>Trigger Sensitivity Multiplier</label>
@@ -771,11 +771,33 @@ function renderDD(cities){
     </div>`;
 }
 
+// ── PERSIST ACTIVE CITIES + CHANGE LOG ───────────────────────────────────────
+function saveActiveCities(){
+  localStorage.setItem('rct_active_cities', JSON.stringify([...activeCities]));
+}
+function loadActiveCitiesFromStorage(){
+  try{
+    const saved=localStorage.getItem('rct_active_cities');
+    if(saved) activeCities=new Set(JSON.parse(saved));
+  }catch(e){ activeCities=new Set(); }
+}
+function saveChangeLog(){
+  try{ localStorage.setItem('rct_change_log', JSON.stringify(changeLog.slice(0,100))); }catch(e){}
+}
+function loadChangeLogFromStorage(){
+  try{
+    const saved=localStorage.getItem('rct_change_log');
+    if(saved) changeLog=JSON.parse(saved);
+  }catch(e){ changeLog=[]; }
+}
+
 // ── ACTIVATE / DEACTIVATE ─────────────────────────────────────────────────────
 function doActivate(city,pipeline,trigger){
   activeCities.add(city);
+  saveActiveCities();
   const entry={ts:new Date().toLocaleString('en-IN'),action:'ACTIVATED',city,pipeline,trigger,details:`Air activated for ${city}. Pipeline: ${pipeline}d > Trigger: ${trigger}d`};
   changeLog.unshift(entry);
+  saveChangeLog();
   writeToChangeLog(entry);
   renderOverview();
   if(currentTab==='log') renderLog();
@@ -783,8 +805,10 @@ function doActivate(city,pipeline,trigger){
 
 function doDeactivate(city,pipeline,trigger){
   activeCities.delete(city);
+  saveActiveCities();
   const entry={ts:new Date().toLocaleString('en-IN'),action:'DEACTIVATED',city,pipeline,trigger,details:`Air deactivated for ${city}. Pipeline: ${pipeline}d. Below trigger: ${trigger}d`};
   changeLog.unshift(entry);
+  saveChangeLog();
   writeToChangeLog(entry);
   renderOverview();
   if(currentTab==='log') renderLog();
@@ -1017,7 +1041,7 @@ function submitPin(){
     document.getElementById('pin-overlay').style.display='none';
     document.getElementById('pin-input').value='';
     document.getElementById('pin-error').style.display='none';
-    document.getElementById('config-lock-info').textContent='🔓 UNLOCKED';
+    applyConfigLockUI();
     if(window._pinCallback){window._pinCallback();window._pinCallback=null;}
   } else {
     document.getElementById('pin-error').style.display='block';
@@ -1025,12 +1049,10 @@ function submitPin(){
 }
 // Lock config fields until PIN entered
 function setupPinLock(){
-  const fields=['cfg-delta-c','cfg-min-opd','cfg-pin','cfg-trigger','sheet-url','air-url','script-url'];
-  // Make config panel clickable to trigger PIN
   document.getElementById('config-panel').addEventListener('click',function(e){
     if(!configUnlocked){
       e.preventDefault();e.stopPropagation();
-      requirePin(()=>{});
+      requirePin(()=>{ configUnlocked=true; applyConfigLockUI(); });
     }
   },true);
 }
@@ -1092,6 +1114,13 @@ async function loadAirSheet(){
 }
 
 async function loadAll(){
+  // Always re-read URLs from input fields in case they were restored from localStorage
+  const cityInput=document.getElementById('sheet-url').value.trim();
+  const airInput=document.getElementById('air-url').value.trim();
+  const scriptInput=document.getElementById('script-url').value.trim();
+  if(cityInput) sheetUrl=cityInput;
+  if(airInput)  airUrl=airInput;
+  if(scriptInput){ scriptUrl=scriptInput; setStatus('script-status','CONNECTED','tag-ok'); }
   if(sheetUrl) await loadCitySheet();
   if(airUrl)   await loadAirSheet();
   if(!sheetUrl&&!airUrl) loadSampleData();
@@ -1173,6 +1202,11 @@ window.onload=()=>{
   setupPinLock();
   configUnlocked=false;
   document.getElementById('config-lock-info').textContent='🔒 LOCKED — click to unlock';
+  applyConfigLockUI();
+
+  // Restore active cities and change log from localStorage
+  loadActiveCitiesFromStorage();
+  loadChangeLogFromStorage();
 
   if(sc||sa) loadAll();
   else loadSampleData();
@@ -1180,6 +1214,18 @@ window.onload=()=>{
   renderLogic();
   startAutoRefresh();
 };
+
+function applyConfigLockUI(){
+  // Hide sensitive fields when locked, show only the unlock prompt
+  const sensitiveIds=['cfg-delta-c','cfg-min-opd','cfg-pin','cfg-trigger','sheet-url','air-url','script-url'];
+  const locked=!configUnlocked;
+  // Grey out inputs but keep sheet URLs visible (needed for connection)
+  ['cfg-delta-c','cfg-min-opd','cfg-pin','cfg-trigger'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.disabled=locked; el.style.opacity=locked?'0.3':'1'; }
+  });
+  document.getElementById('config-lock-info').textContent=locked?'🔒 LOCKED — click anywhere to unlock':'🔓 UNLOCKED';
+}
 </script>
 </body>
 </html>
