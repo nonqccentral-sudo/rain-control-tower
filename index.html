@@ -502,10 +502,10 @@ const DEFAULT_PIN = '1mg2025';
 // ── DEFAULT SHEET URLs — set these once, everyone gets them automatically ──
 // Paste your published CSV URLs here. Any team member opening the dashboard
 // will load data immediately without needing to configure anything.
-const DEFAULT_CITY_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';  // ← paste CITY_METRICS CSV URL here
-const DEFAULT_FORECAST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';  // ← paste BD_AIR_FORECAST CSV URL here
-const DEFAULT_MTD_URL      = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';  // ← paste BD_AIR_MTD CSV URL here
-const DEFAULT_SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbw5kwmtGQIPBn2mKcuKq62hcBkUL-SjYjc4chtgEl0Kn-waAESAMqoLAGklfxvOykQrlw/exec';  // ← paste Apps Script web app URL here
+const DEFAULT_CITY_URL     = '';  // ← paste CITY_METRICS CSV URL here
+const DEFAULT_FORECAST_URL = '';  // ← paste BD_AIR_FORECAST CSV URL here
+const DEFAULT_MTD_URL      = '';  // ← paste BD_AIR_MTD CSV URL here
+const DEFAULT_SCRIPT_URL   = '';  // ← paste Apps Script web app URL here
 const RAG_ORDER = {active:-1, red:0, amber:1, green:2};
 
 // ── SAMPLE DATA ───────────────────────────────────────────────────────────────
@@ -892,14 +892,17 @@ function renderLog(){
 // ── WRITE TO APPS SCRIPT (CHANGE LOG) ────────────────────────────────────────
 async function writeToChangeLog(entry){
   const url=document.getElementById('script-url').value.trim();
-  if(!url) return; // silently skip if not configured
+  if(!url) return;
   try{
-    await fetch(url,{
+    // Use no-cors for fire-and-forget write — we don't need to read the response.
+    // Apps Script receives the POST regardless; no-cors just means we can't read reply.
+    // This is intentional for write operations — sync reads use a separate GET call.
+    fetch(url,{
       method:'POST',
       mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({action:'log',data:entry})
-    });
+    }).catch(()=>{}); // fire and forget
   }catch(e){console.warn('Change log write failed:',e.message);}
 }
 
@@ -941,12 +944,23 @@ async function testScript(){
   const url=document.getElementById('script-url').value.trim();
   if(!url){showErr('Paste your Apps Script URL first.');return;}
   scriptUrl=url;
+  setStatus('script-status','TESTING...','tag-sample');
   try{
-    await fetch(url+'?action=ping',{mode:'no-cors'});
-    setStatus('script-status','CONNECTED','tag-ok');
-    localStorage.setItem('rct_script_url',url);
-    showErr('');
-  }catch(e){setStatus('script-status','ERROR','tag-no');}
+    // Real GET fetch — reads the response to confirm script is actually reachable
+    const resp=await fetch(url+'?action=ping&t='+Date.now(),{cache:'no-store'});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    if(data.status==='ok'){
+      setStatus('script-status','✓ CONNECTED','tag-ok');
+      localStorage.setItem('rct_script_url',url);
+      showErr('');
+    } else {
+      throw new Error(data.message||'Unexpected response');
+    }
+  }catch(e){
+    setStatus('script-status','ERROR — '+e.message.slice(0,30),'tag-no');
+    showErr('Apps Script test failed: '+e.message+'. Make sure it is deployed as "Anyone can access".');
+  }
 }
 
 // ── COST SIM ──────────────────────────────────────────────────────────────────
@@ -1177,14 +1191,17 @@ function renderLog(){
 // ── WRITE TO APPS SCRIPT (CHANGE LOG) ────────────────────────────────────────
 async function writeToChangeLog(entry){
   const url=document.getElementById('script-url').value.trim();
-  if(!url) return; // silently skip if not configured
+  if(!url) return;
   try{
-    await fetch(url,{
+    // Use no-cors for fire-and-forget write — we don't need to read the response.
+    // Apps Script receives the POST regardless; no-cors just means we can't read reply.
+    // This is intentional for write operations — sync reads use a separate GET call.
+    fetch(url,{
       method:'POST',
       mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({action:'log',data:entry})
-    });
+    }).catch(()=>{}); // fire and forget
   }catch(e){console.warn('Change log write failed:',e.message);}
 }
 
@@ -1222,145 +1239,7 @@ function showSaveStatus(msg){
   setTimeout(()=>{el.style.display='none';},3000);
 }
 
-async function testScript(){
-  const url=document.getElementById('script-url').value.trim();
-  if(!url){showErr('Paste your Apps Script URL first.');return;}
-  scriptUrl=url;
-  try{
-    await fetch(url+'?action=ping',{mode:'no-cors'});
-    setStatus('script-status','CONNECTED','tag-ok');
-    localStorage.setItem('rct_script_url',url);
-    showErr('');
-  }catch(e){setStatus('script-status','ERROR','tag-no');}
-}
 
-// ── COST SIM ──────────────────────────────────────────────────────────────────
-
-
-// ── LOGIC TAB ─────────────────────────────────────────────────────────────────
-function renderLogic(){
-  document.getElementById('logic-steps').innerHTML=[
-    {n:'01',title:'Morning Review',logic:'SQL runs overnight. Open Heimdall each morning — data is D-1 (yesterday closed).',trigger:'Check Cities Critical and Active sections first.',c:'var(--blue)'},
-    {n:'02',title:'Activate Air for Critical Cities',logic:'Pipeline > BAU + TAT Advantage × trigger multiplier → city shows in Critical.',trigger:'Click [Activate Air] → city moves to Active section → logged automatically.',c:'var(--red)'},
-    {n:'03',title:'Check Watch Cities',logic:'Watch = pipeline > BAU + 0.5. Not trigger-worthy yet but approaching.',trigger:'Monitor daily. If I/O Ratio > 1.3, consider pre-emptive activation.',c:'var(--amber)'},
-    {n:'04',title:'Review Active Cities for Deactivation',logic:'Active cities show deactivation readiness. Green highlight = 2 days below trigger (or single-day if days_below_trigger not in sheet).',trigger:'Click [✅ Deactivate] on highlighted cities → moves back to RAG section → logged.',c:'var(--green)'},
-    {n:'05',title:'Review Change Log',logic:'All activations, deactivations and config changes are logged with timestamp.',trigger:'Team can see full history in Change Log tab and in CHANGE_LOG sheet.',c:'var(--purple)'},
-  ].map(s=>`<div class="step-row">
-    <div class="step-num" style="background:${s.c}22;border:1px solid ${s.c}44;color:${s.c};">${s.n}</div>
-    <div><div class="step-title">${s.title}</div>
-    <div class="step-logic">${s.logic}</div>
-    <div class="step-trigger" style="color:${s.c};">→ ${s.trigger}</div></div>
-  </div>`).join('');
-
-  document.getElementById('thresh-table').innerHTML=
-    `<thead><tr><th>Metric</th><th style="color:var(--green);">Green</th><th style="color:var(--amber);">Amber</th><th style="color:var(--red);">Red</th></tr></thead>
-    <tbody>${[
-      ['Pipeline Days (Air trigger)','< BAU+0.5','BAU+0.5 → BAU+TAT adv','> BAU+TAT adv × mult'],
-      ['Long Tail %','< 3%','3%–8%','> 8%'],
-      ['SLA Breach %','< 5%','5%–12%','> 12%'],
-      ['I/O Ratio','0.9–1.1','1.1–1.3','> 1.3'],
-    ].map(([m,g,a,r])=>`<tr>
-      <td style="font-weight:600;color:var(--text);">${m}</td>
-      <td style="color:var(--green);font-family:'DM Mono';font-size:10px;">${g}</td>
-      <td style="color:var(--amber);font-family:'DM Mono';font-size:10px;">${a}</td>
-      <td style="color:var(--red);font-family:'DM Mono';font-size:10px;">${r}</td>
-    </tr>`).join('')}</tbody>`;
-
-  document.getElementById('constraints').innerHTML=[
-    'RAG driven solely by pipeline days vs BAU + TAT Advantage × trigger multiplier.',
-    'Within each section, cities sorted by inflow (orders per day) descending.',
-    'Air = new orders only. In-transit remains on surface.',
-    'Deactivation: 2 consecutive days below trigger (fallback: single day).',
-    'All actions auto-logged to CHANGE_LOG sheet via Apps Script.',
-    'Config changes require PIN. PIN unlock persists per browser session.',
-    'D-1 data: all metrics are previous day closed figures.',
-  ].map(c=>`<div class="cr"><span style="color:var(--green);">✓</span><span style="color:var(--muted);">${c}</span></div>`).join('');
-}
-
-// ── TABS ──────────────────────────────────────────────────────────────────────
-function switchTab(tab,btn){
-  currentTab=tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  ['overview','sim','log','logic'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===tab?'block':'none';});
-  if(tab==='sim') renderSim();
-  if(tab==='log') renderLog();
-  if(tab==='logic') renderLogic();
-}
-
-// ── TRIGGER SLIDER ────────────────────────────────────────────────────────────
-function onTriggerSlider(){
-  trigMult=parseFloat(document.getElementById('cfg-trigger').value);
-  document.getElementById('trigger-val').textContent=trigMult.toFixed(2)+'×';
-  document.getElementById('trigger-desc').textContent=sdesc(trigMult);
-  renderOverview();
-  if(currentTab==='sim') renderSim();
-}
-
-// ── THEME ─────────────────────────────────────────────────────────────────────
-function toggleTheme(){
-  const html=document.documentElement;
-  const isDark=html.getAttribute('data-theme')==='dark';
-  html.setAttribute('data-theme',isDark?'light':'dark');
-  document.getElementById('theme-btn').textContent=isDark?'🌙':'☀️';
-  localStorage.setItem('rct_theme',isDark?'light':'dark');
-}
-
-// ── PIN ───────────────────────────────────────────────────────────────────────
-function requirePin(callback){
-  if(configUnlocked){callback();return;}
-  document.getElementById('pin-overlay').style.display='flex';
-  window._pinCallback=callback;
-}
-function submitPin(){
-  const entered=document.getElementById('pin-input').value;
-  const correct=localStorage.getItem(CORRECT_PIN_KEY)||DEFAULT_PIN;
-  if(entered===correct){
-    configUnlocked=true;
-    document.getElementById('pin-overlay').style.display='none';
-    document.getElementById('pin-input').value='';
-    document.getElementById('pin-error').style.display='none';
-    applyConfigLockUI();
-    if(window._pinCallback){window._pinCallback();window._pinCallback=null;}
-  } else {
-    document.getElementById('pin-error').style.display='block';
-  }
-}
-// Lock config fields until PIN entered
-function setupPinLock(){
-  document.getElementById('config-panel').addEventListener('click',function(e){
-    if(!configUnlocked){
-      e.preventDefault();e.stopPropagation();
-      requirePin(()=>{ configUnlocked=true; applyConfigLockUI(); });
-    }
-  },true);
-}
-
-// ── CSV PARSER ────────────────────────────────────────────────────────────────
-function parseCSV(text,mustHave){
-  const lines=text.split('\n').map(r=>r.trim()).filter(Boolean);
-  const hi=lines.findIndex(r=>mustHave.every(k=>r.toLowerCase().includes(k)));
-  if(hi===-1) throw new Error('Header not found. Expected: '+mustHave.join(', '));
-  const hdrs=lines[hi].split(',').map(h=>h.trim().toLowerCase().replace(/[\s'"]+/g,'_').replace(/[^a-z0-9_]/g,''));
-  const rows=[];
-  for(let i=hi+1;i<lines.length;i++){
-    const l=lines[i];
-    if(!l||l.startsWith(',')) break;
-    const vals=l.split(',');
-    if(vals.length<2) break;
-    const first=vals[0].trim().replace(/['"]/g,'');
-    if(!first||first.toLowerCase()===hdrs[0]) break;
-    const obj={};
-    hdrs.forEach((h,idx)=>{
-      const v=(vals[idx]||'').trim().replace(/['"₹%,\s]/g,'');
-      obj[h]=(v!==''&&!isNaN(v))?parseFloat(v):v;
-    });
-    if(obj[hdrs[0]]) rows.push(obj);
-  }
-  return rows;
-}
-
-// ── LOAD SHEETS ───────────────────────────────────────────────────────────────
 async function loadCitySheet(){
   const url=document.getElementById('sheet-url').value.trim();
   if(!url){showErr('Paste CITY_METRICS CSV URL.');return;}
@@ -1468,56 +1347,77 @@ function resetAutoRefresh(){
   nextRefreshIn=120;
 }
 
-// ── SYNC ACTIVE STATE FROM CHANGE LOG SHEET ───────────────────────────────────
-// Calls Apps Script to get latest ACTIVATED/DEACTIVATED per city from CHANGE_LOG
-// This is the multi-user sync — runs every 2 min and on Sync State button click
+// ── SYNC ACTIVE STATE FROM CHANGE LOG SHEET ─────────────────────────────────
+// IMPORTANT: Apps Script GET requests return CORS headers automatically.
+// We use a plain GET fetch (no mode:'no-cors') so we CAN read the JSON response.
+// The Apps Script must be deployed as "Anyone can access" for this to work.
 async function syncFromSheet(){
   const url=document.getElementById('script-url').value.trim();
-  if(!url){ return; } // silently skip if Apps Script not connected
+  if(!url){
+    document.getElementById('next-refresh-note').textContent='⚠ No Apps Script URL — sync unavailable';
+    return;
+  }
 
   const btn=document.getElementById('btn-sync');
   if(btn){ btn.classList.add('syncing'); btn.textContent='⟳ Syncing...'; }
 
   try{
-    const resp=await fetch(url+'?action=getActiveState');
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const data=await resp.json();
+    // Append timestamp to bust any cache
+    const fetchUrl=url+'?action=getActiveState&t='+Date.now();
+    const resp=await fetch(fetchUrl, {
+      method:'GET',
+      cache:'no-store',   // never use cached response — always get fresh data
+    });
 
+    if(!resp.ok) throw new Error('HTTP '+resp.status+' — check Apps Script deployment');
+
+    const text=await resp.text();
+    let data;
+    try{
+      data=JSON.parse(text);
+    }catch(e){
+      throw new Error('Invalid JSON from Apps Script. Response: '+text.slice(0,100));
+    }
+
+    if(!data || data.status==='error'){
+      throw new Error(data?.message||'Apps Script returned an error');
+    }
+
+    // ── ACTIVE CITIES: sheet is source of truth ──
     if(data.activeCities && Array.isArray(data.activeCities)){
-      // Merge: sheet state is source of truth for cities that exist in our data
-      const sheetActive=new Set(data.activeCities);
-      // Only update cities we know about (in cityData) to avoid ghost entries
       const knownCities=new Set(cityData.map(c=>c.city));
       const newActive=new Set();
-      sheetActive.forEach(c=>{ if(knownCities.has(c)) newActive.add(c); });
-      // Also keep any locally activated cities that sheet doesn't know about yet
-      // (edge case: activated this session before Apps Script wrote)
-      activeCities.forEach(c=>{ if(knownCities.has(c)) newActive.add(c); });
+      // Sheet wins — only include cities we know about
+      data.activeCities.forEach(c=>{ if(knownCities.has(c)) newActive.add(c); });
       activeCities=newActive;
       saveActiveCities();
     }
 
-    // Also sync change log entries if provided
+    // ── CHANGE LOG: merge sheet entries with local ──
     if(data.recentLog && Array.isArray(data.recentLog)){
-      // Merge sheet log with local log, deduplicate by timestamp+action+city
       const existing=new Set(changeLog.map(e=>e.ts+'|'+e.action+'|'+e.city));
+      let added=0;
       data.recentLog.forEach(e=>{
         const key=e.ts+'|'+e.action+'|'+e.city;
-        if(!existing.has(key)){ changeLog.push(e); existing.add(key); }
+        if(!existing.has(key)){ changeLog.push(e); existing.add(key); added++; }
       });
-      changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
-      changeLog=changeLog.slice(0,200);
-      saveChangeLog();
+      if(added>0){
+        changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+        changeLog=changeLog.slice(0,200);
+        saveChangeLog();
+      }
     }
 
     renderOverview();
     if(currentTab==='log') renderLog();
-    document.getElementById('next-refresh-note').textContent='Synced ✓ — next in 2:00';
-    setTimeout(()=>{ nextRefreshIn=120; },2000);
+
+    const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('next-refresh-note').textContent='✓ Synced at '+now+' — next in 2:00';
+    nextRefreshIn=120;
 
   }catch(e){
-    // Silently fail sync — don't interrupt user
-    console.warn('Sync from sheet failed:', e.message);
+    console.warn('Sync failed:', e.message);
+    document.getElementById('next-refresh-note').textContent='⚠ Sync failed: '+e.message.slice(0,40);
   } finally {
     if(btn){ btn.classList.remove('syncing'); btn.textContent='⟳ Sync State'; }
   }
