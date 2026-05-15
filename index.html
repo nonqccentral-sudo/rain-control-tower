@@ -1,690 +1,1184 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Rain Control Tower — Tata 1mg</title>
+<title>Heimdall v1 — Tata 1mg Rain Control Tower</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --bg:       #07090d;
-    --bg2:      #0c1018;
-    --bg3:      #111820;
-    --border:   #1c2a3a;
-    --border2:  #243040;
-    --text:     #c8d8ea;
-    --muted:    #4a6070;
-    --dim:      #2a3a4a;
-    --green:    #22c55e;
-    --amber:    #f59e0b;
-    --red:      #ef4444;
-    --blue:     #3b82f6;
-    --purple:   #a78bfa;
-    --teal:     #2dd4bf;
-    --orange:   #fb923c;
-    --green-bg: #071a0f;
-    --amber-bg: #1a1200;
-    --red-bg:   #1a0808;
-    --blue-bg:  #070f1a;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+/* ── THEMES ── */
+:root[data-theme="dark"]{
+  --bg:#07090d;--bg2:#0c1018;--bg3:#111820;--bg4:#0a1220;
+  --border:#1c2a3a;--border2:#243040;
+  --text:#c8d8ea;--muted:#4a6070;--dim:#2a3a4a;
+  --card:#0c1420;--card2:#0a1018;
+  --input-bg:#060a10;--input-border:#1c2a3a;
+  --green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+  --blue:#3b82f6;--purple:#a78bfa;--teal:#2dd4bf;--orange:#fb923c;
+  --green-bg:#071a0f;--amber-bg:#1a1200;--red-bg:#1a0808;--blue-bg:#07101a;
+  --active-bg:#060d1a;--active-border:#1a3060;
+  --section-red:#150808;--section-amber:#150d00;--section-green:#081508;--section-active:#060d1a;
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fa;--bg2:#edf0f7;--bg3:#e4e9f2;--bg4:#dce3ee;
+  --border:#c8d4e8;--border2:#b8c8dc;
+  --text:#1a2535;--muted:#6a7d98;--dim:#a0b0c8;
+  --card:#ffffff;--card2:#f8fafd;
+  --input-bg:#ffffff;--input-border:#c0cfe0;
+  --green:#16a34a;--amber:#d97706;--red:#dc2626;
+  --blue:#2563eb;--purple:#7c3aed;--teal:#0d9488;--orange:#ea580c;
+  --green-bg:#f0fdf4;--amber-bg:#fffbeb;--red-bg:#fef2f2;--blue-bg:#eff6ff;
+  --active-bg:#eff6ff;--active-border:#bfdbfe;
+  --section-red:#fff5f5;--section-amber:#fffdf0;--section-green:#f0fff4;--section-active:#eff6ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;transition:background .3s,color .3s;}
+[data-theme="dark"] body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");opacity:0.4;}
+.wrap{position:relative;z-index:1;padding:20px 24px;max-width:1700px;margin:0 auto;}
 
-  /* ── NOISE TEXTURE OVERLAY ── */
-  body::before {
-    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    opacity: 0.4;
-  }
+/* ── HEADER ── */
+.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.header-left{display:flex;align-items:center;gap:16px;}
+.heimdall-logo{width:52px;height:52px;flex-shrink:0;}
+.header-title-block{}
+.header-tag{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.header-tag span{font-family:'DM Mono';font-size:10px;color:var(--blue);letter-spacing:2px;text-transform:uppercase;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+h1{font-family:'Syne';font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px;line-height:1;}
+.d1-badge{font-family:'DM Mono';font-size:10px;background:var(--blue-bg);border:1px solid var(--blue);color:var(--blue);padding:2px 7px;border-radius:3px;margin-left:8px;vertical-align:middle;letter-spacing:1px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.header-right-info{text-align:right;}
+.refresh-label{font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.refresh-date{font-family:'DM Mono';font-size:12px;color:var(--text);margin:2px 0;}
+.auto-refresh-note{font-family:'DM Mono';font-size:10px;color:var(--muted);}
+.btn-icon{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-size:16px;width:34px;height:34px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.btn-icon:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+.btn-refresh{background:var(--bg3);border:1px solid var(--border2);color:var(--blue);font-family:'DM Mono';font-size:11px;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all .2s;}
+.btn-refresh:hover{background:var(--blue);color:#fff;}
 
-  .wrap { position: relative; z-index: 1; padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+/* ── PIN MODAL ── */
+.pin-overlay{position:fixed;inset:0;background:#000000cc;z-index:1000;display:flex;align-items:center;justify-content:center;}
+.pin-modal{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:32px;width:320px;text-align:center;}
+.pin-modal h3{font-family:'Syne';font-size:20px;color:var(--text);margin-bottom:8px;}
+.pin-modal p{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.pin-input{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono';font-size:20px;padding:10px;border-radius:6px;text-align:center;letter-spacing:8px;margin-bottom:12px;}
+.pin-input:focus{outline:none;border-color:var(--blue);}
+.btn-pin-submit{width:100%;background:var(--blue);border:none;color:#fff;font-family:'DM Mono';font-size:13px;padding:10px;border-radius:6px;cursor:pointer;}
+.pin-error{color:var(--red);font-size:12px;margin-top:8px;font-family:'DM Mono';}
 
-  /* ── HEADER ── */
-  .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
-  .header-left { }
-  .header-tag { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
-  .header-tag span { font-family: 'DM Mono'; font-size: 11px; color: var(--blue); letter-spacing: 2px; text-transform: uppercase; }
-  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
-  .live-label { font-family: 'DM Mono'; font-size: 11px; color: var(--green); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  h1 { font-family: 'Syne'; font-size: 28px; font-weight: 800; color: #e8f2ff; letter-spacing: -0.5px; }
-  .header-right { text-align: right; }
-  .refresh-info { font-family: 'DM Mono'; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
-  .refresh-time { font-family: 'DM Mono'; font-size: 12px; color: var(--text); }
-  .btn-refresh { margin-top: 6px; background: var(--bg3); border: 1px solid var(--border2); color: var(--blue); font-family: 'DM Mono'; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all .2s; }
-  .btn-refresh:hover { background: var(--blue); color: #fff; }
+/* ── CONFIG PANEL ── */
+.config-panel{background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:16px;}
+.config-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.config-panel-title{font-family:'DM Mono';font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+.config-lock-info{font-family:'DM Mono';font-size:10px;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:3px;border:1px solid var(--green);}
+.config-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.config-field{display:flex;flex-direction:column;gap:5px;}
+.config-field label{font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.config-field input[type=number],.config-field input[type=text]{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:13px;padding:7px 10px;border-radius:5px;width:100%;}
+.config-field input:focus{outline:none;border-color:var(--blue);}
+.config-hint{font-size:11px;color:var(--muted);margin-top:2px;}
+.trigger-field{grid-column:1/-1;}
+.trigger-row{display:flex;align-items:center;gap:12px;}
+.trigger-row input[type=range]{flex:1;accent-color:var(--blue);}
+.trigger-val{font-family:'DM Mono';font-size:14px;color:var(--blue);min-width:44px;}
+.trigger-desc{font-size:11px;color:var(--muted);}
+.config-divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.sheet-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.sheet-row:last-child{margin-bottom:0;}
+.sheet-label{font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;min-width:170px;}
+.sheet-input{flex:1;background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:11px;padding:5px 8px;border-radius:4px;}
+.sheet-input:focus{outline:none;border-color:var(--blue);}
+.btn-load{background:var(--blue);border:none;color:#fff;font-family:'DM Mono';font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;}
+.btn-load-air{background:#6366f1;border:none;color:#fff;font-family:'DM Mono';font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;}
+.btn-load-script{background:#0d9488;border:none;color:#fff;font-family:'DM Mono';font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;}
+.cfg-tag{font-family:'DM Mono';font-size:10px;padding:2px 8px;border-radius:3px;white-space:nowrap;}
+.tag-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green);}
+.tag-no{background:var(--red-bg);color:var(--red);border:1px solid var(--red);}
+.tag-sample{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);}
+.config-actions{display:flex;gap:8px;align-items:center;margin-top:12px;}
+.btn-save-config{background:var(--blue);border:none;color:#fff;font-family:'DM Mono';font-size:11px;padding:6px 16px;border-radius:4px;cursor:pointer;}
+.btn-save-config:hover{opacity:.85;}
+.btn-sample{background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:'DM Mono';font-size:10px;padding:5px 12px;border-radius:4px;cursor:pointer;}
+.btn-sample:hover{color:var(--text);border-color:var(--text);}
+.save-status{font-family:'DM Mono';font-size:11px;color:var(--green);}
 
-  /* ── CONFIG BANNER ── */
-  .config-banner { background: #0a1525; border: 1px dashed #2a4060; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
-  .config-banner a { color: var(--blue); text-decoration: none; font-family: 'DM Mono'; }
-  .config-banner a:hover { text-decoration: underline; }
-  .sheet-url-input { flex: 1; background: var(--bg); border: 1px solid var(--border2); color: var(--text); font-family: 'DM Mono'; font-size: 11px; padding: 4px 8px; border-radius: 4px; }
-  .btn-load { background: var(--blue); border: none; color: #fff; font-family: 'DM Mono'; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
+.kpi{border-radius:8px;padding:12px 14px;border:1px solid;background:var(--card);}
+.kpi-label{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:6px;}
+.kpi-val{font-family:'Syne';font-size:24px;font-weight:700;}
+.kpi-unit{font-size:11px;color:var(--muted);margin-left:3px;}
+.kpi-sub{font-size:10px;color:var(--muted);font-family:'DM Mono';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-  /* ── KPI STRIP ── */
-  .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
-  .kpi { border-radius: 8px; padding: 14px 16px; border: 1px solid; }
-  .kpi-label { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 8px; }
-  .kpi-val { font-family: 'Syne'; font-size: 28px; font-weight: 700; }
-  .kpi-unit { font-size: 11px; color: var(--muted); margin-left: 4px; font-family: 'DM Sans'; }
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border);}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'DM Sans';font-size:13px;font-weight:500;padding:8px 16px;cursor:pointer;margin-bottom:-1px;transition:all .15s;}
+.tab.active{color:var(--text);border-bottom-color:var(--blue);background:var(--bg3);}
+.tab:hover:not(.active){color:var(--text);}
 
-  /* ── TABS ── */
-  .tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
-  .tab { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--muted); font-family: 'DM Sans'; font-size: 13px; font-weight: 500; padding: 8px 16px; cursor: pointer; margin-bottom: -1px; transition: all .15s; }
-  .tab.active { color: #e8f2ff; border-bottom-color: var(--blue); background: var(--bg3); }
-  .tab:hover:not(.active) { color: var(--text); }
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{border-bottom:1px solid var(--border2);}
+th{padding:7px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+tbody tr:not(.section-hdr):hover{background:var(--bg3);}
+tbody tr.selected{background:var(--bg4);}
+td{padding:9px 10px;vertical-align:middle;}
 
-  /* ── SLIDER BAR ── */
-  .slider-bar { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; font-size: 12px; }
-  .slider-bar label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
-  .slider-bar input[type=range] { flex: 1; accent-color: var(--blue); }
-  .slider-val { font-family: 'DM Mono'; font-size: 13px; color: var(--blue); min-width: 36px; }
-  .slider-desc { font-size: 11px; color: var(--muted); }
+/* ── SECTION HEADER ── */
+.section-hdr{cursor:pointer;user-select:none;}
+.section-hdr td{padding:6px 10px;border-bottom:none !important;border-top:2px solid var(--border);}
+.section-hdr:first-child td{border-top:none;}
+.shdr-inner{display:flex;align-items:center;gap:8px;}
+.shdr-chevron{font-size:11px;transition:transform .2s;display:inline-block;color:var(--muted);}
+.shdr-count{font-family:'DM Mono';font-size:10px;color:var(--muted);}
+.shdr-note{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-left:auto;padding-right:4px;}
 
-  /* ── CITY TABLE ── */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead tr { border-bottom: 1px solid var(--border2); }
-  th { padding: 7px 10px; text-align: left; font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
-  tbody tr { border-bottom: 1px solid #0e1620; cursor: pointer; transition: background .12s; }
-  tbody tr:hover { background: #0d1825; }
-  tbody tr.selected { background: #0e1e30; }
-  td { padding: 10px 10px; vertical-align: middle; }
+/* ── ROW BORDERS ── */
+.row-active td:first-child{border-left:3px solid var(--blue);}
+.row-red td:first-child{border-left:3px solid var(--red);}
+.row-amber td:first-child{border-left:3px solid var(--amber);}
+.row-green td:first-child{border-left:3px solid #22c55e44;}
+.row-deactivate-ready{background:var(--green-bg) !important;}
+.row-deactivate-ready td:first-child{border-left:3px solid var(--green) !important;}
 
-  /* ── RAG BADGE ── */
-  .rag { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 4px; font-family: 'DM Mono'; font-size: 11px; font-weight: 600; border: 1px solid; }
-  .rag-green { background: var(--green-bg); color: var(--green); border-color: #22c55e33; }
-  .rag-amber { background: var(--amber-bg); color: var(--amber); border-color: #f59e0b33; }
-  .rag-red   { background: var(--red-bg);   color: var(--red);   border-color: #ef444433; }
-  .rag-dot   { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+/* ── RAG BADGES ── */
+.rag{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:4px;font-family:'DM Mono';font-size:11px;font-weight:600;border:1px solid;}
+.rag-green{background:var(--green-bg);color:var(--green);border-color:var(--green);}
+.rag-amber{background:var(--amber-bg);color:var(--amber);border-color:var(--amber);}
+.rag-red{background:var(--red-bg);color:var(--red);border-color:var(--red);}
+.rag-blue{background:var(--blue-bg);color:var(--blue);border-color:var(--blue);}
+.rag-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
 
-  /* ── AIR BADGE ── */
-  .air-on  { color: var(--blue); font-weight: 700; font-size: 12px; }
-  .air-off { color: var(--dim);  font-weight: 600; font-size: 12px; }
+/* ── ACTION BUTTONS ── */
+.btn-activate{background:var(--red-bg);border:1px solid var(--red);color:var(--red);font-family:'DM Mono';font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.btn-activate:hover{background:var(--red);color:#fff;}
+.btn-deactivate{background:var(--blue-bg);border:1px solid var(--blue);color:var(--blue);font-family:'DM Mono';font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.btn-deactivate:hover{background:var(--blue);color:#fff;}
+.btn-deactivate.ready{background:var(--green-bg);border-color:var(--green);color:var(--green);animation:glow 2s infinite;}
+.btn-deactivate.ready:hover{background:var(--green);color:#fff;}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 8px var(--green)}}
 
-  /* ── AGING BAR ── */
-  .aging-bar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; gap: 1px; min-width: 120px; }
-  .ab-seg { transition: width .4s; }
+/* ── AGING BAR ── */
+.aging-bar{display:flex;height:10px;border-radius:3px;overflow:hidden;gap:1px;min-width:120px;}
 
-  /* ── DRILLDOWN ── */
-  .drilldown { margin-top: 14px; background: #0a1420; border: 1px solid #1e3050; border-radius: 10px; padding: 20px; }
-  .drilldown-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .drilldown-title { font-family: 'Syne'; font-size: 18px; color: #e8f2ff; }
-  .drilldown-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
-  .drilldown-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-  .dd-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
-  .dd-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
-  .dd-row { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 12px; }
-  .dd-row-label { color: var(--muted); }
-  .dd-row-val { font-family: 'DM Mono'; color: #e8f2ff; }
-  .dd-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-  .bucket-row { margin-bottom: 9px; }
-  .bucket-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
-  .bucket-bar-bg { height: 5px; background: var(--border); border-radius: 2px; }
-  .bucket-bar-fill { height: 5px; border-radius: 2px; transition: width .4s; }
+/* ── DRILLDOWN ── */
+.drilldown{margin-top:14px;background:var(--card);border:1px solid var(--active-border);border-radius:10px;padding:20px;}
+.dd-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.dd-title{font-family:'Syne';font-size:18px;color:var(--text);}
+.dd-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+.dd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.dd-card{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.dd-card-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;}
+.dd-row{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px;}
+.dd-lbl{color:var(--muted);}
+.dd-val{font-family:'DM Mono';color:var(--text);}
+.dd-div{border:none;border-top:1px solid var(--border);margin:8px 0;}
+.bkt-row{margin-bottom:9px;}
+.bkt-hd{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.bkt-bg{height:5px;background:var(--border);border-radius:2px;}
+.bkt-fill{height:5px;border-radius:2px;}
 
-  /* ── COST SIM ── */
-  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-  .sim-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-  .sim-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
-  .cost-bar-row { margin-bottom: 9px; }
-  .cost-bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
-  .cost-bar-bg { height: 6px; background: var(--border); border-radius: 3px; }
-  .cost-bar-fill { height: 6px; border-radius: 3px; background: #6366f1; transition: width .4s; }
-  .rollup-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #0f1820; font-size: 13px; }
-  .rollup-label { color: var(--muted); }
-  .rollup-val { font-family: 'DM Mono'; font-weight: 600; color: #e8f2ff; }
-  .tip-box { background: #061510; border: 1px solid #143020; border-radius: 6px; padding: 10px 12px; font-size: 11px; color: var(--green); margin-top: 12px; }
+/* ── COST SIM ── */
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.sim-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.sim-card-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+.cbar-row{margin-bottom:9px;}
+.cbar-lbl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;}
+.cbar-bg{height:6px;background:var(--border);border-radius:3px;}
+.cbar-fill{height:6px;border-radius:3px;}
+.rollup-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.rollup-lbl{color:var(--muted);}
+.rollup-val{font-family:'DM Mono';font-weight:600;color:var(--text);}
+.tip-box{border-radius:6px;padding:10px 12px;font-size:11px;margin-top:12px;}
+.tip-green{background:var(--green-bg);border:1px solid var(--green);color:var(--green);}
+.tip-amber{background:var(--amber-bg);border:1px solid var(--amber);color:var(--amber);}
+.sens-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.sens-card-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+.st{width:100%;border-collapse:collapse;font-size:11px;}
+.st th{padding:5px 8px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);}
+.st td{padding:6px 8px;border-bottom:1px solid var(--border);font-family:'DM Mono';}
+.st tr.ar td{background:var(--bg4);}
+.no-air{background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:24px;text-align:center;color:var(--red);font-family:'DM Mono';font-size:12px;margin-bottom:14px;}
+.no-air span{display:block;color:var(--muted);font-size:11px;margin-top:6px;}
 
-  /* ── SENSITIVITY TABLE ── */
-  .sens-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-  .sens-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
-  .sens-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  .sens-table th { padding: 5px 8px; text-align: left; font-family: 'DM Mono'; font-size: 10px; color: var(--muted); border-bottom: 1px solid var(--border); }
-  .sens-table td { padding: 6px 8px; border-bottom: 1px solid #0e1620; font-family: 'DM Mono'; }
-  .sens-table tr.active-row td { background: #0e1e30; }
-  .active-marker { color: var(--blue); font-weight: 700; }
+/* ── CHANGE LOG ── */
+.log-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.log-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+.log-table{width:100%;border-collapse:collapse;font-size:12px;}
+.log-table th{padding:6px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);}
+.log-table td{padding:7px 10px;border-bottom:1px solid var(--border);font-family:'DM Mono';font-size:11px;}
+.log-activate td{background:#1a0808;color:#ef4444;font-weight:700;}
+.log-deactivate td{background:#071a0f;color:#22c55e;font-weight:700;}
+.log-config td{background:#1a1200;color:#f59e0b;}
+.log-refresh td{color:var(--muted);}
 
-  /* ── LOGIC TAB ── */
-  .logic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .logic-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
-  .logic-card-title { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 14px; }
-  .step-row { display: flex; gap: 12px; margin-bottom: 16px; }
-  .step-num { min-width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono'; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-  .step-body { }
-  .step-title { font-size: 13px; font-weight: 600; color: #e8f2ff; margin-bottom: 3px; }
-  .step-logic { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .step-trigger { font-size: 11px; font-style: italic; }
-  .thresh-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  .thresh-table th { padding: 5px 8px; text-align: left; font-family: 'DM Mono'; font-size: 10px; color: var(--muted); border-bottom: 1px solid var(--border); }
-  .thresh-table td { padding: 6px 8px; border-bottom: 1px solid #0e1620; }
-  .constraint-row { display: flex; gap: 8px; margin-bottom: 7px; font-size: 12px; }
-  .constraint-check { color: var(--green); margin-top: 1px; }
-  .constraint-text { color: var(--muted); }
+/* ── LOGIC ── */
+.logic-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.lcard{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px;}
+.lcard-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:14px;}
+.step-row{display:flex;gap:12px;margin-bottom:16px;}
+.step-num{min-width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono';font-size:11px;font-weight:700;flex-shrink:0;}
+.step-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.step-logic{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.step-trigger{font-size:11px;font-style:italic;}
+.tt{width:100%;border-collapse:collapse;font-size:11px;}
+.tt th{padding:5px 8px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);}
+.tt td{padding:6px 8px;border-bottom:1px solid var(--border);}
+.cr{display:flex;gap:8px;margin-bottom:7px;font-size:12px;}
 
-  /* ── ERROR / LOADING ── */
-  .status-bar { text-align: center; padding: 40px; font-family: 'DM Mono'; font-size: 13px; color: var(--muted); }
-  .error-bar { background: var(--red-bg); border: 1px solid #ef444433; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; font-size: 12px; color: var(--red); font-family: 'DM Mono'; }
+/* ── ERR / FOOTER ── */
+.err{background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--red);font-family:'DM Mono';}
+.footer{margin-top:24px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:'DM Mono';font-size:10px;color:var(--muted);}
 
-  /* ── FOOTER ── */
-  .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #0f1820; display: flex; justify-content: space-between; font-family: 'DM Mono'; font-size: 10px; color: var(--dim); }
-
-  @media (max-width: 900px) {
-    .kpi-strip { grid-template-columns: repeat(3, 1fr); }
-    .drilldown-grid { grid-template-columns: 1fr; }
-    .sim-grid { grid-template-columns: 1fr; }
-    .logic-grid { grid-template-columns: 1fr; }
-  }
+@media(max-width:900px){
+  .kpi-strip{grid-template-columns:repeat(3,1fr);}
+  .dd-grid{grid-template-columns:1fr 1fr;}
+  .sim-grid{grid-template-columns:1fr;}
+  .logic-grid{grid-template-columns:1fr;}
+  .config-grid{grid-template-columns:1fr 1fr;}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
-      <div class="header-tag">
-        <span>Tata 1mg · 3PL Network</span>
-        <div class="live-dot"></div>
-        <span class="live-label">LIVE</span>
-      </div>
-      <h1>Rain Control Tower</h1>
-    </div>
-    <div class="header-right">
-      <div class="refresh-info">Last data refresh</div>
-      <div class="refresh-time" id="refresh-time">—</div>
-      <button class="btn-refresh" onclick="loadData()">↻ Refresh Now</button>
-    </div>
-  </div>
-
-  <!-- SHEET CONFIG BANNER -->
-  <div class="config-banner">
-    <span style="white-space:nowrap;font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;">Sheet CSV URL</span>
-    <input class="sheet-url-input" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/SHEET_ID/pub?gid=0&single=true&output=csv  ← publish CITY_METRICS tab only" />
-    <button class="btn-load" onclick="loadFromSheet()">Load Sheet</button>
-    <span style="font-size:11px;">·</span>
-    <a href="#" onclick="loadSampleData(); return false;">Load sample data</a>
-  </div>
-
-  <div id="error-bar" class="error-bar" style="display:none;"></div>
-
-  <!-- KPI STRIP -->
-  <div class="kpi-strip" id="kpi-strip">
-    <div class="kpi" style="background:#0d0808;border-color:#ef444422;">
-      <div class="kpi-label">Cities Critical</div>
-      <div><span class="kpi-val" style="color:#ef4444;" id="kpi-red">—</span><span class="kpi-unit">cities</span></div>
-    </div>
-    <div class="kpi" style="background:#0d0d00;border-color:#f59e0b22;">
-      <div class="kpi-label">Cities Watch</div>
-      <div><span class="kpi-val" style="color:#f59e0b;" id="kpi-amber">—</span><span class="kpi-unit">cities</span></div>
-    </div>
-    <div class="kpi" style="background:#07090f;border-color:#3b82f622;">
-      <div class="kpi-label">Air Active</div>
-      <div><span class="kpi-val" style="color:#3b82f6;" id="kpi-air">—</span><span class="kpi-unit">cities</span></div>
-    </div>
-    <div class="kpi" style="background:#0a0710;border-color:#a78bfa22;">
-      <div class="kpi-label">Est. Air Orders/Day</div>
-      <div><span class="kpi-val" style="color:#a78bfa;" id="kpi-orders">—</span></div>
-    </div>
-    <div class="kpi" style="background:#060f0a;border-color:#2dd4bf22;">
-      <div class="kpi-label">Est. Incremental Cost</div>
-      <div><span class="kpi-val" style="color:#2dd4bf;" id="kpi-cost">—</span><span class="kpi-unit">/day</span></div>
-    </div>
-  </div>
-
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('overview',this)">City Overview</button>
-    <button class="tab" onclick="switchTab('sim',this)">Cost Simulator</button>
-    <button class="tab" onclick="switchTab('logic',this)">Decision Logic</button>
-  </div>
-
-  <!-- TAB CONTENT -->
-  <div id="tab-overview">
-    <div class="slider-bar">
-      <label>Trigger Sensitivity</label>
-      <input type="range" min="0.8" max="1.4" step="0.05" value="1.0" id="trigger-mult" oninput="onSlider()"/>
-      <span class="slider-val" id="slider-val">1.00×</span>
-      <span class="slider-desc" id="slider-desc">BAU threshold</span>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>City</th>
-            <th>Pipeline Days</th>
-            <th>Trigger At</th>
-            <th>Long Tail %</th>
-            <th>SLA Breach %</th>
-            <th>I/O Ratio</th>
-            <th>Aging Spread</th>
-            <th>BD Air</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="city-tbody"></tbody>
-      </table>
-    </div>
-    <div id="drilldown" style="display:none;"></div>
-  </div>
-
-  <div id="tab-sim" style="display:none;">
-    <div class="slider-bar">
-      <label>Trigger Sensitivity</label>
-      <input type="range" min="0.8" max="1.4" step="0.05" value="1.0" id="trigger-mult-sim" oninput="onSliderSim()"/>
-      <span class="slider-val" id="slider-val-sim">1.00×</span>
-      <span class="slider-desc" id="slider-desc-sim">BAU threshold</span>
-    </div>
-    <div class="sim-grid">
-      <div class="sim-card">
-        <div class="sim-card-title">Daily Air Cost by City</div>
-        <div id="cost-bars"></div>
-      </div>
-      <div class="sim-card">
-        <div class="sim-card-title">Cost Roll-up</div>
-        <div id="cost-rollup"></div>
-        <div class="tip-box" id="cost-tip"></div>
-      </div>
-    </div>
-    <div class="sens-card">
-      <div class="sens-card-title">Sensitivity Table — Daily Cost vs Trigger Multiplier</div>
-      <div style="overflow-x:auto;"><table class="sens-table" id="sens-table"></table></div>
-    </div>
-  </div>
-
-  <div id="tab-logic" style="display:none;">
-    <div class="logic-grid">
-      <div class="logic-card">
-        <div class="logic-card-title">Decision Flow — Every 4 Hours per City</div>
-        <div id="logic-steps"></div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div class="logic-card">
-          <div class="logic-card-title">Metric Thresholds</div>
-          <table class="thresh-table" id="thresh-table"></table>
-        </div>
-        <div class="logic-card" style="background:#061510;border-color:#14301e;">
-          <div class="logic-card-title" style="color:#22c55e;">Constraints Baked In</div>
-          <div id="constraints"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="footer">
-    <span>TATA 1MG · RAIN CONTROL TOWER · MONSOON PLANNING</span>
-    <span id="footer-sheet">SHEET: NOT CONNECTED</span>
+<!-- PIN MODAL -->
+<div id="pin-overlay" class="pin-overlay" style="display:none;">
+  <div class="pin-modal">
+    <svg width="40" height="40" viewBox="0 0 40 40" style="margin:0 auto 12px;display:block;">
+      <circle cx="20" cy="20" r="20" fill="#1e3a5f"/>
+      <text x="20" y="27" text-anchor="middle" font-size="20" fill="#3b82f6">🔒</text>
+    </svg>
+    <h3>Config Access</h3>
+    <p>Enter PIN to unlock configuration settings</p>
+    <input class="pin-input" id="pin-input" type="password" maxlength="8" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitPin()"/>
+    <button class="btn-pin-submit" onclick="submitPin()">Unlock</button>
+    <div class="pin-error" id="pin-error" style="display:none;">Incorrect PIN. Try again.</div>
   </div>
 </div>
 
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <!-- Heimdall SVG Logo -->
+    <svg class="heimdall-logo" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="26" cy="26" r="26" fill="#0a1828"/>
+      <circle cx="26" cy="26" r="24" fill="none" stroke="#3b82f6" stroke-width="1" opacity="0.4"/>
+      <!-- Bifrost arc -->
+      <path d="M8 36 Q26 10 44 36" stroke="#6366f1" stroke-width="1.5" fill="none" opacity="0.6"/>
+      <path d="M10 38 Q26 14 42 38" stroke="#3b82f6" stroke-width="1" fill="none" opacity="0.4"/>
+      <!-- Helmet -->
+      <path d="M26 10 L20 20 L14 24 L26 22 L38 24 L32 20 Z" fill="#3b82f6" opacity="0.9"/>
+      <!-- Horn left -->
+      <path d="M14 24 L8 20 L12 26" fill="#2dd4bf" opacity="0.8"/>
+      <!-- Horn right -->
+      <path d="M38 24 L44 20 L40 26" fill="#2dd4bf" opacity="0.8"/>
+      <!-- Face / visor -->
+      <rect x="20" y="22" width="12" height="5" rx="1" fill="#060e1c"/>
+      <rect x="21" y="23" width="4" height="3" rx="1" fill="#3b82f6" opacity="0.7"/>
+      <rect x="27" y="23" width="4" height="3" rx="1" fill="#3b82f6" opacity="0.7"/>
+      <!-- Body / cloak -->
+      <path d="M18 28 L16 42 L26 38 L36 42 L34 28 Z" fill="#1e3a5f" opacity="0.8"/>
+      <!-- Gjallarhorn -->
+      <path d="M10 34 Q14 30 18 32 L16 36 Q12 36 10 34Z" fill="#f59e0b" opacity="0.8"/>
+      <!-- Eye glow -->
+      <circle cx="23" cy="24" r="1.5" fill="#3b82f6"/>
+      <circle cx="29" cy="24" r="1.5" fill="#3b82f6"/>
+      <circle cx="23" cy="24" r="0.7" fill="#fff"/>
+      <circle cx="29" cy="24" r="0.7" fill="#fff"/>
+      <!-- Stars -->
+      <circle cx="10" cy="14" r="0.8" fill="#fff" opacity="0.6"/>
+      <circle cx="40" cy="12" r="0.6" fill="#fff" opacity="0.5"/>
+      <circle cx="44" cy="20" r="0.5" fill="#2dd4bf" opacity="0.7"/>
+      <circle cx="8" cy="22" r="0.5" fill="#2dd4bf" opacity="0.7"/>
+    </svg>
+    <div class="header-title-block">
+      <div class="header-tag">
+        <span>Tata 1mg · 3PL Network</span>
+        <div class="live-dot"></div>
+        <span style="color:var(--green);">D-1 METRICS</span>
+      </div>
+      <h1>Heimdall <span style="font-weight:300;opacity:0.5;">v1</span> <span class="d1-badge">D-1</span></h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-right-info">
+      <div class="refresh-label">Data as of</div>
+      <div class="refresh-date" id="data-date">—</div>
+      <div class="auto-refresh-note" id="next-refresh-note">Next refresh in —</div>
+    </div>
+    <button class="btn-icon" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
+    <button class="btn-refresh" onclick="loadAll()">↻ Refresh Now</button>
+  </div>
+</div>
+
+<!-- CONFIG PANEL -->
+<div class="config-panel" id="config-panel">
+  <div class="config-panel-header">
+    <span class="config-panel-title">⚙ Configuration</span>
+    <span class="config-lock-info" id="config-lock-info">🔓 UNLOCKED</span>
+  </div>
+  <div class="config-grid">
+    <div class="config-field">
+      <label>ΔC — Incremental Cost per Air Order (₹)</label>
+      <input type="number" id="cfg-delta-c" value="35" min="0" step="1"/>
+      <span class="config-hint">BD Air blended − Surface CPOL. Default ₹35</span>
+    </div>
+    <div class="config-field">
+      <label>Minimum OPD to Show City</label>
+      <input type="number" id="cfg-min-opd" value="50" min="0" step="10"/>
+      <span class="config-hint">Hide cities with inflow below this. 0 = show all.</span>
+    </div>
+    <div class="config-field">
+      <label>Config PIN</label>
+      <input type="text" id="cfg-pin" value="1mg2025" maxlength="16"/>
+      <span class="config-hint">Change this after first deploy.</span>
+    </div>
+    <div class="config-field trigger-field">
+      <label>Trigger Sensitivity Multiplier</label>
+      <div class="trigger-row">
+        <input type="range" min="0.4" max="2.0" step="0.05" value="1.0" id="cfg-trigger" oninput="onTriggerSlider()"/>
+        <span class="trigger-val" id="trigger-val">1.00×</span>
+        <span class="trigger-desc" id="trigger-desc">BAU threshold</span>
+      </div>
+      <span class="config-hint">0.4× = aggressive (triggers earlier) · 1.0× = BAU · 2.0× = conservative</span>
+    </div>
+  </div>
+  <hr class="config-divider"/>
+  <div class="sheet-row">
+    <span class="sheet-label">CITY_METRICS CSV URL</span>
+    <input class="sheet-input" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=CITY_METRICS_GID&single=true&output=csv"/>
+    <button class="btn-load" onclick="loadCitySheet()">Load</button>
+    <span id="city-status" class="cfg-tag tag-no">NOT CONNECTED</span>
+  </div>
+  <div class="sheet-row">
+    <span class="sheet-label">BD_AIR_ORDERS CSV URL</span>
+    <input class="sheet-input" id="air-url" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=BD_AIR_ORDERS_GID&single=true&output=csv"/>
+    <button class="btn-load-air" onclick="loadAirSheet()">Load</button>
+    <span id="air-status" class="cfg-tag tag-no">NOT CONNECTED</span>
+  </div>
+  <div class="sheet-row">
+    <span class="sheet-label">Apps Script URL</span>
+    <input class="sheet-input" id="script-url" placeholder="https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"/>
+    <button class="btn-load-script" onclick="testScript()">Test</button>
+    <span id="script-status" class="cfg-tag tag-no">NOT CONNECTED</span>
+  </div>
+  <div class="config-actions">
+    <button class="btn-save-config" onclick="saveConfigToSheet()">💾 Save Config to Sheet</button>
+    <button class="btn-sample" onclick="loadSampleData()">▶ Load sample data</button>
+    <span id="save-status" class="save-status" style="display:none;"></span>
+  </div>
+</div>
+
+<div id="err-bar" class="err" style="display:none;"></div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi" style="border-color:#3b82f644;">
+    <div class="kpi-label">Cities Active</div>
+    <div><span class="kpi-val" style="color:var(--blue);" id="k-active">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-active-sub">Air ON</div>
+  </div>
+  <div class="kpi" style="border-color:#22c55e44;">
+    <div class="kpi-label">Ready to Deactivate</div>
+    <div><span class="kpi-val" style="color:var(--green);" id="k-deact">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-deact-sub">below trigger</div>
+  </div>
+  <div class="kpi" style="border-color:#ef444444;">
+    <div class="kpi-label">Cities Critical</div>
+    <div><span class="kpi-val" style="color:var(--red);" id="k-red">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-red-sub">—</div>
+  </div>
+  <div class="kpi" style="border-color:#f59e0b44;">
+    <div class="kpi-label">Cities Watch</div>
+    <div><span class="kpi-val" style="color:var(--amber);" id="k-amber">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-amber-sub">—</div>
+  </div>
+  <div class="kpi" style="border-color:#a78bfa44;">
+    <div class="kpi-label">Air Orders D-1</div>
+    <div><span class="kpi-val" style="color:var(--purple);" id="k-orders">—</span></div>
+    <div class="kpi-sub" id="k-orders-sub">—</div>
+  </div>
+  <div class="kpi" style="border-color:#2dd4bf44;">
+    <div class="kpi-label">Incremental Cost D-1</div>
+    <div><span class="kpi-val" style="color:var(--teal);" id="k-cost">—</span></div>
+    <div class="kpi-sub" id="k-cost-sub">—</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('overview',this)">City Overview</button>
+  <button class="tab" onclick="switchTab('sim',this)">Cost Simulator</button>
+  <button class="tab" onclick="switchTab('log',this)">Change Log</button>
+  <button class="tab" onclick="switchTab('logic',this)">Decision Logic</button>
+</div>
+
+<!-- TAB: OVERVIEW -->
+<div id="tab-overview">
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>City</th><th>Pipeline Days</th><th>Trigger At</th>
+        <th>Long Tail %</th><th>SLA Breach %</th><th>I/O Ratio</th>
+        <th>Aging →</th><th>Air Orders</th><th>BD Air</th>
+        <th>Proposed Action</th><th>Action</th>
+      </tr></thead>
+      <tbody id="city-tbody"></tbody>
+    </table>
+  </div>
+  <div id="drilldown" style="display:none;"></div>
+</div>
+
+<!-- TAB: COST SIM -->
+<div id="tab-sim" style="display:none;">
+  <div id="sim-content"></div>
+</div>
+
+<!-- TAB: CHANGE LOG -->
+<div id="tab-log" style="display:none;">
+  <div class="log-card">
+    <div class="log-title">Change Log — All Actions</div>
+    <div style="overflow-x:auto;">
+      <table class="log-table">
+        <thead><tr><th>Timestamp</th><th>Action</th><th>City</th><th>Pipeline Days</th><th>Trigger</th><th>Details</th></tr></thead>
+        <tbody id="log-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: LOGIC -->
+<div id="tab-logic" style="display:none;">
+  <div class="logic-grid">
+    <div class="lcard">
+      <div class="lcard-title">Decision Flow — Once Daily (D-1 Data)</div>
+      <div id="logic-steps"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="lcard">
+        <div class="lcard-title">RAG Classification</div>
+        <table class="tt" id="thresh-table"></table>
+      </div>
+      <div class="lcard" style="background:var(--green-bg);border-color:var(--green);">
+        <div class="lcard-title" style="color:var(--green);">Model Constraints</div>
+        <div id="constraints"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>HEIMDALL v1 · TATA 1MG · RAIN CONTROL TOWER · D-1 DATA</span>
+  <span id="footer-txt">SHEETS: NOT CONNECTED</span>
+</div>
+</div>
+
 <script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-const DELTA_C = 35;
-const AIR_SHARE = 0.35;
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const CORRECT_PIN_KEY = 'heimdall_pin';
+const DEFAULT_PIN = '1mg2025';
+const RAG_ORDER = {active:-1, red:0, amber:1, green:2};
 
-// ─── STATE ───────────────────────────────────────────────────────────────────
-let cityData = [];
-let triggerMult = 1.0;
-let selectedCity = null;
-let currentTab = 'overview';
-let sheetUrl = '';
-
-// ─── SAMPLE DATA ─────────────────────────────────────────────────────────────
-// Your SQL query writes ONE ROW PER CITY to the Sheet with these exact columns:
-// city | bau_pipeline | surface_tat | air_tat | pipeline_days | long_tail_pct
-// | sla_breach_pct | inflow | outflow | aging_1d | aging_2d | aging_3d | aging_gt3d
-const SAMPLE = [
-  {city:"Mumbai",    bau:3.5, surface_tat:5, air_tat:2, pipeline_days:6.8, long_tail_pct:9.2,  sla_breach_pct:13.1, inflow:420, outflow:310, aging_1d:180, aging_2d:90, aging_3d:55, aging_gt3d:35},
-  {city:"Delhi",     bau:3.0, surface_tat:4, air_tat:2, pipeline_days:5.9, long_tail_pct:7.8,  sla_breach_pct:10.4, inflow:510, outflow:390, aging_1d:210, aging_2d:100,aging_3d:60, aging_gt3d:40},
-  {city:"Bengaluru", bau:3.2, surface_tat:5, air_tat:2, pipeline_days:4.1, long_tail_pct:3.1,  sla_breach_pct:4.8,  inflow:380, outflow:360, aging_1d:300, aging_2d:50, aging_3d:20, aging_gt3d:8},
-  {city:"Chennai",   bau:3.8, surface_tat:5, air_tat:3, pipeline_days:7.2, long_tail_pct:11.4, sla_breach_pct:15.6, inflow:290, outflow:190, aging_1d:110, aging_2d:70, aging_3d:50, aging_gt3d:45},
-  {city:"Hyderabad", bau:3.3, surface_tat:5, air_tat:2, pipeline_days:5.2, long_tail_pct:5.4,  sla_breach_pct:7.2,  inflow:310, outflow:265, aging_1d:180, aging_2d:60, aging_3d:30, aging_gt3d:18},
-  {city:"Kolkata",   bau:4.0, surface_tat:6, air_tat:3, pipeline_days:8.1, long_tail_pct:14.2, sla_breach_pct:18.3, inflow:260, outflow:160, aging_1d:100, aging_2d:65, aging_3d:55, aging_gt3d:50},
-  {city:"Pune",      bau:3.0, surface_tat:4, air_tat:2, pipeline_days:4.8, long_tail_pct:4.2,  sla_breach_pct:5.9,  inflow:220, outflow:200, aging_1d:160, aging_2d:40, aging_3d:18, aging_gt3d:10},
-  {city:"Ahmedabad", bau:3.5, surface_tat:5, air_tat:2, pipeline_days:5.5, long_tail_pct:6.1,  sla_breach_pct:8.8,  inflow:195, outflow:160, aging_1d:120, aging_2d:50, aging_3d:28, aging_gt3d:20},
+// ── SAMPLE DATA ───────────────────────────────────────────────────────────────
+const SAMPLE_CITY=[
+  {city:"Mumbai",    bau_pipeline:3.5,surface_tat:5,air_tat:2,pipeline_days:6.8,long_tail_pct:9.2, sla_breach_pct:13.1,inflow:420,outflow:310,aging_1d:180,aging_2d:90, aging_3d:55,aging_gt3d:35,days_below_trigger:0},
+  {city:"Delhi",     bau_pipeline:3.0,surface_tat:4,air_tat:2,pipeline_days:5.9,long_tail_pct:0,   sla_breach_pct:10.4,inflow:510,outflow:390,aging_1d:210,aging_2d:100,aging_3d:60,aging_gt3d:40,days_below_trigger:0},
+  {city:"Bengaluru", bau_pipeline:3.2,surface_tat:5,air_tat:2,pipeline_days:4.1,long_tail_pct:3.1, sla_breach_pct:4.8, inflow:380,outflow:360,aging_1d:300,aging_2d:50, aging_3d:20,aging_gt3d:8, days_below_trigger:0},
+  {city:"Chennai",   bau_pipeline:3.8,surface_tat:5,air_tat:3,pipeline_days:7.2,long_tail_pct:11.4,sla_breach_pct:15.6,inflow:290,outflow:190,aging_1d:110,aging_2d:70, aging_3d:50,aging_gt3d:45,days_below_trigger:0},
+  {city:"Hyderabad", bau_pipeline:3.3,surface_tat:5,air_tat:2,pipeline_days:5.2,long_tail_pct:5.4, sla_breach_pct:7.2, inflow:310,outflow:265,aging_1d:180,aging_2d:60, aging_3d:30,aging_gt3d:18,days_below_trigger:0},
+  {city:"Kolkata",   bau_pipeline:4.0,surface_tat:6,air_tat:3,pipeline_days:8.1,long_tail_pct:14.2,sla_breach_pct:18.3,inflow:260,outflow:160,aging_1d:100,aging_2d:65, aging_3d:55,aging_gt3d:50,days_below_trigger:0},
+  {city:"Pune",      bau_pipeline:3.0,surface_tat:4,air_tat:2,pipeline_days:4.8,long_tail_pct:4.2, sla_breach_pct:5.9, inflow:220,outflow:200,aging_1d:160,aging_2d:40, aging_3d:18,aging_gt3d:10,days_below_trigger:0},
+  {city:"Ahmedabad", bau_pipeline:3.5,surface_tat:5,air_tat:2,pipeline_days:5.5,long_tail_pct:6.1, sla_breach_pct:8.8, inflow:195,outflow:160,aging_1d:120,aging_2d:50, aging_3d:28,aging_gt3d:20,days_below_trigger:0},
+];
+const SAMPLE_AIR=[
+  {city:"Mumbai",    bd_air_orders:147,bd_air_cost_inr:5145, surface_orders:273,total_orders:420,air_share_pct:35.0},
+  {city:"Delhi",     bd_air_orders:178,bd_air_cost_inr:6230, surface_orders:332,total_orders:510,air_share_pct:34.9},
+  {city:"Bengaluru", bd_air_orders:0,  bd_air_cost_inr:0,    surface_orders:380,total_orders:380,air_share_pct:0},
+  {city:"Chennai",   bd_air_orders:101,bd_air_cost_inr:3535, surface_orders:189,total_orders:290,air_share_pct:34.8},
+  {city:"Hyderabad", bd_air_orders:0,  bd_air_cost_inr:0,    surface_orders:310,total_orders:310,air_share_pct:0},
+  {city:"Kolkata",   bd_air_orders:91, bd_air_cost_inr:3185, surface_orders:169,total_orders:260,air_share_pct:35.0},
+  {city:"Pune",      bd_air_orders:0,  bd_air_cost_inr:0,    surface_orders:220,total_orders:220,air_share_pct:0},
+  {city:"Ahmedabad", bd_air_orders:0,  bd_air_cost_inr:0,    surface_orders:195,total_orders:195,air_share_pct:0},
 ];
 
-// ─── COMPUTE ─────────────────────────────────────────────────────────────────
-function compute(raw, mult) {
-  return raw.map(r => {
-    const tat_adv   = r.surface_tat - r.air_tat;
-    const trigger   = (r.bau + tat_adv) * mult;
-    const air_on    = r.pipeline_days > trigger;
-    const io_ratio  = r.outflow > 0 ? (r.inflow / r.outflow) : 0;
-    const total_aging = r.aging_1d + r.aging_2d + r.aging_3d + r.aging_gt3d;
-    const daily_air_orders = air_on ? Math.round(r.inflow * AIR_SHARE) : 0;
-    const daily_air_cost   = daily_air_orders * DELTA_C;
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let cityData=[], airData=[], airLoaded=false;
+let activeCities=new Set(); // cities with Air currently ON — source of truth from CHANGE_LOG
+let changeLog=[];            // in-memory log entries
+let trigMult=1.0, selectedCity=null, currentTab='overview';
+let sheetUrl='', airUrl='', scriptUrl='';
+let configUnlocked=false;
+let autoRefreshTimer=null, countdownTimer=null, nextRefreshIn=1800;
+const sectionOpen={active:true,red:true,amber:true,green:true};
 
-    const p_rag = r.pipeline_days > trigger ? 'red' : r.pipeline_days > r.bau + 0.5 ? 'amber' : 'green';
-    const l_rag = r.long_tail_pct > 8 ? 'red' : r.long_tail_pct > 3 ? 'amber' : 'green';
-    const s_rag = r.sla_breach_pct > 12 ? 'red' : r.sla_breach_pct > 5 ? 'amber' : 'green';
-    const io_rag = io_ratio > 1.3 ? 'red' : io_ratio > 1.1 ? 'amber' : 'green';
+// ── CONFIG HELPERS ────────────────────────────────────────────────────────────
+const getDeltaC = ()=>parseFloat(document.getElementById('cfg-delta-c').value)||35;
+const getMinOPD = ()=>parseFloat(document.getElementById('cfg-min-opd').value)||0;
+const getPin    = ()=>document.getElementById('cfg-pin').value||DEFAULT_PIN;
 
-    let action, action_color;
-    if (p_rag === 'red' && air_on)  { action = '✈ AIR ACTIVE — MONITOR SPEND'; action_color = '#3b82f6'; }
-    else if (p_rag === 'red')       { action = '⚠ CRITICAL — ACTIVATE AIR';   action_color = '#ef4444'; }
-    else if (p_rag === 'amber' && io_rag === 'red') { action = '↑ WATCH — I/O RISING'; action_color = '#f59e0b'; }
-    else if (p_rag === 'amber')     { action = '~ APPROACHING TRIGGER';        action_color = '#f59e0b'; }
-    else                            { action = '✓ NORMAL OPS';                 action_color = '#22c55e'; }
+// ── MERGE ─────────────────────────────────────────────────────────────────────
+const merged=()=>cityData.map(c=>({...c,...(airData.find(a=>a.city===c.city)||{})}));
 
-    return { ...r, tat_adv, trigger, air_on, io_ratio, total_aging,
-             daily_air_orders, daily_air_cost, p_rag, l_rag, s_rag, io_rag, action, action_color };
+// ── COMPUTE ───────────────────────────────────────────────────────────────────
+function compute(rows,mult){
+  const deltaC=getDeltaC();
+  return rows.map(r=>{
+    const bau    =r.bau_pipeline||0;
+    const tatAdv =(r.surface_tat||0)-(r.air_tat||0);
+    const trigger=(bau+tatAdv)*mult;
+    const isActive=activeCities.has(r.city);
+    const airOn  =isActive; // air is ON only if manually activated
+    const ioRatio=r.outflow>0?r.inflow/r.outflow:0;
+    const totAge =(r.aging_1d||0)+(r.aging_2d||0)+(r.aging_3d||0)+(r.aging_gt3d||0);
+
+    // Deactivation ready signal
+    const dbt=r.days_below_trigger; // may be undefined/null if SQL hasn't added it yet
+    let deactReady=false;
+    if(isActive){
+      if(dbt!==undefined&&dbt!==null&&dbt!==''){
+        deactReady=parseFloat(dbt)>=2; // strict: 2 consecutive days
+      } else {
+        deactReady=r.pipeline_days<trigger; // fallback: single day signal
+      }
+    }
+
+    // RAG based purely on pipeline days
+    const pRag=r.pipeline_days>trigger?'red':r.pipeline_days>bau+0.5?'amber':'green';
+    const lRag=r.long_tail_pct>8?'red':r.long_tail_pct>3?'amber':'green';
+    const sRag=r.sla_breach_pct>12?'red':r.sla_breach_pct>5?'amber':'green';
+    const ioRag=ioRatio>1.3?'red':ioRatio>1.1?'amber':'green';
+
+    // Section assignment
+    const section=isActive?'active':pRag;
+
+    // Proposed action
+    let action,actionColor;
+    if(isActive&&deactReady)     {action='✅ Ready to Deactivate';     actionColor='var(--green)';}
+    else if(isActive)            {action='✈ Air Active — Monitor Spend';actionColor='var(--blue)';}
+    else if(pRag==='red')        {action='⚠ Activate Air';             actionColor='var(--red)';}
+    else if(pRag==='amber'&&ioRag==='red'){action='↑ Watch — I/O Rising';actionColor='var(--amber)';}
+    else if(pRag==='amber')      {action='~ Watch — Approaching Trigger';actionColor='var(--amber)';}
+    else                         {action='✓ Normal Ops';               actionColor='var(--green)';}
+
+    // Cost
+    const actualOrders=airLoaded&&r.bd_air_orders!==undefined?r.bd_air_orders:null;
+    const dispOrders=actualOrders!==null?actualOrders:0;
+    const dailyCost=dispOrders*deltaC;
+
+    return{...r,bau,tatAdv,trigger,airOn,isActive,ioRatio,totAge,
+           deactReady,pRag,lRag,sRag,ioRag,section,action,actionColor,
+           actualOrders,dispOrders,dailyCost};
   });
 }
 
-// ─── RAG BADGE HTML ──────────────────────────────────────────────────────────
-function rag(status, val) {
-  return `<span class="rag rag-${status}"><span class="rag-dot"></span>${val}</span>`;
+// ── FILTER & SORT ─────────────────────────────────────────────────────────────
+function filterCities(cities){
+  const min=getMinOPD();
+  return min>0?cities.filter(c=>c.inflow>=min):cities;
+}
+function sortCities(cities){
+  return [...cities].sort((a,b)=>{
+    // Active section comes first
+    if(a.section==='active'&&b.section!=='active') return -1;
+    if(b.section==='active'&&a.section!=='active') return 1;
+    // Within active: deact-ready first, then by inflow
+    if(a.section==='active'&&b.section==='active'){
+      if(a.deactReady&&!b.deactReady) return -1;
+      if(b.deactReady&&!a.deactReady) return 1;
+      return b.inflow-a.inflow;
+    }
+    // Red before amber before green
+    const ro={red:0,amber:1,green:2};
+    const d=ro[a.pRag]-ro[b.pRag];
+    return d!==0?d:b.inflow-a.inflow; // same RAG → higher inflow first
+  });
 }
 
-// ─── AGING BAR HTML ──────────────────────────────────────────────────────────
-function agingBar(m) {
-  const t = m.total_aging || 1;
-  const segs = [
-    {v: m.aging_1d,    c:'#f59e0b', label:'1d'},
-    {v: m.aging_2d,    c:'#fb923c', label:'2d'},
-    {v: m.aging_3d,    c:'#ef4444', label:'3d'},
-    {v: m.aging_gt3d,  c:'#991b1b', label:'>3d'},
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const rag=(s,v)=>`<span class="rag rag-${s}"><span class="rag-dot"></span>${v}</span>`;
+const inr=v=>'₹'+Math.round(v).toLocaleString('en-IN');
+const lakh=v=>'₹'+(v/100000).toFixed(1)+'L';
+const sdesc=v=>v<1?'Aggressive (triggers earlier)':v>1?'Conservative (triggers later)':'BAU threshold';
+
+function agingBar(m){
+  const t=m.totAge||1;
+  return`<div class="aging-bar">${
+    [{v:m.aging_1d,c:'#f59e0b',l:'1d'},{v:m.aging_2d,c:'#fb923c',l:'2d'},
+     {v:m.aging_3d,c:'#ef4444',l:'3d'},{v:m.aging_gt3d,c:'#991b1b',l:'>3d'}]
+    .map(s=>`<div style="width:${(s.v/t*100).toFixed(1)}%;background:${s.c};min-width:${s.v>0?2:0}px;height:10px;" title="${s.l}: ${s.v} (${(s.v/t*100).toFixed(0)}%)"></div>`).join('')
+  }</div>`;
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKPIs(cities){
+  const active=cities.filter(c=>c.isActive);
+  const deactReady=active.filter(c=>c.deactReady);
+  const red=cities.filter(c=>c.pRag==='red'&&!c.isActive);
+  const amb=cities.filter(c=>c.pRag==='amber'&&!c.isActive);
+  const totOrders=cities.reduce((s,c)=>s+c.dispOrders,0);
+  const totCost=totOrders*getDeltaC();
+  document.getElementById('k-active').textContent=active.length;
+  document.getElementById('k-active-sub').textContent=active.length?active.map(c=>c.city).slice(0,3).join(', ')+(active.length>3?'…':''):'None';
+  document.getElementById('k-deact').textContent=deactReady.length;
+  document.getElementById('k-deact-sub').textContent=deactReady.length?deactReady.map(c=>c.city).join(', '):'None ready';
+  document.getElementById('k-red').textContent=red.length;
+  document.getElementById('k-red-sub').textContent=red.length?red.map(c=>c.city).slice(0,3).join(', ')+(red.length>3?'…':''):'—';
+  document.getElementById('k-amber').textContent=amb.length;
+  document.getElementById('k-amber-sub').textContent=amb.length?amb.map(c=>c.city).slice(0,3).join(', ')+(amb.length>3?'…':''):'—';
+  document.getElementById('k-orders').textContent=airLoaded?totOrders.toLocaleString('en-IN'):'—';
+  document.getElementById('k-orders-sub').textContent=airLoaded?'actual D-1':'connect BD_AIR_ORDERS';
+  document.getElementById('k-cost').textContent=airLoaded?inr(totCost):'—';
+  document.getElementById('k-cost-sub').textContent=airLoaded?'30d: '+lakh(totCost*30):'connect BD_AIR_ORDERS';
+}
+
+// ── RENDER OVERVIEW ───────────────────────────────────────────────────────────
+function renderOverview(){
+  const all=sortCities(filterCities(compute(merged(),trigMult)));
+  renderKPIs(all);
+
+  const sections=[
+    {key:'active', label:'Active',    color:'var(--blue)',  bg:'var(--section-active)', icon:'✈', note:'deactivation-ready at top, then by inflow ↓'},
+    {key:'red',    label:'Critical',  color:'var(--red)',   bg:'var(--section-red)',    icon:'🔴', note:'sorted by inflow ↓'},
+    {key:'amber',  label:'Watch',     color:'var(--amber)', bg:'var(--section-amber)',  icon:'🟡', note:'sorted by inflow ↓'},
+    {key:'green',  label:'Normal',    color:'var(--green)', bg:'var(--section-green)',  icon:'🟢', note:'sorted by inflow ↓'},
   ];
-  return `<div class="aging-bar">${segs.map(s =>
-    `<div class="ab-seg" style="width:${(s.v/t*100).toFixed(1)}%;background:${s.c};min-width:${s.v>0?2:0}px" title="${s.label}: ${s.v} orders (${(s.v/t*100).toFixed(0)}%)"></div>`
-  ).join('')}</div>`;
+
+  let html='';
+  sections.forEach(sec=>{
+    const rows=all.filter(c=>c.section===sec.key);
+    const isOpen=sectionOpen[sec.key];
+    html+=`<tr class="section-hdr" onclick="toggleSection('${sec.key}')" style="background:${sec.bg};">
+      <td colspan="11">
+        <div class="shdr-inner">
+          <span style="color:${sec.color};font-family:'DM Mono';font-size:11px;font-weight:700;letter-spacing:1px;">
+            ${isOpen?'▾':'▸'} ${sec.icon} ${sec.label.toUpperCase()}
+          </span>
+          <span class="shdr-count">${rows.length} ${rows.length===1?'city':'cities'}</span>
+          <span class="shdr-note">${sec.note}</span>
+        </div>
+      </td>
+    </tr>`;
+
+    if(isOpen){
+      if(!rows.length){
+        html+=`<tr style="background:${sec.bg};"><td colspan="11" style="padding:8px 14px;font-family:'DM Mono';font-size:11px;color:var(--muted);">No cities in this category</td></tr>`;
+      } else {
+        rows.forEach(m=>{
+          const isDeactReady=m.deactReady&&m.isActive;
+          const rowClass=`${isDeactReady?'row-deactivate-ready':'row-'+m.section} ${selectedCity===m.city?'selected':''}`;
+          const actionBtn=m.isActive
+            ?`<button class="btn-deactivate ${isDeactReady?'ready':''}" onclick="event.stopPropagation();doDeactivate('${m.city}',${m.pipeline_days},${m.trigger.toFixed(2)})">${isDeactReady?'✅ Deactivate':'Deactivate'}</button>`
+            :m.pRag==='red'
+            ?`<button class="btn-activate" onclick="event.stopPropagation();doActivate('${m.city}',${m.pipeline_days},${m.trigger.toFixed(2)})">Activate Air</button>`
+            :'';
+          html+=`<tr class="${rowClass}" onclick="toggleDD('${m.city}')">
+            <td style="font-weight:600;color:var(--text);">${m.city}
+              <span style="font-family:'DM Mono';font-size:10px;color:var(--muted);display:block;">${m.inflow.toLocaleString('en-IN')} inflow/day</span>
+            </td>
+            <td>${rag(m.pRag,m.pipeline_days.toFixed(1)+'d')}
+              <span style="font-size:10px;color:var(--muted);margin-left:5px;">BAU:${m.bau}</span>
+            </td>
+            <td style="font-family:'DM Mono';font-size:12px;color:var(--muted);">&gt;${m.trigger.toFixed(1)}d</td>
+            <td>${rag(m.lRag,m.long_tail_pct.toFixed(1)+'%')}</td>
+            <td>${rag(m.sRag,m.sla_breach_pct.toFixed(1)+'%')}</td>
+            <td>${rag(m.ioRag,m.ioRatio.toFixed(2))}</td>
+            <td>${agingBar(m)}</td>
+            <td style="font-family:'DM Mono';font-size:12px;color:${m.dispOrders>0?'var(--purple)':'var(--muted)'};">
+              ${airLoaded?(m.dispOrders>0?m.dispOrders.toLocaleString('en-IN')+' <span style="font-size:9px;color:#6366f1;">ACT</span>':'—'):'—'}
+            </td>
+            <td>${m.isActive?'<span class="rag rag-blue"><span class="rag-dot"></span>ON</span>':'<span style="color:var(--muted);font-size:12px;">— OFF</span>'}</td>
+            <td style="font-size:11px;font-weight:600;color:${m.actionColor};">${m.action}</td>
+            <td>${actionBtn}</td>
+          </tr>`;
+        });
+      }
+    }
+  });
+
+  document.getElementById('city-tbody').innerHTML=html;
+  renderDD(all);
 }
 
-// ─── RENDER OVERVIEW ─────────────────────────────────────────────────────────
-function renderOverview() {
-  const cities = compute(cityData, triggerMult).sort((a,b) => b.pipeline_days - a.pipeline_days);
+function toggleSection(k){sectionOpen[k]=!sectionOpen[k];renderOverview();}
+function toggleDD(city){selectedCity=selectedCity===city?null:city;renderOverview();}
 
-  // KPIs
-  const airCities = cities.filter(c => c.air_on);
-  document.getElementById('kpi-red').textContent    = cities.filter(c => c.p_rag==='red').length;
-  document.getElementById('kpi-amber').textContent  = cities.filter(c => c.p_rag==='amber').length;
-  document.getElementById('kpi-air').textContent    = airCities.length;
-  document.getElementById('kpi-orders').textContent = airCities.reduce((s,c)=>s+c.daily_air_orders,0).toLocaleString('en-IN');
-  const totalCost = airCities.reduce((s,c)=>s+c.daily_air_cost,0);
-  document.getElementById('kpi-cost').textContent   = '₹' + (totalCost/1000).toFixed(1) + 'K';
-
-  // Table
-  const tbody = document.getElementById('city-tbody');
-  tbody.innerHTML = cities.map(m => `
-    <tr class="${selectedCity===m.city?'selected':''}" onclick="toggleDrilldown('${m.city}')">
-      <td style="font-weight:600;color:#e8f2ff;">${m.city}</td>
-      <td>${rag(m.p_rag, m.pipeline_days.toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px;">BAU:${m.bau}</span></td>
-      <td style="font-family:'DM Mono';font-size:12px;color:var(--muted);">&gt;${m.trigger.toFixed(1)}d</td>
-      <td>${rag(m.l_rag, m.long_tail_pct.toFixed(1)+'%')}</td>
-      <td>${rag(m.s_rag, m.sla_breach_pct.toFixed(1)+'%')}</td>
-      <td>${rag(m.io_rag, m.io_ratio.toFixed(2))}</td>
-      <td>${agingBar(m)}</td>
-      <td>${m.air_on ? '<span class="air-on">✈ ON</span>' : '<span class="air-off">— OFF</span>'}</td>
-      <td style="font-size:11px;font-weight:600;color:${m.action_color};">${m.action}</td>
-    </tr>
-  `).join('');
-
-  // Drilldown
-  renderDrilldown(cities);
-}
-
-function toggleDrilldown(city) {
-  selectedCity = selectedCity === city ? null : city;
-  renderOverview();
-}
-
-function renderDrilldown(cities) {
-  const dd = document.getElementById('drilldown');
-  if (!selectedCity) { dd.style.display = 'none'; return; }
-  const m = cities.find(c => c.city === selectedCity);
-  if (!m) { dd.style.display = 'none'; return; }
-  dd.style.display = 'block';
-  const t = m.total_aging || 1;
-  const buckets = [
-    {label:'1 Day Over', val: m.aging_1d,   color:'#f59e0b'},
-    {label:'2 Days Over',val: m.aging_2d,   color:'#fb923c'},
-    {label:'3 Days Over',val: m.aging_3d,   color:'#ef4444'},
-    {label:'> 3 Days',   val: m.aging_gt3d, color:'#991b1b'},
-  ];
-  dd.innerHTML = `
-    <div class="drilldown-header">
-      <div class="drilldown-title">${m.city} — Drilldown</div>
-      <button class="drilldown-close" onclick="selectedCity=null;renderOverview()">×</button>
+// ── DRILLDOWN ─────────────────────────────────────────────────────────────────
+function renderDD(cities){
+  const dd=document.getElementById('drilldown');
+  if(!selectedCity){dd.style.display='none';return;}
+  const m=cities.find(c=>c.city===selectedCity);
+  if(!m){dd.style.display='none';return;}
+  dd.style.display='block';
+  const t=m.totAge||1;
+  dd.innerHTML=`
+    <div class="dd-header">
+      <div class="dd-title">${m.city} — Drilldown
+        <span style="font-size:13px;color:var(--muted);"> · ${m.inflow.toLocaleString('en-IN')} inflow/day · ${m.isActive?'✈ Air Active':'Surface Only'}</span>
+      </div>
+      <button class="dd-close" onclick="selectedCity=null;renderOverview()">×</button>
     </div>
-    <div class="drilldown-grid">
+    <div class="dd-grid">
       <div class="dd-card">
         <div class="dd-card-title">Trigger Calculation</div>
-        ${[['BAU Pipeline',m.bau+'d'],['Surface TAT',m.surface_tat+'d'],['Air TAT',m.air_tat+'d'],['TAT Advantage',m.tat_adv+'d'],['Trigger Threshold',m.trigger.toFixed(1)+'d'],['Current Pipeline',m.pipeline_days.toFixed(1)+'d'],['Excess vs BAU','+'+(m.pipeline_days-m.bau).toFixed(1)+'d']].map(([k,v])=>`
-          <div class="dd-row"><span class="dd-row-label">${k}</span><span class="dd-row-val">${v}</span></div>`).join('')}
-        <hr class="dd-divider"/>
-        <div class="dd-row">
-          <span class="dd-row-label">Air Triggered?</span>
-          <span style="font-family:'DM Mono';font-weight:700;color:${m.air_on?'#3b82f6':'#22c55e'};">${m.air_on?'YES ✈':'NO ✓'}</span>
-        </div>
+        ${[['BAU Pipeline',m.bau+'d'],['Surface TAT',m.surface_tat+'d'],['Air TAT',m.air_tat+'d'],
+           ['TAT Advantage',m.tatAdv+'d'],['Trigger (×'+trigMult.toFixed(2)+')',m.trigger.toFixed(1)+'d'],
+           ['Current Pipeline',m.pipeline_days.toFixed(1)+'d'],
+           ['Days Below Trigger',m.days_below_trigger!==undefined&&m.days_below_trigger!==''?m.days_below_trigger+' day(s)':'Not tracked (fallback active)']]
+          .map(([k,v])=>`<div class="dd-row"><span class="dd-lbl">${k}</span><span class="dd-val">${v}</span></div>`).join('')}
+        <hr class="dd-div"/>
+        <div class="dd-row"><span class="dd-lbl">Deact. Ready?</span>
+          <span style="color:${m.deactReady?'var(--green)':'var(--muted)'};font-family:'DM Mono';font-weight:700;">${m.isActive?(m.deactReady?'YES ✅':'NO — still active'):'N/A'}</span></div>
       </div>
       <div class="dd-card">
         <div class="dd-card-title">Aging Buckets (Days Over ETA)</div>
-        ${buckets.map(b => `
-          <div class="bucket-row">
-            <div class="bucket-header">
-              <span style="color:${b.color};font-weight:600;">${b.label}</span>
-              <span style="font-family:'DM Mono';color:#e8f2ff;">${b.val.toLocaleString('en-IN')} <span style="color:var(--muted);font-size:10px;">(${(b.val/t*100).toFixed(0)}%)</span></span>
-            </div>
-            <div class="bucket-bar-bg"><div class="bucket-bar-fill" style="width:${(b.val/t*100).toFixed(1)}%;background:${b.color};"></div></div>
+        ${[{l:'1 Day Over',v:m.aging_1d,c:'#f59e0b'},{l:'2 Days Over',v:m.aging_2d,c:'#fb923c'},
+           {l:'3 Days Over',v:m.aging_3d,c:'#ef4444'},{l:'> 3 Days',v:m.aging_gt3d,c:'#991b1b'}]
+          .map(b=>`<div class="bkt-row">
+            <div class="bkt-hd"><span style="color:${b.c};font-weight:600;">${b.l}</span>
+              <span style="font-family:'DM Mono';color:var(--text);">${b.v.toLocaleString('en-IN')} <span style="color:var(--muted);font-size:10px;">(${(b.v/t*100).toFixed(0)}%)</span></span></div>
+            <div class="bkt-bg"><div class="bkt-fill" style="width:${(b.v/t*100).toFixed(1)}%;background:${b.c};"></div></div>
           </div>`).join('')}
-        <hr class="dd-divider"/>
-        <div class="dd-row"><span class="dd-row-label">Total Aging Orders</span><span class="dd-row-val">${m.total_aging.toLocaleString('en-IN')}</span></div>
+        <hr class="dd-div"/>
+        <div class="dd-row"><span class="dd-lbl">Total Aging</span><span class="dd-val">${m.totAge.toLocaleString('en-IN')}</span></div>
       </div>
       <div class="dd-card">
-        <div class="dd-card-title">Cost Impact (Air)</div>
-        ${[['ΔC per order','₹'+DELTA_C],['Air share of inflow','35%'],['Today inflow',m.inflow.toLocaleString('en-IN')],['Air orders/day',m.daily_air_orders.toLocaleString('en-IN')],['Daily incremental cost','₹'+m.daily_air_cost.toLocaleString('en-IN')],['Weekly projection','₹'+(m.daily_air_cost*7).toLocaleString('en-IN')],['I/O Ratio',m.io_ratio.toFixed(2)]].map(([k,v])=>`
-          <div class="dd-row"><span class="dd-row-label">${k}</span><span class="dd-row-val">${v}</span></div>`).join('')}
-        <hr class="dd-divider"/>
+        <div class="dd-card-title">BD Air Cost (D-1)</div>
+        ${airLoaded?`
+          <div class="dd-row"><span class="dd-lbl">Actual air orders</span><span class="dd-val" style="color:var(--purple);">${(m.actualOrders||0).toLocaleString('en-IN')}</span></div>
+          <div class="dd-row"><span class="dd-lbl">Surface orders</span><span class="dd-val">${(m.surface_orders||0).toLocaleString('en-IN')}</span></div>
+          <div class="dd-row"><span class="dd-lbl">Air share %</span><span class="dd-val">${(m.air_share_pct||0).toFixed(1)}%</span></div>`
+        :`<div style="color:var(--muted);font-size:11px;padding:8px 0;">Connect BD_AIR_ORDERS for cost data.</div>`}
+        <hr class="dd-div"/>
+        <div class="dd-row"><span class="dd-lbl">ΔC per order</span><span class="dd-val">${inr(getDeltaC())}</span></div>
+        <div class="dd-row"><span class="dd-lbl">Daily cost (D-1)</span><span class="dd-val" style="color:var(--teal);">${airLoaded?inr(m.dailyCost):'—'}</span></div>
+        <div class="dd-row"><span class="dd-lbl">Weekly projection</span><span class="dd-val">${airLoaded?inr(m.dailyCost*7):'—'}</span></div>
+        <div class="dd-row"><span class="dd-lbl">30-day projection</span><span class="dd-val">${airLoaded?lakh(m.dailyCost*30):'—'}</span></div>
+      </div>
+      <div class="dd-card">
+        <div class="dd-card-title">Key Signals</div>
+        ${[['Inflow / Day',m.inflow.toLocaleString('en-IN')],['I/O Ratio',m.ioRatio.toFixed(2)],
+           ['Long Tail %',m.long_tail_pct.toFixed(1)+'%'],['SLA Breach %',m.sla_breach_pct.toFixed(1)+'%'],
+           ['Status',m.isActive?'✈ Air Active':'Surface Only']]
+          .map(([k,v])=>`<div class="dd-row"><span class="dd-lbl">${k}</span><span class="dd-val">${v}</span></div>`).join('')}
+        <hr class="dd-div"/>
         <div style="font-size:11px;color:var(--muted);">Air targets new orders only. In-transit stays on surface.</div>
       </div>
     </div>`;
 }
 
-// ─── RENDER COST SIM ─────────────────────────────────────────────────────────
-function renderSim() {
-  const mult = parseFloat(document.getElementById('trigger-mult-sim').value);
-  const cities = compute(cityData, mult).sort((a,b) => b.daily_air_cost - a.daily_air_cost);
-  const maxCost = Math.max(...cities.map(c => c.daily_air_cost), 1);
-  const totalCost = cities.reduce((s,c) => s + c.daily_air_cost, 0);
-  const airCount = cities.filter(c => c.air_on).length;
+// ── ACTIVATE / DEACTIVATE ─────────────────────────────────────────────────────
+function doActivate(city,pipeline,trigger){
+  activeCities.add(city);
+  const entry={ts:new Date().toLocaleString('en-IN'),action:'ACTIVATED',city,pipeline,trigger,details:`Air activated for ${city}. Pipeline: ${pipeline}d > Trigger: ${trigger}d`};
+  changeLog.unshift(entry);
+  writeToChangeLog(entry);
+  renderOverview();
+  if(currentTab==='log') renderLog();
+}
 
-  document.getElementById('cost-bars').innerHTML = cities.map(m => `
-    <div class="cost-bar-row">
-      <div class="cost-bar-label">
-        <span style="color:${m.air_on?'#e8f2ff':'var(--dim)'};">${m.city} ${m.air_on?'✈':''}</span>
-        <span style="font-family:'DM Mono';color:${m.air_on?'#a78bfa':'var(--dim)'};">${m.air_on?'₹'+m.daily_air_cost.toLocaleString('en-IN'):'—'}</span>
-      </div>
-      <div class="cost-bar-bg"><div class="cost-bar-fill" style="width:${(m.daily_air_cost/maxCost*100).toFixed(1)}%;"></div></div>
-    </div>`).join('');
+function doDeactivate(city,pipeline,trigger){
+  activeCities.delete(city);
+  const entry={ts:new Date().toLocaleString('en-IN'),action:'DEACTIVATED',city,pipeline,trigger,details:`Air deactivated for ${city}. Pipeline: ${pipeline}d. Below trigger: ${trigger}d`};
+  changeLog.unshift(entry);
+  writeToChangeLog(entry);
+  renderOverview();
+  if(currentTab==='log') renderLog();
+}
 
-  document.getElementById('cost-rollup').innerHTML = [
-    ['Cities on Air', airCount + ' / ' + cities.length],
-    ['Total Air orders/day', cities.reduce((s,c)=>s+c.daily_air_orders,0).toLocaleString('en-IN')],
-    ['ΔC per order', '₹'+DELTA_C],
-    ['Daily incremental cost', '₹'+totalCost.toLocaleString('en-IN')],
-    ['Weekly projection', '₹'+(totalCost*7).toLocaleString('en-IN')],
-    ['30-day projection', '₹'+(totalCost*30).toLocaleString('en-IN')],
-    ['Trigger sensitivity', mult.toFixed(2)+'×'],
-  ].map(([k,v]) => `<div class="rollup-row"><span class="rollup-label">${k}</span><span class="rollup-val">${v}</span></div>`).join('');
-
-  document.getElementById('cost-tip').textContent = mult < 1
-    ? '⚠ Aggressive mode — more cities on Air, higher cost, better protection.'
-    : mult > 1.1
-    ? '💡 Conservative mode — fewer cities on Air. Ensure long tail stays under 8%.'
-    : '💡 To reduce cost: increase multiplier to 1.1–1.2×. To protect pipeline: keep at 1.0×.';
-
-  // Sensitivity table
-  const mults = [0.8,0.9,1.0,1.1,1.2,1.3,1.4];
-  const thead = `<thead><tr><th>Mult</th>${cityData.map(c=>`<th>${c.city.slice(0,3)}</th>`).join('')}<th>Total/Day</th><th>30-Day</th></tr></thead>`;
-  const tbody = mults.map(m2 => {
-    const sim = compute(cityData, m2);
-    const tot = sim.reduce((s,c)=>s+c.daily_air_cost,0);
-    const isActive = Math.abs(m2-mult)<0.01;
-    return `<tr class="${isActive?'active-row':''}">
-      <td class="${isActive?'active-marker':''}" style="font-family:'DM Mono';">${m2.toFixed(1)}×${isActive?' ◀':''}</td>
-      ${sim.map(c=>`<td style="color:${c.air_on?'#a78bfa':'var(--dim)'};">${c.air_on?'₹'+(c.daily_air_cost/1000).toFixed(1)+'K':'—'}</td>`).join('')}
-      <td style="color:#e8f2ff;font-weight:600;">₹${tot.toLocaleString('en-IN')}</td>
-      <td style="color:#2dd4bf;">₹${(tot*30/100000).toFixed(1)}L</td>
+// ── CHANGE LOG RENDER ─────────────────────────────────────────────────────────
+function renderLog(){
+  const tbody=document.getElementById('log-tbody');
+  if(!changeLog.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;font-family:'DM Mono';font-size:12px;">No actions logged yet. Activate or deactivate a city to begin.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=changeLog.map(e=>{
+    const cls=e.action==='ACTIVATED'?'log-activate':e.action==='DEACTIVATED'?'log-deactivate':e.action.includes('CONFIG')?'log-config':'log-refresh';
+    return`<tr class="${cls}">
+      <td>${e.ts}</td>
+      <td>${e.action}</td>
+      <td>${e.city||'—'}</td>
+      <td>${e.pipeline||'—'}</td>
+      <td>${e.trigger||'—'}</td>
+      <td>${e.details||'—'}</td>
     </tr>`;
   }).join('');
-  document.getElementById('sens-table').innerHTML = thead + '<tbody>' + tbody + '</tbody>';
 }
 
-// ─── RENDER LOGIC ─────────────────────────────────────────────────────────────
-function renderLogic() {
-  const steps = [
-    {n:'01',title:'Check Pipeline Days',logic:'Pipeline Days = In-Transit Orders ÷ Avg Daily Outflow (7-day rolling)',trigger:'If pipeline > BAU + TAT Advantage → AIR ON via Clickpost rule',color:'#3b82f6'},
-    {n:'02',title:'Check Long Tail %',logic:'Long Tail % = Orders delivered after ETA+24h ÷ Total delivered (last 24h)',trigger:'If Long Tail > 8% AND pipeline > BAU+1 → Escalate + activate Air if not already ON',color:'#fb923c'},
-    {n:'03',title:'Check SLA Breach %',logic:'SLA Breach % = Orders delivered after promised ETA ÷ Total delivered today',trigger:'If SLA > 12% → Flag city. Review air spend vs budget cap if already ON.',color:'#ef4444'},
-    {n:'04',title:'Check I/O Ratio',logic:'I/O Ratio = Today inflow ÷ Today outflow. Constant inflow means ratio rise = outflow drop.',trigger:'If I/O > 1.2 for 2 consecutive checks → Pre-arm Air even if pipeline not yet at trigger.',color:'#f59e0b'},
-    {n:'05',title:'Air Volume Decision',logic:'New orders only. 35% of city inflow routed to BD Air via Clickpost city/pincode rule.',trigger:'Focus pincodes with highest aging_gt3d concentration first.',color:'#22c55e'},
-    {n:'06',title:'Deactivate Air (Hysteresis)',logic:'Turn OFF only when pipeline stays below trigger for 2 consecutive 4-hour checks.',trigger:'Prevents toggling. Log every ON/OFF with timestamp in Decision Log sheet.',color:'#a78bfa'},
-  ];
-  document.getElementById('logic-steps').innerHTML = steps.map(s => `
-    <div class="step-row">
-      <div class="step-num" style="background:${s.color}22;border:1px solid ${s.color}44;color:${s.color};">${s.n}</div>
-      <div class="step-body">
-        <div class="step-title">${s.title}</div>
-        <div class="step-logic">${s.logic}</div>
-        <div class="step-trigger" style="color:${s.color};">→ ${s.trigger}</div>
+// ── WRITE TO APPS SCRIPT (CHANGE LOG) ────────────────────────────────────────
+async function writeToChangeLog(entry){
+  const url=document.getElementById('script-url').value.trim();
+  if(!url) return; // silently skip if not configured
+  try{
+    await fetch(url,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'log',data:entry})
+    });
+  }catch(e){console.warn('Change log write failed:',e.message);}
+}
+
+async function saveConfigToSheet(){
+  const url=document.getElementById('script-url').value.trim();
+  const config={
+    trigger_multiplier:trigMult,
+    delta_c:getDeltaC(),
+    min_opd:getMinOPD()
+  };
+  // Save to localStorage regardless
+  localStorage.setItem('rct_delta_c',getDeltaC());
+  localStorage.setItem('rct_min_opd',getMinOPD());
+  localStorage.setItem('rct_trigger',trigMult);
+  localStorage.setItem('rct_pin',getPin());
+
+  const entry={ts:new Date().toLocaleString('en-IN'),action:'CONFIG CHANGED',city:'',pipeline:'',trigger:'',details:`Trigger: ${trigMult}×, ΔC: ₹${getDeltaC()}, Min OPD: ${getMinOPD()}`};
+  changeLog.unshift(entry);
+
+  if(url){
+    try{
+      await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveConfig',data:config})});
+      showSaveStatus('✓ Saved to Sheet');
+    }catch(e){showSaveStatus('✓ Saved locally (sheet write failed)');}
+  } else {
+    showSaveStatus('✓ Saved locally — connect Apps Script to sync with team');
+  }
+  writeToChangeLog(entry);
+  renderOverview();
+}
+
+function showSaveStatus(msg){
+  const el=document.getElementById('save-status');
+  el.textContent=msg; el.style.display='inline';
+  setTimeout(()=>{el.style.display='none';},3000);
+}
+
+async function testScript(){
+  const url=document.getElementById('script-url').value.trim();
+  if(!url){showErr('Paste your Apps Script URL first.');return;}
+  scriptUrl=url;
+  try{
+    await fetch(url+'?action=ping',{mode:'no-cors'});
+    setStatus('script-status','CONNECTED','tag-ok');
+    localStorage.setItem('rct_script_url',url);
+    showErr('');
+  }catch(e){setStatus('script-status','ERROR','tag-no');}
+}
+
+// ── COST SIM ──────────────────────────────────────────────────────────────────
+function renderSim(){
+  const cont=document.getElementById('sim-content');
+  if(!airLoaded){
+    cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste your BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
+    return;
+  }
+  const mult=trigMult;
+  const deltaC=getDeltaC();
+  const cities=sortCities(filterCities(compute(merged(),mult)));
+  const maxCost=Math.max(...cities.map(c=>c.dailyCost),1);
+  const totCost=cities.reduce((s,c)=>s+c.dailyCost,0);
+  const totOrders=cities.reduce((s,c)=>s+c.dispOrders,0);
+
+  const barsHTML=cities.map(m=>`
+    <div class="cbar-row">
+      <div class="cbar-lbl">
+        <span style="color:${m.dispOrders>0?'var(--text)':'var(--muted)'};">${m.city}${m.isActive?' ✈':''} <span style="font-size:10px;color:var(--muted);">${m.inflow.toLocaleString('en-IN')}/day</span></span>
+        <span style="font-family:'DM Mono';color:${m.dispOrders>0?'var(--purple)':'var(--muted)'};">
+          ${m.dispOrders>0?`${m.dispOrders.toLocaleString('en-IN')} orders · ${inr(m.dailyCost)}`:'—'}</span>
       </div>
+      <div class="cbar-bg"><div class="cbar-fill" style="width:${(m.dailyCost/maxCost*100).toFixed(1)}%;background:#6366f1;"></div></div>
     </div>`).join('');
 
-  const thresholds = [
-    ['Pipeline Days','< BAU+0.5','BAU+0.5 → +TAT adv','> BAU+TAT adv'],
-    ['Long Tail %','< 3%','3%–8%','> 8%'],
-    ['SLA Breach %','< 5%','5%–12%','> 12%'],
-    ['I/O Ratio','0.9–1.1','1.1–1.3','> 1.3'],
-    ['Air Share %','< 8%','8%–15%','> 15% (cost alert)'],
-  ];
-  document.getElementById('thresh-table').innerHTML =
-    `<thead><tr><th>Metric</th><th style="color:#22c55e;">Green</th><th style="color:#f59e0b;">Amber</th><th style="color:#ef4444;">Red</th></tr></thead>` +
-    `<tbody>${thresholds.map(([m,g,a,r])=>`<tr>
-      <td style="font-weight:600;color:#e8f2ff;">${m}</td>
-      <td style="color:#22c55e;font-family:'DM Mono';font-size:10px;">${g}</td>
-      <td style="color:#f59e0b;font-family:'DM Mono';font-size:10px;">${a}</td>
-      <td style="color:#ef4444;font-family:'DM Mono';font-size:10px;">${r}</td>
+  const rollupHTML=[
+    ['Cities Active (Air ON)',cities.filter(c=>c.isActive).length],
+    ['Total air orders (D-1)',totOrders.toLocaleString('en-IN')],
+    ['ΔC per order',inr(deltaC)],
+    ['Daily incremental cost',inr(totCost)],
+    ['Weekly projection',inr(totCost*7)],
+    ['30-day projection',lakh(totCost*30)],
+    ['Trigger multiplier',trigMult.toFixed(2)+'×'],
+  ].map(([k,v])=>`<div class="rollup-row"><span class="rollup-lbl">${k}</span><span class="rollup-val">${v}</span></div>`).join('');
+
+  const mults=[0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0];
+  const visCities=filterCities(compute(merged(),1.0));
+  const thead=`<thead><tr><th>Mult</th><th>Cities On Air</th>${visCities.map(c=>`<th>${c.city.slice(0,3)}</th>`).join('')}<th>Orders</th><th>Daily</th><th>30-Day</th></tr></thead>`;
+  const tbody=mults.map(m2=>{
+    const sim=sortCities(filterCities(compute(merged(),m2)));
+    const tot=sim.reduce((s,c)=>s+c.dailyCost,0);
+    const totO=sim.reduce((s,c)=>s+c.dispOrders,0);
+    const isActive=Math.abs(m2-mult)<0.01;
+    return`<tr class="${isActive?'ar':''}">
+      <td style="color:${isActive?'var(--blue)':'var(--muted)'};font-weight:${isActive?700:400};">${m2.toFixed(1)}×${isActive?' ◀':''}</td>
+      <td style="color:var(--text);">${sim.filter(c=>c.isActive).length}</td>
+      ${visCities.map(vc=>{const sc=sim.find(c=>c.city===vc.city);return`<td style="color:${sc&&sc.isActive?'var(--purple)':'var(--muted)'};">${sc&&sc.isActive?sc.dispOrders:'—'}</td>`}).join('')}
+      <td style="color:var(--text);font-weight:600;">${totO.toLocaleString('en-IN')}</td>
+      <td style="color:var(--text);font-weight:600;">${inr(tot)}</td>
+      <td style="color:var(--teal);">${lakh(tot*30)}</td>
+    </tr>`;
+  }).join('');
+
+  cont.innerHTML=`
+    <div class="sim-grid">
+      <div class="sim-card"><div class="sim-card-title">BD Air Orders & Cost by City (D-1) <span style="font-size:10px;font-family:'DM Mono';padding:2px 6px;border-radius:3px;margin-left:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);">ACTUAL</span></div>${barsHTML}</div>
+      <div class="sim-card"><div class="sim-card-title">Cost Roll-up</div>${rollupHTML}
+        <div class="tip-box ${trigMult<1?'tip-amber':'tip-green'}">${trigMult<1?'⚠ Aggressive mode — more cities trigger, higher spend.':'✓ Adjust trigger sensitivity in Config to simulate different scenarios.'}</div>
+      </div>
+    </div>
+    <div class="sens-card"><div class="sens-card-title">Sensitivity Table — Trigger × vs Cities & Cost</div>
+      <div style="overflow-x:auto;"><table class="st">${thead}<tbody>${tbody}</tbody></table></div>
+    </div>`;
+}
+
+// ── LOGIC TAB ─────────────────────────────────────────────────────────────────
+function renderLogic(){
+  document.getElementById('logic-steps').innerHTML=[
+    {n:'01',title:'Morning Review',logic:'SQL runs overnight. Open Heimdall each morning — data is D-1 (yesterday closed).',trigger:'Check Cities Critical and Active sections first.',c:'var(--blue)'},
+    {n:'02',title:'Activate Air for Critical Cities',logic:'Pipeline > BAU + TAT Advantage × trigger multiplier → city shows in Critical.',trigger:'Click [Activate Air] → city moves to Active section → logged automatically.',c:'var(--red)'},
+    {n:'03',title:'Check Watch Cities',logic:'Watch = pipeline > BAU + 0.5. Not trigger-worthy yet but approaching.',trigger:'Monitor daily. If I/O Ratio > 1.3, consider pre-emptive activation.',c:'var(--amber)'},
+    {n:'04',title:'Review Active Cities for Deactivation',logic:'Active cities show deactivation readiness. Green highlight = 2 days below trigger (or single-day if days_below_trigger not in sheet).',trigger:'Click [✅ Deactivate] on highlighted cities → moves back to RAG section → logged.',c:'var(--green)'},
+    {n:'05',title:'Review Change Log',logic:'All activations, deactivations and config changes are logged with timestamp.',trigger:'Team can see full history in Change Log tab and in CHANGE_LOG sheet.',c:'var(--purple)'},
+  ].map(s=>`<div class="step-row">
+    <div class="step-num" style="background:${s.c}22;border:1px solid ${s.c}44;color:${s.c};">${s.n}</div>
+    <div><div class="step-title">${s.title}</div>
+    <div class="step-logic">${s.logic}</div>
+    <div class="step-trigger" style="color:${s.c};">→ ${s.trigger}</div></div>
+  </div>`).join('');
+
+  document.getElementById('thresh-table').innerHTML=
+    `<thead><tr><th>Metric</th><th style="color:var(--green);">Green</th><th style="color:var(--amber);">Amber</th><th style="color:var(--red);">Red</th></tr></thead>
+    <tbody>${[
+      ['Pipeline Days (Air trigger)','< BAU+0.5','BAU+0.5 → BAU+TAT adv','> BAU+TAT adv × mult'],
+      ['Long Tail %','< 3%','3%–8%','> 8%'],
+      ['SLA Breach %','< 5%','5%–12%','> 12%'],
+      ['I/O Ratio','0.9–1.1','1.1–1.3','> 1.3'],
+    ].map(([m,g,a,r])=>`<tr>
+      <td style="font-weight:600;color:var(--text);">${m}</td>
+      <td style="color:var(--green);font-family:'DM Mono';font-size:10px;">${g}</td>
+      <td style="color:var(--amber);font-family:'DM Mono';font-size:10px;">${a}</td>
+      <td style="color:var(--red);font-family:'DM Mono';font-size:10px;">${r}</td>
     </tr>`).join('')}</tbody>`;
 
-  const constraints = [
-    'Air applies to new orders only — in-transit orders remain on surface.',
-    'ETA buffer fixed at +24h — not a variable in this model.',
-    'Inflow treated as constant — no demand shaping lever.',
-    'Clickpost rules target city or pincode only — no lane-level rules.',
-    'ΔC fixed at ₹35/order (BD Air ₹72 − Surface CPOL ₹37).',
-    'Deactivate Air only after pipeline below trigger for 2 consecutive 4h checks.',
-  ];
-  document.getElementById('constraints').innerHTML = constraints.map(c =>
-    `<div class="constraint-row"><span class="constraint-check">✓</span><span class="constraint-text">${c}</span></div>`
-  ).join('');
+  document.getElementById('constraints').innerHTML=[
+    'RAG driven solely by pipeline days vs BAU + TAT Advantage × trigger multiplier.',
+    'Within each section, cities sorted by inflow (orders per day) descending.',
+    'Air = new orders only. In-transit remains on surface.',
+    'Deactivation: 2 consecutive days below trigger (fallback: single day).',
+    'All actions auto-logged to CHANGE_LOG sheet via Apps Script.',
+    'Config changes require PIN. PIN unlock persists per browser session.',
+    'D-1 data: all metrics are previous day closed figures.',
+  ].map(c=>`<div class="cr"><span style="color:var(--green);">✓</span><span style="color:var(--muted);">${c}</span></div>`).join('');
 }
 
-// ─── TAB SWITCHING ───────────────────────────────────────────────────────────
-function switchTab(tab, btn) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(tab,btn){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  ['overview','sim','logic'].forEach(t => {
-    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
-  });
-  if (tab==='sim') renderSim();
-  if (tab==='logic') renderLogic();
+  ['overview','sim','log','logic'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===tab?'block':'none';});
+  if(tab==='sim') renderSim();
+  if(tab==='log') renderLog();
+  if(tab==='logic') renderLogic();
 }
 
-// ─── SLIDERS ─────────────────────────────────────────────────────────────────
-function onSlider() {
-  triggerMult = parseFloat(document.getElementById('trigger-mult').value);
-  document.getElementById('slider-val').textContent = triggerMult.toFixed(2)+'×';
-  document.getElementById('slider-desc').textContent = triggerMult < 1 ? '← More aggressive' : triggerMult > 1 ? 'More conservative →' : 'BAU threshold';
+// ── TRIGGER SLIDER ────────────────────────────────────────────────────────────
+function onTriggerSlider(){
+  trigMult=parseFloat(document.getElementById('cfg-trigger').value);
+  document.getElementById('trigger-val').textContent=trigMult.toFixed(2)+'×';
+  document.getElementById('trigger-desc').textContent=sdesc(trigMult);
   renderOverview();
-}
-function onSliderSim() {
-  const v = parseFloat(document.getElementById('trigger-mult-sim').value);
-  document.getElementById('slider-val-sim').textContent = v.toFixed(2)+'×';
-  document.getElementById('slider-desc-sim').textContent = v < 1 ? '← More aggressive' : v > 1 ? 'More conservative →' : 'BAU threshold';
-  renderSim();
+  if(currentTab==='sim') renderSim();
 }
 
-// ─── DATA LOADING ────────────────────────────────────────────────────────────
-function loadSampleData() {
-  cityData = SAMPLE;
-  document.getElementById('footer-sheet').textContent = 'DATA: SAMPLE (replace with your Sheet URL)';
-  document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString('en-IN') + ' (sample)';
-  renderOverview();
-  if (currentTab==='sim') renderSim();
-  if (currentTab==='logic') renderLogic();
-  showError('');
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('theme-btn').textContent=isDark?'🌙':'☀️';
+  localStorage.setItem('rct_theme',isDark?'light':'dark');
 }
 
-async function loadFromSheet() {
-  const url = document.getElementById('sheet-url').value.trim();
-  if (!url) { showError('Please paste your Google Sheet CSV URL first.'); return; }
-  await loadData(url);
+// ── PIN ───────────────────────────────────────────────────────────────────────
+function requirePin(callback){
+  if(configUnlocked){callback();return;}
+  document.getElementById('pin-overlay').style.display='flex';
+  window._pinCallback=callback;
 }
-
-async function loadData(url) {
-  url = url || sheetUrl;
-  if (!url) return;
-  sheetUrl = url;
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const text = await resp.text();
-
-    // Split into lines, strip empty lines
-    const allRows = text.split('\n').map(r => r.trim()).filter(r => r.length > 0);
-
-    // Find the header row — must contain 'city' and 'pipeline_days'
-    const headerIdx = allRows.findIndex(r => {
-      const low = r.toLowerCase();
-      return low.includes('city') && low.includes('pipeline');
-    });
-    if (headerIdx === -1) throw new Error('Could not find CITY_METRICS header row. Make sure the CITY_METRICS tab is selected when publishing as CSV.');
-
-    const headers = allRows[headerIdx].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g,'_').replace(/['"]/g,''));
-
-    // Collect only data rows immediately after the header, stopping at any blank or non-city row
-    const dataRows = [];
-    for (let i = headerIdx + 1; i < allRows.length; i++) {
-      const row = allRows[i];
-      if (!row || row.startsWith(',')) break; // blank or starts with comma = new section
-      const vals = row.split(',');
-      if (vals.length < headers.length) break; // fewer columns = different table
-      const firstVal = vals[0].trim().replace(/['"]/g,'');
-      if (!firstVal || firstVal.toLowerCase() === headers[0]) break; // empty or another header
-      const obj = {};
-      headers.forEach((h, i) => {
-        const v = (vals[i] || '').trim().replace(/['"]/g,'');
-        obj[h] = (v !== '' && !isNaN(v)) ? parseFloat(v) : v;
-      });
-      if (obj.city && obj.pipeline_days !== undefined) dataRows.push(obj);
-    }
-    if (dataRows.length === 0) throw new Error('Found headers but no city data rows. Check the CITY_METRICS tab has data in rows 2 onwards.');
-    cityData = dataRows;
-    document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString('en-IN');
-    document.getElementById('footer-sheet').textContent = 'SHEET: CONNECTED · ' + cityData.length + ' CITIES';
-    renderOverview();
-    if (currentTab==='sim') renderSim();
-    showError('');
-    localStorage.setItem('rct_sheet_url', url);
-  } catch(e) {
-    showError('Could not load Sheet: ' + e.message + '. Make sure the Sheet is published as CSV (File → Share → Publish to web → CSV).');
+function submitPin(){
+  const entered=document.getElementById('pin-input').value;
+  const correct=localStorage.getItem(CORRECT_PIN_KEY)||DEFAULT_PIN;
+  if(entered===correct){
+    configUnlocked=true;
+    document.getElementById('pin-overlay').style.display='none';
+    document.getElementById('pin-input').value='';
+    document.getElementById('pin-error').style.display='none';
+    document.getElementById('config-lock-info').textContent='🔓 UNLOCKED';
+    if(window._pinCallback){window._pinCallback();window._pinCallback=null;}
+  } else {
+    document.getElementById('pin-error').style.display='block';
   }
 }
-
-function showError(msg) {
-  const bar = document.getElementById('error-bar');
-  bar.style.display = msg ? 'block' : 'none';
-  bar.textContent = msg;
+// Lock config fields until PIN entered
+function setupPinLock(){
+  const fields=['cfg-delta-c','cfg-min-opd','cfg-pin','cfg-trigger','sheet-url','air-url','script-url'];
+  // Make config panel clickable to trigger PIN
+  document.getElementById('config-panel').addEventListener('click',function(e){
+    if(!configUnlocked){
+      e.preventDefault();e.stopPropagation();
+      requirePin(()=>{});
+    }
+  },true);
 }
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
-window.onload = () => {
-  const saved = localStorage.getItem('rct_sheet_url');
-  if (saved) { document.getElementById('sheet-url').value = saved; loadData(saved); }
-  else { loadSampleData(); }
+// ── CSV PARSER ────────────────────────────────────────────────────────────────
+function parseCSV(text,mustHave){
+  const lines=text.split('\n').map(r=>r.trim()).filter(Boolean);
+  const hi=lines.findIndex(r=>mustHave.every(k=>r.toLowerCase().includes(k)));
+  if(hi===-1) throw new Error('Header not found. Expected: '+mustHave.join(', '));
+  const hdrs=lines[hi].split(',').map(h=>h.trim().toLowerCase().replace(/[\s'"]+/g,'_').replace(/[^a-z0-9_]/g,''));
+  const rows=[];
+  for(let i=hi+1;i<lines.length;i++){
+    const l=lines[i];
+    if(!l||l.startsWith(',')) break;
+    const vals=l.split(',');
+    if(vals.length<2) break;
+    const first=vals[0].trim().replace(/['"]/g,'');
+    if(!first||first.toLowerCase()===hdrs[0]) break;
+    const obj={};
+    hdrs.forEach((h,idx)=>{
+      const v=(vals[idx]||'').trim().replace(/['"₹%,\s]/g,'');
+      obj[h]=(v!==''&&!isNaN(v))?parseFloat(v):v;
+    });
+    if(obj[hdrs[0]]) rows.push(obj);
+  }
+  return rows;
+}
+
+// ── LOAD SHEETS ───────────────────────────────────────────────────────────────
+async function loadCitySheet(){
+  const url=document.getElementById('sheet-url').value.trim();
+  if(!url){showErr('Paste CITY_METRICS CSV URL.');return;}
+  sheetUrl=url;
+  try{
+    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
+    cityData=parseCSV(await r.text(),['city','pipeline']);
+    if(!cityData.length) throw new Error('No rows found.');
+    setStatus('city-status','✓ '+cityData.length+' CITIES','tag-ok');
+    setDataDate(); localStorage.setItem('rct_city_url',url);
+    renderOverview();if(currentTab==='sim')renderSim();
+    showErr('');updateFooter();
+    logRefresh();
+  }catch(e){showErr('CITY_METRICS: '+e.message);setStatus('city-status','ERROR','tag-no');}
+}
+async function loadAirSheet(){
+  const url=document.getElementById('air-url').value.trim();
+  if(!url){showErr('Paste BD_AIR_ORDERS CSV URL.');return;}
+  airUrl=url;
+  try{
+    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
+    airData=parseCSV(await r.text(),['city','bd_air']);
+    if(!airData.length) throw new Error('No rows found.');
+    airLoaded=true;
+    setStatus('air-status','✓ '+airData.length+' CITIES','tag-ok');
+    localStorage.setItem('rct_air_url',url);
+    renderOverview();if(currentTab==='sim')renderSim();
+    showErr('');updateFooter();
+  }catch(e){showErr('BD_AIR_ORDERS: '+e.message);setStatus('air-status','ERROR','tag-no');}
+}
+
+async function loadAll(){
+  if(sheetUrl) await loadCitySheet();
+  if(airUrl)   await loadAirSheet();
+  if(!sheetUrl&&!airUrl) loadSampleData();
+  resetAutoRefresh();
+}
+
+function loadSampleData(){
+  cityData=SAMPLE_CITY; airData=SAMPLE_AIR; airLoaded=true;
+  setStatus('city-status','SAMPLE','tag-sample');
+  setStatus('air-status','SAMPLE','tag-sample');
+  setDataDate(); renderOverview();
+  if(currentTab==='sim')renderSim();
+  if(currentTab==='log')renderLog();
+  showErr('');updateFooter();
+}
+
+function logRefresh(){
+  const entry={ts:new Date().toLocaleString('en-IN'),action:'REFRESHED',city:'',pipeline:'',trigger:'',details:'Dashboard data refreshed'};
+  changeLog.unshift(entry);
+  if(changeLog.length>200) changeLog=changeLog.slice(0,200);
+}
+
+// ── AUTO REFRESH ──────────────────────────────────────────────────────────────
+function startAutoRefresh(){
+  nextRefreshIn=1800;
+  if(countdownTimer) clearInterval(countdownTimer);
+  countdownTimer=setInterval(()=>{
+    nextRefreshIn--;
+    const m=Math.floor(nextRefreshIn/60), s=nextRefreshIn%60;
+    document.getElementById('next-refresh-note').textContent=`Next refresh in ${m}:${s.toString().padStart(2,'0')}`;
+    if(nextRefreshIn<=0){loadAll();}
+  },1000);
+}
+function resetAutoRefresh(){startAutoRefresh();}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function setStatus(id,txt,cls){const el=document.getElementById(id);el.textContent=txt;el.className='cfg-tag '+cls;}
+function setDataDate(){
+  const d=new Date();d.setDate(d.getDate()-1);
+  document.getElementById('data-date').textContent='D-1: '+d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+function updateFooter(){
+  document.getElementById('footer-txt').textContent=
+    (cityData.length?'CITY_METRICS: '+cityData.length+' CITIES':'')+
+    (airLoaded?' · BD_AIR: ACTUAL':' · BD_AIR: NOT CONNECTED')+
+    (scriptUrl?' · SCRIPT: CONNECTED':' · SCRIPT: NOT CONNECTED');
+}
+function showErr(msg){const b=document.getElementById('err-bar');b.style.display=msg?'block':'none';b.textContent=msg;}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.onload=()=>{
+  // Load persisted config
+  const dc=localStorage.getItem('rct_delta_c');
+  const mo=localStorage.getItem('rct_min_opd');
+  const tr=localStorage.getItem('rct_trigger');
+  const pin=localStorage.getItem('rct_pin');
+  const theme=localStorage.getItem('rct_theme')||'dark';
+  if(dc) document.getElementById('cfg-delta-c').value=dc;
+  if(mo) document.getElementById('cfg-min-opd').value=mo;
+  if(pin) document.getElementById('cfg-pin').value=pin;
+  if(tr){
+    trigMult=parseFloat(tr);
+    document.getElementById('cfg-trigger').value=tr;
+    document.getElementById('trigger-val').textContent=trigMult.toFixed(2)+'×';
+    document.getElementById('trigger-desc').textContent=sdesc(trigMult);
+  }
+  document.documentElement.setAttribute('data-theme',theme);
+  document.getElementById('theme-btn').textContent=theme==='dark'?'🌙':'☀️';
+  localStorage.setItem(CORRECT_PIN_KEY,pin||DEFAULT_PIN);
+
+  // Load sheet URLs
+  const sc=localStorage.getItem('rct_city_url');
+  const sa=localStorage.getItem('rct_air_url');
+  const ss=localStorage.getItem('rct_script_url');
+  if(sc){document.getElementById('sheet-url').value=sc;sheetUrl=sc;}
+  if(sa){document.getElementById('air-url').value=sa;airUrl=sa;}
+  if(ss){document.getElementById('script-url').value=ss;scriptUrl=ss;setStatus('script-status','CONNECTED','tag-ok');}
+
+  setupPinLock();
+  configUnlocked=false;
+  document.getElementById('config-lock-info').textContent='🔒 LOCKED — click to unlock';
+
+  if(sc||sa) loadAll();
+  else loadSampleData();
+
   renderLogic();
+  startAutoRefresh();
 };
 </script>
 </body>
