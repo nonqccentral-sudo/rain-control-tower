@@ -1005,10 +1005,10 @@ function renderSim(){
   const today=new Date().getDate();
 
   // Check minimum data requirements
-  if(!airLoaded){
-    cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
-    return;
-  }
+  // if(!airLoaded){
+  //   cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
+  //   return;
+  // }
 
   const allCities=sortCities(filterCities(compute(merged(),mult)));
   const {mtdTotal,predictedTotal,breakdown,remDays:rd}=calcMonthForecast(allCities,mult);
@@ -1230,10 +1230,10 @@ async function testScript(){
 // ── COST SIM ──────────────────────────────────────────────────────────────────
 function renderSim(){
   const cont=document.getElementById('sim-content');
-  if(!airLoaded){
-    cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste your BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
-    return;
-  }
+  // if(!airLoaded){
+  //   cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste your BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
+  //   return;
+  // }
   const mult=trigMult;
   const deltaC=getDeltaC();
   const cities=sortCities(filterCities(compute(merged(),mult)));
