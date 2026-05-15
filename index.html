@@ -359,12 +359,7 @@ td{padding:9px 10px;vertical-align:middle;}
     <button class="btn-load" onclick="loadCitySheet()">Load</button>
     <span id="city-status" class="cfg-tag tag-no">NOT CONNECTED</span>
   </div>
-  <!-- <div class="sheet-row">
-    <span class="sheet-label">BD_AIR_ORDERS CSV URL</span>
-    <input class="sheet-input" id="air-url" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=BD_AIR_ORDERS_GID&single=true&output=csv"/>
-    <button class="btn-load-air" onclick="loadAirSheet()">Load</button>
-    <span id="air-status" class="cfg-tag tag-no">NOT CONNECTED</span>
-  </div> -->
+
   <div class="sheet-row">
     <span class="sheet-label">BD_AIR_FORECAST CSV URL</span>
     <input class="sheet-input" id="forecast-url" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=FORECAST_GID&single=true&output=csv"/>
@@ -551,7 +546,7 @@ let mtdData=[],      mtdLoaded=false;        // BD_AIR_MTD: city + mtd_bd_air_or
 let activeCities=new Set(); // cities with Air currently ON — source of truth from CHANGE_LOG
 let changeLog=[];            // in-memory log entries
 let trigMult=1.0, selectedCity=null, currentTab='overview';
-let sheetUrl='', airUrl='', scriptUrl='';
+let sheetUrl='', airUrl='', scriptUrl='', forecastUrl='', mtdUrl='';
 let configUnlocked=false;
 let autoRefreshTimer=null, countdownTimer=null, nextRefreshIn=120;
 const sectionOpen={active:true,red:true,amber:true,green:true};
@@ -670,15 +665,15 @@ function renderKPIs(cities){
   document.getElementById('k-red-sub').textContent=red.length?red.map(c=>c.city).slice(0,3).join(', ')+(red.length>3?'…':''):'—';
   document.getElementById('k-amber').textContent=amb.length;
   document.getElementById('k-amber-sub').textContent=amb.length?amb.map(c=>c.city).slice(0,3).join(', ')+(amb.length>3?'…':''):'—';
-  document.getElementById('k-orders').textContent=airLoaded?totOrders.toLocaleString('en-IN'):'—';
-  document.getElementById('k-orders-sub').textContent=airLoaded?'actual D-1':'connect BD_AIR_ORDERS';
+  document.getElementById('k-orders').textContent=(airLoaded||mtdLoaded)?totOrders.toLocaleString('en-IN'):'—';
+  document.getElementById('k-orders-sub').textContent=airLoaded||mtdLoaded?'actual D-1':'connect BD_AIR_MTD for actuals';
   document.getElementById('k-cost').textContent=airLoaded?inr(totCost):'—';
   // Month forecast KPI: MTD actual + predicted rest of month (if loaded)
   if(mtdLoaded&&forecastLoaded){
     const {mtdTotal,predictedTotal}=calcMonthForecast(cities,trigMult);
     document.getElementById('k-cost-sub').textContent='Month: '+lakh(mtdTotal+predictedTotal);
   } else {
-    document.getElementById('k-cost-sub').textContent=airLoaded?'connect Forecast+MTD for month view':'connect BD_AIR_ORDERS';
+    document.getElementById('k-cost-sub').textContent='connect Forecast+MTD for month view';
   }
 }
 
@@ -735,7 +730,7 @@ function renderOverview(){
             <td>${rag(m.ioRag,m.ioRatio.toFixed(2))}</td>
             <td>${agingBar(m)}</td>
             <td style="font-family:'DM Mono';font-size:12px;color:${m.dispOrders>0?'var(--purple)':'var(--muted)'};">
-              ${airLoaded?(m.dispOrders>0?m.dispOrders.toLocaleString('en-IN')+' <span style="font-size:9px;color:#6366f1;">ACT</span>':'—'):'—'}
+              ${(airLoaded||mtdLoaded)?(m.dispOrders>0?m.dispOrders.toLocaleString('en-IN')+' <span style="font-size:9px;color:#6366f1;">ACT</span>':'—'):'—'}
             </td>
             <td>${m.isActive?'<span class="rag rag-blue"><span class="rag-dot"></span>ON</span>':'<span style="color:var(--muted);font-size:12px;">— OFF</span>'}</td>
             <td style="font-size:11px;font-weight:600;color:${m.actionColor};">${m.action}</td>
@@ -794,16 +789,17 @@ function renderDD(cities){
       </div>
       <div class="dd-card">
         <div class="dd-card-title">BD Air Cost (D-1)</div>
-        ${airLoaded?`
+        ${(airLoaded||mtdLoaded)?`
           <div class="dd-row"><span class="dd-lbl">Actual air orders</span><span class="dd-val" style="color:var(--purple);">${(m.actualOrders||0).toLocaleString('en-IN')}</span></div>
           <div class="dd-row"><span class="dd-lbl">Surface orders</span><span class="dd-val">${(m.surface_orders||0).toLocaleString('en-IN')}</span></div>
           <div class="dd-row"><span class="dd-lbl">Air share %</span><span class="dd-val">${(m.air_share_pct||0).toFixed(1)}%</span></div>`
-        :`<div style="color:var(--muted);font-size:11px;padding:8px 0;">Connect BD_AIR_ORDERS for cost data.</div>`}
+        :`<div style="color:var(--muted);font-size:11px;padding:8px 0;">Connect BD_AIR_MTD for cost data.</div>`}
+
         <hr class="dd-div"/>
         <div class="dd-row"><span class="dd-lbl">ΔC per order</span><span class="dd-val">${inr(getDeltaC())}</span></div>
-        <div class="dd-row"><span class="dd-lbl">Daily cost (D-1)</span><span class="dd-val" style="color:var(--teal);">${airLoaded?inr(m.dailyCost):'—'}</span></div>
-        <div class="dd-row"><span class="dd-lbl">Weekly projection</span><span class="dd-val">${airLoaded?inr(m.dailyCost*7):'—'}</span></div>
-        <div class="dd-row"><span class="dd-lbl">30-day projection</span><span class="dd-val">${airLoaded?lakh(m.dailyCost*30):'—'}</span></div>
+        <div class="dd-row"><span class="dd-lbl">Daily cost (D-1)</span><span class="dd-val" style="color:var(--teal);">${(airLoaded||mtdLoaded)?inr(m.dailyCost):'—'}</span></div>
+        <div class="dd-row"><span class="dd-lbl">Weekly projection</span><span class="dd-val">${(airLoaded||mtdLoaded)?inr(m.dailyCost*7):'—'}</span></div>
+        <div class="dd-row"><span class="dd-lbl">30-day projection</span><span class="dd-val">${(airLoaded||mtdLoaded)?lakh(m.dailyCost*30):'—'}</span></div>
       </div>
       <div class="dd-card">
         <div class="dd-card-title">Key Signals</div>
@@ -997,19 +993,17 @@ function calcMonthForecast(computedCities, mult){
 // ── RENDER COST SIMULATOR ─────────────────────────────────────────────────────
 function renderSim(){
   const cont=document.getElementById('sim-content');
+  // Show prompt only if city data not loaded yet
+  if(!cityData.length){
+    cont.innerHTML=`<div class="no-air">No city data loaded<span>Paste CITY_METRICS CSV URL in config and click Load (or use sample data).</span></div>`;
+    return;
+  }
   const mult=trigMult;
   const deltaC=getDeltaC();
   const remDays=getRemainingDaysInMonth();
   const daysInMonth=getDaysInMonth();
   const monthName=getMonthName();
   const today=new Date().getDate();
-
-  // Check minimum data requirements
-  // if(!airLoaded){
-  //   cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
-  //   return;
-  // }
-
   const allCities=sortCities(filterCities(compute(merged(),mult)));
   const {mtdTotal,predictedTotal,breakdown,remDays:rd}=calcMonthForecast(allCities,mult);
   const grandTotal=mtdTotal+predictedTotal;
@@ -1228,68 +1222,7 @@ async function testScript(){
 }
 
 // ── COST SIM ──────────────────────────────────────────────────────────────────
-function renderSim(){
-  const cont=document.getElementById('sim-content');
-  // if(!airLoaded){
-  //   cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste your BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
-  //   return;
-  // }
-  const mult=trigMult;
-  const deltaC=getDeltaC();
-  const cities=sortCities(filterCities(compute(merged(),mult)));
-  const maxCost=Math.max(...cities.map(c=>c.dailyCost),1);
-  const totCost=cities.reduce((s,c)=>s+c.dailyCost,0);
-  const totOrders=cities.reduce((s,c)=>s+c.dispOrders,0);
 
-  const barsHTML=cities.map(m=>`
-    <div class="cbar-row">
-      <div class="cbar-lbl">
-        <span style="color:${m.dispOrders>0?'var(--text)':'var(--muted)'};">${m.city}${m.isActive?' ✈':''} <span style="font-size:10px;color:var(--muted);">${m.inflow.toLocaleString('en-IN')}/day</span></span>
-        <span style="font-family:'DM Mono';color:${m.dispOrders>0?'var(--purple)':'var(--muted)'};">
-          ${m.dispOrders>0?`${m.dispOrders.toLocaleString('en-IN')} orders · ${inr(m.dailyCost)}`:'—'}</span>
-      </div>
-      <div class="cbar-bg"><div class="cbar-fill" style="width:${(m.dailyCost/maxCost*100).toFixed(1)}%;background:#6366f1;"></div></div>
-    </div>`).join('');
-
-  const rollupHTML=[
-    ['Cities Active (Air ON)',cities.filter(c=>c.isActive).length],
-    ['Total air orders (D-1)',totOrders.toLocaleString('en-IN')],
-    ['ΔC per order',inr(deltaC)],
-    ['Daily incremental cost',inr(totCost)],
-    ['Weekly projection',inr(totCost*7)],
-    ['30-day projection',lakh(totCost*30)],
-    ['Trigger multiplier',trigMult.toFixed(2)+'×'],
-  ].map(([k,v])=>`<div class="rollup-row"><span class="rollup-lbl">${k}</span><span class="rollup-val">${v}</span></div>`).join('');
-
-  const mults=[0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0];
-  const visCities=filterCities(compute(merged(),1.0));
-  const thead=`<thead><tr><th>Mult</th><th>Cities On Air</th>${visCities.map(c=>`<th>${c.city.slice(0,3)}</th>`).join('')}<th>Orders</th><th>Daily</th><th>30-Day</th></tr></thead>`;
-  const tbody=mults.map(m2=>{
-    const sim=sortCities(filterCities(compute(merged(),m2)));
-    const tot=sim.reduce((s,c)=>s+c.dailyCost,0);
-    const totO=sim.reduce((s,c)=>s+c.dispOrders,0);
-    const isActive=Math.abs(m2-mult)<0.01;
-    return`<tr class="${isActive?'ar':''}">
-      <td style="color:${isActive?'var(--blue)':'var(--muted)'};font-weight:${isActive?700:400};">${m2.toFixed(1)}×${isActive?' ◀':''}</td>
-      <td style="color:var(--text);">${sim.filter(c=>c.isActive).length}</td>
-      ${visCities.map(vc=>{const sc=sim.find(c=>c.city===vc.city);return`<td style="color:${sc&&sc.isActive?'var(--purple)':'var(--muted)'};">${sc&&sc.isActive?sc.dispOrders:'—'}</td>`}).join('')}
-      <td style="color:var(--text);font-weight:600;">${totO.toLocaleString('en-IN')}</td>
-      <td style="color:var(--text);font-weight:600;">${inr(tot)}</td>
-      <td style="color:var(--teal);">${lakh(tot*30)}</td>
-    </tr>`;
-  }).join('');
-
-  cont.innerHTML=`
-    <div class="sim-grid">
-      <div class="sim-card"><div class="sim-card-title">BD Air Orders & Cost by City (D-1) <span style="font-size:10px;font-family:'DM Mono';padding:2px 6px;border-radius:3px;margin-left:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);">ACTUAL</span></div>${barsHTML}</div>
-      <div class="sim-card"><div class="sim-card-title">Cost Roll-up</div>${rollupHTML}
-        <div class="tip-box ${trigMult<1?'tip-amber':'tip-green'}">${trigMult<1?'⚠ Aggressive mode — more cities trigger, higher spend.':'✓ Adjust trigger sensitivity in Config to simulate different scenarios.'}</div>
-      </div>
-    </div>
-    <div class="sens-card"><div class="sens-card-title">Sensitivity Table — Trigger × vs Cities & Cost</div>
-      <div style="overflow-x:auto;"><table class="st">${thead}<tbody>${tbody}</tbody></table></div>
-    </div>`;
-}
 
 // ── LOGIC TAB ─────────────────────────────────────────────────────────────────
 function renderLogic(){
@@ -1430,25 +1363,12 @@ async function loadCitySheet(){
     logRefresh();
   }catch(e){showErr('CITY_METRICS: '+e.message);setStatus('city-status','ERROR','tag-no');}
 }
-async function loadAirSheet(){
-  const url=document.getElementById('air-url').value.trim();
-  if(!url){showErr('Paste BD_AIR_ORDERS CSV URL.');return;}
-  airUrl=url;
-  try{
-    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
-    airData=parseCSV(await r.text(),['city','bd_air']);
-    if(!airData.length) throw new Error('No rows found.');
-    airLoaded=true;
-    setStatus('air-status','✓ '+airData.length+' CITIES','tag-ok');
-    localStorage.setItem('rct_air_url',url);
-    renderOverview();if(currentTab==='sim')renderSim();
-    showErr('');updateFooter();
-  }catch(e){showErr('BD_AIR_ORDERS: '+e.message);setStatus('air-status','ERROR','tag-no');}
-}
+// BD_AIR_ORDERS removed — air actuals sourced from BD_AIR_MTD tab
 
 async function loadForecastSheet(){
   const url=document.getElementById('forecast-url').value.trim();
   if(!url){showErr('Paste BD_AIR_FORECAST CSV URL.');return;}
+  forecastUrl=url;
   try{
     const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
     forecastData=parseCSV(await r.text(),['city','expected']);
@@ -1464,6 +1384,7 @@ async function loadForecastSheet(){
 async function loadMtdSheet(){
   const url=document.getElementById('mtd-url').value.trim();
   if(!url){showErr('Paste BD_AIR_MTD CSV URL.');return;}
+  mtdUrl=url;
   try{
     const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
     mtdData=parseCSV(await r.text(),['city','mtd']);
@@ -1477,20 +1398,22 @@ async function loadMtdSheet(){
 }
 
 async function loadAll(){
-  // Always re-read URLs from input fields
-  const cityInput=document.getElementById('sheet-url').value.trim();
-  const airInput=document.getElementById('air-url').value.trim();
-  const scriptInput=document.getElementById('script-url').value.trim();
-  const forecastInput=document.getElementById('forecast-url').value.trim();
-  const mtdInput=document.getElementById('mtd-url').value.trim();
-  if(cityInput) sheetUrl=cityInput;
-  if(airInput)  airUrl=airInput;
-  if(scriptInput){ scriptUrl=scriptInput; setStatus('script-status','CONNECTED','tag-ok'); }
-  if(sheetUrl) await loadCitySheet();
-  if(airUrl)   await loadAirSheet();
-  if(forecastInput){ document.getElementById('forecast-url').value=forecastInput; await loadForecastSheet(); }
-  if(mtdInput){ document.getElementById('mtd-url').value=mtdInput; await loadMtdSheet(); }
-  if(!sheetUrl&&!airUrl) loadSampleData();
+  // Re-read all URLs from input fields (handles localStorage restore on page load)
+  const cityInput    = document.getElementById('sheet-url').value.trim();
+  const scriptInput  = document.getElementById('script-url').value.trim();
+  const forecastInput= document.getElementById('forecast-url').value.trim();
+  const mtdInput     = document.getElementById('mtd-url').value.trim();
+  if(cityInput)    sheetUrl   = cityInput;
+  if(scriptInput){ scriptUrl  = scriptInput; setStatus('script-status','CONNECTED','tag-ok'); }
+  if(forecastInput) forecastUrl= forecastInput;
+  if(mtdInput)      mtdUrl     = mtdInput;
+
+  // Load sheets — only fall back to sample if NO URLs configured at all
+  const anyUrl = sheetUrl||forecastUrl||mtdUrl;
+  if(sheetUrl)    await loadCitySheet();
+  if(forecastUrl) await loadForecastSheet();
+  if(mtdUrl)      await loadMtdSheet();
+  if(!anyUrl)     loadSampleData();
   resetAutoRefresh();
 }
 
@@ -1596,7 +1519,6 @@ function setDataDate(){
 function updateFooter(){
   document.getElementById('footer-txt').textContent=
     (cityData.length?'CITY_METRICS: '+cityData.length+' CITIES':'')+
-    (airLoaded?' · BD_AIR: ACTUAL':' · BD_AIR: —')+
     (forecastLoaded?' · FORECAST: CONNECTED':' · FORECAST: —')+
     (mtdLoaded?' · MTD: CONNECTED':' · MTD: —')+
     (scriptUrl?' · SCRIPT: CONNECTED':' · SCRIPT: —');
@@ -1626,15 +1548,14 @@ window.onload=()=>{
 
   // Load sheet URLs
   const sc=localStorage.getItem('rct_city_url');
-  const sa=localStorage.getItem('rct_air_url');
   const ss=localStorage.getItem('rct_script_url');
   const sf=localStorage.getItem('rct_forecast_url');
   const sm=localStorage.getItem('rct_mtd_url');
-  if(sc){document.getElementById('sheet-url').value=sc;sheetUrl=sc;}
-  if(sa){document.getElementById('air-url').value=sa;airUrl=sa;}
-  if(ss){document.getElementById('script-url').value=ss;scriptUrl=ss;setStatus('script-status','CONNECTED','tag-ok');}
-  if(sf) document.getElementById('forecast-url').value=sf;
-  if(sm) document.getElementById('mtd-url').value=sm;
+  // Restore all URL fields — loadAll() will re-read them and call load functions
+  if(sc){ document.getElementById('sheet-url').value=sc;    sheetUrl=sc; }
+  if(ss){ document.getElementById('script-url').value=ss;   scriptUrl=ss; setStatus('script-status','CONNECTED','tag-ok'); }
+  if(sf){ document.getElementById('forecast-url').value=sf; forecastUrl=sf; }
+  if(sm){ document.getElementById('mtd-url').value=sm;      mtdUrl=sm; }
 
   setupPinLock();
   configUnlocked=false;
@@ -1645,7 +1566,7 @@ window.onload=()=>{
   loadActiveCitiesFromStorage();
   loadChangeLogFromStorage();
 
-  if(sc||sa) loadAll();
+  if(sc||sf||sm) loadAll();
   else loadSampleData();
 
   renderLogic();
