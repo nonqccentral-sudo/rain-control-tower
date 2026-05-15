@@ -57,6 +57,9 @@ h1{font-family:'Syne';font-size:30px;font-weight:800;color:var(--text);letter-sp
 .btn-icon:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
 .btn-refresh{background:var(--bg3);border:1px solid var(--border2);color:var(--blue);font-family:'DM Mono';font-size:11px;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all .2s;}
 .btn-refresh:hover{background:var(--blue);color:#fff;}
+.btn-sync{background:var(--green-bg);border:1px solid var(--green);color:var(--green);font-family:'DM Mono';font-size:11px;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all .2s;}
+.btn-sync:hover{background:var(--green);color:#fff;}
+.btn-sync.syncing{opacity:0.6;cursor:not-allowed;}
 
 /* ── PIN MODAL ── */
 .pin-overlay{position:fixed;inset:0;background:#000000cc;z-index:1000;display:flex;align-items:center;justify-content:center;}
@@ -309,9 +312,10 @@ td{padding:9px 10px;vertical-align:middle;}
     <div class="header-right-info">
       <div class="refresh-label">Data as of</div>
       <div class="refresh-date" id="data-date">—</div>
-      <div class="auto-refresh-note" id="next-refresh-note">Next refresh in —</div>
+      <div class="auto-refresh-note" id="next-refresh-note">State sync every 2 min</div>
     </div>
     <button class="btn-icon" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
+    <button class="btn-sync" id="btn-sync" onclick="syncFromSheet()" title="Sync active city state from Change Log sheet">⟳ Sync State</button>
     <button class="btn-refresh" onclick="loadAll()">↻ Refresh Now</button>
   </div>
 </div>
@@ -360,6 +364,18 @@ td{padding:9px 10px;vertical-align:middle;}
     <input class="sheet-input" id="air-url" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=BD_AIR_ORDERS_GID&single=true&output=csv"/>
     <button class="btn-load-air" onclick="loadAirSheet()">Load</button>
     <span id="air-status" class="cfg-tag tag-no">NOT CONNECTED</span>
+  </div>
+  <div class="sheet-row">
+    <span class="sheet-label">BD_AIR_FORECAST CSV URL</span>
+    <input class="sheet-input" id="forecast-url" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=FORECAST_GID&single=true&output=csv"/>
+    <button class="btn-load" style="background:#0d9488;" onclick="loadForecastSheet()">Load</button>
+    <span id="forecast-status" class="cfg-tag tag-no">NOT CONNECTED</span>
+  </div>
+  <div class="sheet-row">
+    <span class="sheet-label">BD_AIR_MTD CSV URL</span>
+    <input class="sheet-input" id="mtd-url" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=MTD_GID&single=true&output=csv"/>
+    <button class="btn-load" style="background:#7c3aed;" onclick="loadMtdSheet()">Load</button>
+    <span id="mtd-status" class="cfg-tag tag-no">NOT CONNECTED</span>
   </div>
   <div class="sheet-row">
     <span class="sheet-label">Apps Script URL</span>
@@ -505,15 +521,39 @@ const SAMPLE_AIR=[
   {city:"Pune",      bd_air_orders:0,  bd_air_cost_inr:0,    surface_orders:220,total_orders:220,air_share_pct:0},
   {city:"Ahmedabad", bd_air_orders:0,  bd_air_cost_inr:0,    surface_orders:195,total_orders:195,air_share_pct:0},
 ];
+// BD_AIR_FORECAST: SQL writes daily — expected BD Air OPD per city
+const SAMPLE_FORECAST=[
+  {city:"Mumbai",    expected_bd_air_orders:155},
+  {city:"Delhi",     expected_bd_air_orders:190},
+  {city:"Bengaluru", expected_bd_air_orders:40},
+  {city:"Chennai",   expected_bd_air_orders:110},
+  {city:"Hyderabad", expected_bd_air_orders:55},
+  {city:"Kolkata",   expected_bd_air_orders:95},
+  {city:"Pune",      expected_bd_air_orders:30},
+  {city:"Ahmedabad", expected_bd_air_orders:35},
+];
+// BD_AIR_MTD: SQL writes daily — cumulative actuals this calendar month
+const SAMPLE_MTD=[
+  {city:"Mumbai",    mtd_bd_air_orders:1890, mtd_cost_inr:66150},
+  {city:"Delhi",     mtd_bd_air_orders:2140, mtd_cost_inr:74900},
+  {city:"Bengaluru", mtd_bd_air_orders:120,  mtd_cost_inr:4200},
+  {city:"Chennai",   mtd_bd_air_orders:980,  mtd_cost_inr:34300},
+  {city:"Hyderabad", mtd_bd_air_orders:0,    mtd_cost_inr:0},
+  {city:"Kolkata",   mtd_bd_air_orders:1050, mtd_cost_inr:36750},
+  {city:"Pune",      mtd_bd_air_orders:0,    mtd_cost_inr:0},
+  {city:"Ahmedabad", mtd_bd_air_orders:0,    mtd_cost_inr:0},
+];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let cityData=[], airData=[], airLoaded=false;
+let forecastData=[], forecastLoaded=false;  // BD_AIR_FORECAST: city + expected_bd_air_orders
+let mtdData=[],      mtdLoaded=false;        // BD_AIR_MTD: city + mtd_bd_air_orders + mtd_cost_inr
 let activeCities=new Set(); // cities with Air currently ON — source of truth from CHANGE_LOG
 let changeLog=[];            // in-memory log entries
 let trigMult=1.0, selectedCity=null, currentTab='overview';
 let sheetUrl='', airUrl='', scriptUrl='';
 let configUnlocked=false;
-let autoRefreshTimer=null, countdownTimer=null, nextRefreshIn=1800;
+let autoRefreshTimer=null, countdownTimer=null, nextRefreshIn=120;
 const sectionOpen={active:true,red:true,amber:true,green:true};
 
 // ── CONFIG HELPERS ────────────────────────────────────────────────────────────
@@ -633,7 +673,13 @@ function renderKPIs(cities){
   document.getElementById('k-orders').textContent=airLoaded?totOrders.toLocaleString('en-IN'):'—';
   document.getElementById('k-orders-sub').textContent=airLoaded?'actual D-1':'connect BD_AIR_ORDERS';
   document.getElementById('k-cost').textContent=airLoaded?inr(totCost):'—';
-  document.getElementById('k-cost-sub').textContent=airLoaded?'30d: '+lakh(totCost*30):'connect BD_AIR_ORDERS';
+  // Month forecast KPI: MTD actual + predicted rest of month (if loaded)
+  if(mtdLoaded&&forecastLoaded){
+    const {mtdTotal,predictedTotal}=calcMonthForecast(cities,trigMult);
+    document.getElementById('k-cost-sub').textContent='Month: '+lakh(mtdTotal+predictedTotal);
+  } else {
+    document.getElementById('k-cost-sub').textContent=airLoaded?'connect Forecast+MTD for month view':'connect BD_AIR_ORDERS';
+  }
 }
 
 // ── RENDER OVERVIEW ───────────────────────────────────────────────────────────
@@ -812,6 +858,293 @@ function doDeactivate(city,pipeline,trigger){
   writeToChangeLog(entry);
   renderOverview();
   if(currentTab==='log') renderLog();
+}
+
+// ── CHANGE LOG RENDER ─────────────────────────────────────────────────────────
+function renderLog(){
+  const tbody=document.getElementById('log-tbody');
+  if(!changeLog.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;font-family:'DM Mono';font-size:12px;">No actions logged yet. Activate or deactivate a city to begin.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=changeLog.map(e=>{
+    const cls=e.action==='ACTIVATED'?'log-activate':e.action==='DEACTIVATED'?'log-deactivate':e.action.includes('CONFIG')?'log-config':'log-refresh';
+    return`<tr class="${cls}">
+      <td>${e.ts}</td>
+      <td>${e.action}</td>
+      <td>${e.city||'—'}</td>
+      <td>${e.pipeline||'—'}</td>
+      <td>${e.trigger||'—'}</td>
+      <td>${e.details||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── WRITE TO APPS SCRIPT (CHANGE LOG) ────────────────────────────────────────
+async function writeToChangeLog(entry){
+  const url=document.getElementById('script-url').value.trim();
+  if(!url) return; // silently skip if not configured
+  try{
+    await fetch(url,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'log',data:entry})
+    });
+  }catch(e){console.warn('Change log write failed:',e.message);}
+}
+
+async function saveConfigToSheet(){
+  const url=document.getElementById('script-url').value.trim();
+  const config={
+    trigger_multiplier:trigMult,
+    delta_c:getDeltaC(),
+    min_opd:getMinOPD()
+  };
+  // Save to localStorage regardless
+  localStorage.setItem('rct_delta_c',getDeltaC());
+  localStorage.setItem('rct_min_opd',getMinOPD());
+  localStorage.setItem('rct_trigger',trigMult);
+  localStorage.setItem('rct_pin',getPin());
+
+  const entry={ts:new Date().toLocaleString('en-IN'),action:'CONFIG CHANGED',city:'',pipeline:'',trigger:'',details:`Trigger: ${trigMult}×, ΔC: ₹${getDeltaC()}, Min OPD: ${getMinOPD()}`};
+  changeLog.unshift(entry);
+
+  if(url){
+    try{
+      await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveConfig',data:config})});
+      showSaveStatus('✓ Saved to Sheet');
+    }catch(e){showSaveStatus('✓ Saved locally (sheet write failed)');}
+  } else {
+    showSaveStatus('✓ Saved locally — connect Apps Script to sync with team');
+  }
+  writeToChangeLog(entry);
+  renderOverview();
+}
+
+function showSaveStatus(msg){
+  const el=document.getElementById('save-status');
+  el.textContent=msg; el.style.display='inline';
+  setTimeout(()=>{el.style.display='none';},3000);
+}
+
+async function testScript(){
+  const url=document.getElementById('script-url').value.trim();
+  if(!url){showErr('Paste your Apps Script URL first.');return;}
+  scriptUrl=url;
+  try{
+    await fetch(url+'?action=ping',{mode:'no-cors'});
+    setStatus('script-status','CONNECTED','tag-ok');
+    localStorage.setItem('rct_script_url',url);
+    showErr('');
+  }catch(e){setStatus('script-status','ERROR','tag-no');}
+}
+
+// ── COST SIM ──────────────────────────────────────────────────────────────────
+// ── CALENDAR MONTH HELPERS ────────────────────────────────────────────────────
+function getRemainingDaysInMonth(){
+  const now=new Date();
+  const lastDay=new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  return lastDay - now.getDate(); // days remaining after today
+}
+function getDaysInMonth(){
+  const now=new Date();
+  return new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+}
+function getMonthName(){
+  return new Date().toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+}
+
+// ── MONTH FORECAST CALCULATION ────────────────────────────────────────────────
+// Returns {mtdTotal, predictedTotal, cityBreakdown}
+// cityBreakdown: [{city, mtd_orders, mtd_cost, forecast_orders, forecast_cost, total_orders, total_cost, included}]
+function calcMonthForecast(computedCities, mult){
+  const deltaC=getDeltaC();
+  const remDays=getRemainingDaysInMonth();
+  const breakdown=[];
+  let mtdTotal=0, predictedTotal=0;
+
+  computedCities.forEach(m=>{
+    // MTD actuals
+    const mtd=mtdData.find(x=>x.city===m.city)||{};
+    const mtdOrders=mtd.mtd_bd_air_orders||0;
+    const mtdCost=mtd.mtd_cost_inr||0;
+    mtdTotal+=mtdCost;
+
+    // Forecast: only include if city is ACTIVE or would be triggered at this sensitivity
+    const wouldTrigger = m.pipeline_days > (m.bau + m.tatAdv) * mult;
+    const included = m.isActive || wouldTrigger;
+
+    const fc=forecastData.find(x=>x.city===m.city)||{};
+    const fcOrders=fc.expected_bd_air_orders||0;
+    const fcTotalOrders=included ? fcOrders*remDays : 0;
+    const fcCost=fcTotalOrders*deltaC;
+    predictedTotal+=fcCost;
+
+    breakdown.push({
+      city:m.city, inflow:m.inflow,
+      mtd_orders:mtdOrders, mtd_cost:mtdCost,
+      forecast_daily_orders:fcOrders,
+      forecast_orders:fcTotalOrders, forecast_cost:fcCost,
+      total_orders:mtdOrders+fcTotalOrders, total_cost:mtdCost+fcCost,
+      included, isActive:m.isActive, wouldTrigger, pRag:m.pRag
+    });
+  });
+
+  return {mtdTotal, predictedTotal, breakdown, remDays};
+}
+
+// ── RENDER COST SIMULATOR ─────────────────────────────────────────────────────
+function renderSim(){
+  const cont=document.getElementById('sim-content');
+  const mult=trigMult;
+  const deltaC=getDeltaC();
+  const remDays=getRemainingDaysInMonth();
+  const daysInMonth=getDaysInMonth();
+  const monthName=getMonthName();
+  const today=new Date().getDate();
+
+  // Check minimum data requirements
+  if(!airLoaded){
+    cont.innerHTML=`<div class="no-air">BD_AIR_ORDERS not connected — cost data unavailable<span>Paste BD_AIR_ORDERS CSV URL in config and click Load.</span></div>`;
+    return;
+  }
+
+  const allCities=sortCities(filterCities(compute(merged(),mult)));
+  const {mtdTotal,predictedTotal,breakdown,remDays:rd}=calcMonthForecast(allCities,mult);
+  const grandTotal=mtdTotal+predictedTotal;
+  const maxTotal=Math.max(...breakdown.map(b=>b.total_cost),1);
+  const maxMtd=Math.max(...breakdown.map(b=>b.mtd_cost),1);
+
+  // ── TOP SUMMARY CARDS ──
+  const summaryHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">MTD Spend (D-1 Actual)</div>
+        <div style="font-family:'Syne';font-size:22px;font-weight:700;color:var(--teal);">${lakh(mtdTotal)}</div>
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:4px;">Day 1–${today-1} of ${daysInMonth} · ${inr(mtdTotal)}</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--amber);border-radius:8px;padding:14px;">
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Predicted Spend (Rest of Month)</div>
+        <div style="font-family:'Syne';font-size:22px;font-weight:700;color:var(--amber);">${forecastLoaded?lakh(predictedTotal):'—'}</div>
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:4px;">${forecastLoaded?`${rd} days × forecast OPD · ${mult.toFixed(2)}× sensitivity`:'Connect BD_AIR_FORECAST for prediction'}</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--blue);border-radius:8px;padding:14px;">
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Total Month Forecast</div>
+        <div style="font-family:'Syne';font-size:22px;font-weight:700;color:var(--blue);">${forecastLoaded?lakh(grandTotal):'—'}</div>
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:4px;">${forecastLoaded?`MTD + Predicted · ${monthName}`:'—'}</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Month Progress</div>
+        <div style="font-family:'Syne';font-size:22px;font-weight:700;color:var(--purple);">${today-1}<span style="font-size:14px;font-weight:400;color:var(--muted)"> / ${daysInMonth}d</span></div>
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:4px;">${rd} days remaining · ${monthName}</div>
+      </div>
+    </div>`;
+
+  // ── CITY BREAKDOWN TABLE ──
+  const sortedBreakdown=[...breakdown].sort((a,b)=>b.total_cost-a.total_cost);
+  const cityRowsHTML=sortedBreakdown.map(b=>{
+    const mtdBar=maxMtd>0?(b.mtd_cost/maxMtd*100).toFixed(1):0;
+    const fcBar=maxTotal>0?(b.forecast_cost/maxTotal*100).toFixed(1):0;
+    const statusColor=b.isActive?'var(--blue)':b.wouldTrigger?'var(--red)':'var(--muted)';
+    const statusLabel=b.isActive?'✈ Active':b.wouldTrigger?'⚠ Triggered':'— Not triggered';
+    return`<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:10px;font-weight:600;color:var(--text);">${b.city}
+        <span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted);">${b.inflow.toLocaleString('en-IN')} inflow/day</span>
+      </td>
+      <td style="padding:10px;font-family:'DM Mono';font-size:11px;color:${statusColor};">${statusLabel}</td>
+      <td style="padding:10px;">
+        <div style="font-family:'DM Mono';font-size:12px;color:var(--teal);">${inr(b.mtd_cost)}</div>
+        <div style="font-size:10px;color:var(--muted);">${b.mtd_orders.toLocaleString('en-IN')} orders</div>
+        <div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px;"><div style="height:4px;width:${mtdBar}%;background:var(--teal);border-radius:2px;"></div></div>
+      </td>
+      <td style="padding:10px;">
+        ${b.included&&forecastLoaded?`
+          <div style="font-family:'DM Mono';font-size:12px;color:var(--amber);">${inr(b.forecast_cost)}</div>
+          <div style="font-size:10px;color:var(--muted);">${b.forecast_orders.toLocaleString('en-IN')} orders (${b.forecast_daily_orders}/day × ${rd}d)</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px;"><div style="height:4px;width:${fcBar}%;background:var(--amber);border-radius:2px;"></div></div>`
+        :`<div style="font-family:'DM Mono';font-size:11px;color:var(--muted);">${!forecastLoaded?'—':b.included?'—':'Not triggered at '+mult.toFixed(2)+'×'}</div>`}
+      </td>
+      <td style="padding:10px;font-family:'DM Mono';font-size:13px;font-weight:700;color:var(--blue);">${forecastLoaded?inr(b.total_cost):inr(b.mtd_cost)}</td>
+    </tr>`;
+  }).join('');
+
+  const totFcOrders=breakdown.filter(b=>b.included).reduce((s,b)=>s+b.forecast_orders,0);
+  const totMtdOrders=breakdown.reduce((s,b)=>s+b.mtd_orders,0);
+
+  const cityTableHTML=`
+    <div class="sens-card" style="margin-bottom:14px;">
+      <div class="sens-card-title">City-Level Cost Breakdown — ${monthName}
+        <span style="margin-left:8px;font-size:10px;color:var(--amber);">Slider affects Predicted column</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="border-bottom:1px solid var(--border2);">
+            <th style="padding:7px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;">City</th>
+            <th style="padding:7px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;">Air Status</th>
+            <th style="padding:7px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--teal);text-transform:uppercase;">MTD Actual (Day 1–${today-1})</th>
+            <th style="padding:7px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--amber);text-transform:uppercase;">Predicted Rest (${rd} days)</th>
+            <th style="padding:7px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--blue);text-transform:uppercase;">Total Month</th>
+          </tr></thead>
+          <tbody>${cityRowsHTML}</tbody>
+          <tfoot><tr style="background:var(--bg3);border-top:2px solid var(--border2);">
+            <td style="padding:10px;font-weight:700;color:var(--text);">TOTAL</td>
+            <td style="padding:10px;font-family:'DM Mono';font-size:11px;color:var(--muted);">${breakdown.filter(b=>b.included).length} cities on Air</td>
+            <td style="padding:10px;font-family:'DM Mono';font-weight:700;color:var(--teal);">${inr(mtdTotal)}<div style="font-size:10px;color:var(--muted);">${totMtdOrders.toLocaleString('en-IN')} orders</div></td>
+            <td style="padding:10px;font-family:'DM Mono';font-weight:700;color:var(--amber);">${forecastLoaded?inr(predictedTotal):'—'}<div style="font-size:10px;color:var(--muted);">${forecastLoaded?totFcOrders.toLocaleString('en-IN')+' orders':'—'}</div></td>
+            <td style="padding:10px;font-family:'DM Mono';font-weight:700;color:var(--blue);font-size:15px;">${forecastLoaded?inr(grandTotal):inr(mtdTotal)}</td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+
+  // ── SENSITIVITY TABLE ──
+  const mults=[0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0];
+  const visibleCities=filterCities(compute(merged(),1.0));
+  const sensRowsHTML=mults.map(m2=>{
+    const simCities=sortCities(filterCities(compute(merged(),m2)));
+    const {mtdTotal:mt,predictedTotal:pt,breakdown:bd}=calcMonthForecast(simCities,m2);
+    const triggeredCount=bd.filter(b=>b.included).length;
+    const totFcO=bd.filter(b=>b.included).reduce((s,b)=>s+b.forecast_orders,0);
+    const isActive=Math.abs(m2-mult)<0.01;
+    return`<tr class="${isActive?'ar':''}">
+      <td style="color:${isActive?'var(--blue)':'var(--muted)'};font-weight:${isActive?700:400};">${m2.toFixed(1)}×${isActive?' ◀':''}</td>
+      <td style="color:var(--text);">${triggeredCount}</td>
+      ${visibleCities.map(vc=>{
+        const sb=bd.find(b=>b.city===vc.city);
+        return`<td style="color:${sb&&sb.included?'var(--amber)':'var(--muted)'};">${sb&&sb.included?sb.forecast_daily_orders+'×'+rd:'—'}</td>`;
+      }).join('')}
+      <td style="color:var(--teal);font-weight:600;">${inr(mt)}</td>
+      <td style="color:var(--amber);font-weight:600;">${forecastLoaded?inr(pt):'—'}</td>
+      <td style="color:var(--blue);font-weight:700;">${forecastLoaded?inr(mt+pt):inr(mt)}</td>
+    </tr>`;
+  }).join('');
+
+  const sensHTML=`
+    <div class="sens-card">
+      <div class="sens-card-title">Sensitivity Table — Trigger Multiplier vs Monthly Cost Impact</div>
+      <div style="overflow-x:auto;">
+        <table class="st">
+          <thead><tr>
+            <th>Mult</th><th>Cities On Air</th>
+            ${visibleCities.map(c=>`<th>${c.city.slice(0,3)}</th>`).join('')}
+            <th style="color:var(--teal);">MTD Actual</th>
+            <th style="color:var(--amber);">Predicted Rest</th>
+            <th style="color:var(--blue);">Total Month</th>
+          </tr></thead>
+          <tbody>${sensRowsHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  const noticeHTML=!forecastLoaded||!mtdLoaded?`
+    <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--amber);font-family:'DM Mono';">
+      ${!forecastLoaded&&!mtdLoaded?'⚠ Connect BD_AIR_FORECAST and BD_AIR_MTD CSV URLs in config for full monthly forecast.':
+        !forecastLoaded?'⚠ Connect BD_AIR_FORECAST CSV URL for predicted cost. Showing MTD actuals only.':
+        '⚠ Connect BD_AIR_MTD CSV URL for MTD actuals. Showing forecast only.'}
+    </div>`:'';
+
+  cont.innerHTML=noticeHTML+summaryHTML+cityTableHTML+sensHTML;
 }
 
 // ── CHANGE LOG RENDER ─────────────────────────────────────────────────────────
@@ -1113,24 +1446,62 @@ async function loadAirSheet(){
   }catch(e){showErr('BD_AIR_ORDERS: '+e.message);setStatus('air-status','ERROR','tag-no');}
 }
 
+async function loadForecastSheet(){
+  const url=document.getElementById('forecast-url').value.trim();
+  if(!url){showErr('Paste BD_AIR_FORECAST CSV URL.');return;}
+  try{
+    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
+    forecastData=parseCSV(await r.text(),['city','expected']);
+    if(!forecastData.length) throw new Error('No rows found.');
+    forecastLoaded=true;
+    setStatus('forecast-status','✓ '+forecastData.length+' CITIES','tag-ok');
+    localStorage.setItem('rct_forecast_url',url);
+    renderOverview();if(currentTab==='sim')renderSim();
+    showErr('');updateFooter();
+  }catch(e){showErr('BD_AIR_FORECAST: '+e.message);setStatus('forecast-status','ERROR','tag-no');}
+}
+
+async function loadMtdSheet(){
+  const url=document.getElementById('mtd-url').value.trim();
+  if(!url){showErr('Paste BD_AIR_MTD CSV URL.');return;}
+  try{
+    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
+    mtdData=parseCSV(await r.text(),['city','mtd']);
+    if(!mtdData.length) throw new Error('No rows found.');
+    mtdLoaded=true;
+    setStatus('mtd-status','✓ '+mtdData.length+' CITIES','tag-ok');
+    localStorage.setItem('rct_mtd_url',url);
+    renderOverview();if(currentTab==='sim')renderSim();
+    showErr('');updateFooter();
+  }catch(e){showErr('BD_AIR_MTD: '+e.message);setStatus('mtd-status','ERROR','tag-no');}
+}
+
 async function loadAll(){
-  // Always re-read URLs from input fields in case they were restored from localStorage
+  // Always re-read URLs from input fields
   const cityInput=document.getElementById('sheet-url').value.trim();
   const airInput=document.getElementById('air-url').value.trim();
   const scriptInput=document.getElementById('script-url').value.trim();
+  const forecastInput=document.getElementById('forecast-url').value.trim();
+  const mtdInput=document.getElementById('mtd-url').value.trim();
   if(cityInput) sheetUrl=cityInput;
   if(airInput)  airUrl=airInput;
   if(scriptInput){ scriptUrl=scriptInput; setStatus('script-status','CONNECTED','tag-ok'); }
   if(sheetUrl) await loadCitySheet();
   if(airUrl)   await loadAirSheet();
+  if(forecastInput){ document.getElementById('forecast-url').value=forecastInput; await loadForecastSheet(); }
+  if(mtdInput){ document.getElementById('mtd-url').value=mtdInput; await loadMtdSheet(); }
   if(!sheetUrl&&!airUrl) loadSampleData();
   resetAutoRefresh();
 }
 
 function loadSampleData(){
   cityData=SAMPLE_CITY; airData=SAMPLE_AIR; airLoaded=true;
+  forecastData=SAMPLE_FORECAST; forecastLoaded=true;
+  mtdData=SAMPLE_MTD; mtdLoaded=true;
   setStatus('city-status','SAMPLE','tag-sample');
   setStatus('air-status','SAMPLE','tag-sample');
+  setStatus('forecast-status','SAMPLE','tag-sample');
+  setStatus('mtd-status','SAMPLE','tag-sample');
   setDataDate(); renderOverview();
   if(currentTab==='sim')renderSim();
   if(currentTab==='log')renderLog();
@@ -1143,18 +1514,78 @@ function logRefresh(){
   if(changeLog.length>200) changeLog=changeLog.slice(0,200);
 }
 
-// ── AUTO REFRESH ──────────────────────────────────────────────────────────────
+// ── AUTO REFRESH (2 min) + STATE SYNC ────────────────────────────────────────
 function startAutoRefresh(){
-  nextRefreshIn=1800;
+  nextRefreshIn=120;
   if(countdownTimer) clearInterval(countdownTimer);
   countdownTimer=setInterval(()=>{
     nextRefreshIn--;
-    const m=Math.floor(nextRefreshIn/60), s=nextRefreshIn%60;
-    document.getElementById('next-refresh-note').textContent=`Next refresh in ${m}:${s.toString().padStart(2,'0')}`;
-    if(nextRefreshIn<=0){loadAll();}
+    const m=Math.floor(nextRefreshIn/60), s=String(nextRefreshIn%60).padStart(2,'0');
+    document.getElementById('next-refresh-note').textContent=`Auto-sync in ${m}:${s}`;
+    if(nextRefreshIn<=0){
+      nextRefreshIn=120;
+      syncFromSheet(); // sync active state every 2 min — lightweight, no full sheet reload
+    }
   },1000);
 }
-function resetAutoRefresh(){startAutoRefresh();}
+function resetAutoRefresh(){
+  nextRefreshIn=120;
+}
+
+// ── SYNC ACTIVE STATE FROM CHANGE LOG SHEET ───────────────────────────────────
+// Calls Apps Script to get latest ACTIVATED/DEACTIVATED per city from CHANGE_LOG
+// This is the multi-user sync — runs every 2 min and on Sync State button click
+async function syncFromSheet(){
+  const url=document.getElementById('script-url').value.trim();
+  if(!url){ return; } // silently skip if Apps Script not connected
+
+  const btn=document.getElementById('btn-sync');
+  if(btn){ btn.classList.add('syncing'); btn.textContent='⟳ Syncing...'; }
+
+  try{
+    const resp=await fetch(url+'?action=getActiveState');
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+
+    if(data.activeCities && Array.isArray(data.activeCities)){
+      // Merge: sheet state is source of truth for cities that exist in our data
+      const sheetActive=new Set(data.activeCities);
+      // Only update cities we know about (in cityData) to avoid ghost entries
+      const knownCities=new Set(cityData.map(c=>c.city));
+      const newActive=new Set();
+      sheetActive.forEach(c=>{ if(knownCities.has(c)) newActive.add(c); });
+      // Also keep any locally activated cities that sheet doesn't know about yet
+      // (edge case: activated this session before Apps Script wrote)
+      activeCities.forEach(c=>{ if(knownCities.has(c)) newActive.add(c); });
+      activeCities=newActive;
+      saveActiveCities();
+    }
+
+    // Also sync change log entries if provided
+    if(data.recentLog && Array.isArray(data.recentLog)){
+      // Merge sheet log with local log, deduplicate by timestamp+action+city
+      const existing=new Set(changeLog.map(e=>e.ts+'|'+e.action+'|'+e.city));
+      data.recentLog.forEach(e=>{
+        const key=e.ts+'|'+e.action+'|'+e.city;
+        if(!existing.has(key)){ changeLog.push(e); existing.add(key); }
+      });
+      changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+      changeLog=changeLog.slice(0,200);
+      saveChangeLog();
+    }
+
+    renderOverview();
+    if(currentTab==='log') renderLog();
+    document.getElementById('next-refresh-note').textContent='Synced ✓ — next in 2:00';
+    setTimeout(()=>{ nextRefreshIn=120; },2000);
+
+  }catch(e){
+    // Silently fail sync — don't interrupt user
+    console.warn('Sync from sheet failed:', e.message);
+  } finally {
+    if(btn){ btn.classList.remove('syncing'); btn.textContent='⟳ Sync State'; }
+  }
+}
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function setStatus(id,txt,cls){const el=document.getElementById(id);el.textContent=txt;el.className='cfg-tag '+cls;}
@@ -1165,8 +1596,10 @@ function setDataDate(){
 function updateFooter(){
   document.getElementById('footer-txt').textContent=
     (cityData.length?'CITY_METRICS: '+cityData.length+' CITIES':'')+
-    (airLoaded?' · BD_AIR: ACTUAL':' · BD_AIR: NOT CONNECTED')+
-    (scriptUrl?' · SCRIPT: CONNECTED':' · SCRIPT: NOT CONNECTED');
+    (airLoaded?' · BD_AIR: ACTUAL':' · BD_AIR: —')+
+    (forecastLoaded?' · FORECAST: CONNECTED':' · FORECAST: —')+
+    (mtdLoaded?' · MTD: CONNECTED':' · MTD: —')+
+    (scriptUrl?' · SCRIPT: CONNECTED':' · SCRIPT: —');
 }
 function showErr(msg){const b=document.getElementById('err-bar');b.style.display=msg?'block':'none';b.textContent=msg;}
 
@@ -1195,9 +1628,13 @@ window.onload=()=>{
   const sc=localStorage.getItem('rct_city_url');
   const sa=localStorage.getItem('rct_air_url');
   const ss=localStorage.getItem('rct_script_url');
+  const sf=localStorage.getItem('rct_forecast_url');
+  const sm=localStorage.getItem('rct_mtd_url');
   if(sc){document.getElementById('sheet-url').value=sc;sheetUrl=sc;}
   if(sa){document.getElementById('air-url').value=sa;airUrl=sa;}
   if(ss){document.getElementById('script-url').value=ss;scriptUrl=ss;setStatus('script-status','CONNECTED','tag-ok');}
+  if(sf) document.getElementById('forecast-url').value=sf;
+  if(sm) document.getElementById('mtd-url').value=sm;
 
   setupPinLock();
   configUnlocked=false;
