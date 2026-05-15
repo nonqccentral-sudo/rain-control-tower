@@ -381,7 +381,12 @@ td{padding:9px 10px;vertical-align:middle;}
   <div class="config-actions">
     <button class="btn-save-config" onclick="saveConfigToSheet()">💾 Save Config to Sheet</button>
     <button class="btn-sample" onclick="loadSampleData()">▶ Load sample data</button>
+    <button class="btn-sample" onclick="saveUrlsToDefaults()" style="color:var(--teal);border-color:var(--teal);">📌 Save URLs as Team Default</button>
     <span id="save-status" class="save-status" style="display:none;"></span>
+  </div>
+  <div style="margin-top:8px;font-family:'DM Mono';font-size:10px;color:var(--muted);">
+    ℹ URLs are shared via hardcoded defaults in index.html. After updating DEFAULT_*_URL constants, re-upload to GitHub.
+    For quick personal override: paste a URL and click Load — saved to your browser only.
   </div>
 </div>
 
@@ -493,6 +498,14 @@ td{padding:9px 10px;vertical-align:middle;}
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const CORRECT_PIN_KEY = 'heimdall_pin';
 const DEFAULT_PIN = '1mg2025';
+
+// ── DEFAULT SHEET URLs — set these once, everyone gets them automatically ──
+// Paste your published CSV URLs here. Any team member opening the dashboard
+// will load data immediately without needing to configure anything.
+const DEFAULT_CITY_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';  // ← paste CITY_METRICS CSV URL here
+const DEFAULT_FORECAST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';  // ← paste BD_AIR_FORECAST CSV URL here
+const DEFAULT_MTD_URL      = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';  // ← paste BD_AIR_MTD CSV URL here
+const DEFAULT_SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbw5kwmtGQIPBn2mKcuKq62hcBkUL-SjYjc4chtgEl0Kn-waAESAMqoLAGklfxvOykQrlw/exec';  // ← paste Apps Script web app URL here
 const RAG_ORDER = {active:-1, red:0, amber:1, green:2};
 
 // ── SAMPLE DATA ───────────────────────────────────────────────────────────────
@@ -1516,6 +1529,32 @@ function setDataDate(){
   const d=new Date();d.setDate(d.getDate()-1);
   document.getElementById('data-date').textContent='D-1: '+d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
 }
+// ── SAVE URLs AS DEFAULTS (shows instructions) ───────────────────────────────
+function saveUrlsToDefaults(){
+  const city     = document.getElementById('sheet-url').value.trim();
+  const forecast = document.getElementById('forecast-url').value.trim();
+  const mtd      = document.getElementById('mtd-url').value.trim();
+  const script   = document.getElementById('script-url').value.trim();
+
+  const msg = [
+    '📌 To make these URLs the default for ALL team members:',
+    '',
+    '1. Open index.html in a text editor',
+    '2. Find the DEFAULT URL constants near the top of the <script> section',
+    '3. Replace the empty strings with your URLs:',
+    '',
+    `   DEFAULT_CITY_URL     = '${city||'(not set)'}'`,
+    `   DEFAULT_FORECAST_URL = '${forecast||'(not set)'}'`,
+    `   DEFAULT_MTD_URL      = '${mtd||'(not set)'}'`,
+    `   DEFAULT_SCRIPT_URL   = '${script||'(not set)'}'`,
+    '',
+    '4. Save the file and re-upload to GitHub',
+    '5. Every team member who opens the URL will now load data automatically',
+  ].join('\n');
+
+  alert(msg);
+}
+
 function updateFooter(){
   document.getElementById('footer-txt').textContent=
     (cityData.length?'CITY_METRICS: '+cityData.length+' CITIES':'')+
@@ -1547,11 +1586,11 @@ window.onload=()=>{
   localStorage.setItem(CORRECT_PIN_KEY,pin||DEFAULT_PIN);
 
   // Load sheet URLs
-  const sc=localStorage.getItem('rct_city_url');
-  const ss=localStorage.getItem('rct_script_url');
-  const sf=localStorage.getItem('rct_forecast_url');
-  const sm=localStorage.getItem('rct_mtd_url');
-  // Restore all URL fields — loadAll() will re-read them and call load functions
+  // URL priority: localStorage (personal overrides) → DEFAULT constants (shared for all)
+  const sc = localStorage.getItem('rct_city_url')     || DEFAULT_CITY_URL;
+  const ss = localStorage.getItem('rct_script_url')   || DEFAULT_SCRIPT_URL;
+  const sf = localStorage.getItem('rct_forecast_url') || DEFAULT_FORECAST_URL;
+  const sm = localStorage.getItem('rct_mtd_url')      || DEFAULT_MTD_URL;
   if(sc){ document.getElementById('sheet-url').value=sc;    sheetUrl=sc; }
   if(ss){ document.getElementById('script-url').value=ss;   scriptUrl=ss; setStatus('script-status','CONNECTED','tag-ok'); }
   if(sf){ document.getElementById('forecast-url').value=sf; forecastUrl=sf; }
