@@ -894,16 +894,26 @@ async function writeToChangeLog(entry){
   const url=document.getElementById('script-url').value.trim();
   if(!url) return;
   try{
-    // Use no-cors for fire-and-forget write — we don't need to read the response.
-    // Apps Script receives the POST regardless; no-cors just means we can't read reply.
-    // This is intentional for write operations — sync reads use a separate GET call.
-    fetch(url,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'log',data:entry})
-    }).catch(()=>{}); // fire and forget
-  }catch(e){console.warn('Change log write failed:',e.message);}
+    // Use GET with URL params — avoids CORS preflight entirely.
+    // Apps Script doGet handles this and writes to the sheet.
+    // Simple, reliable, no no-cors issues.
+    const params=new URLSearchParams({
+      action:'log',
+      ts:     entry.ts||'',
+      act:    entry.action||'',
+      city:   entry.city||'',
+      pipe:   String(entry.pipeline||''),
+      trig:   String(entry.trigger||''),
+      detail: entry.details||''
+    });
+    // Fire and forget — don't await, don't block the UI
+    fetch(url+'?'+params.toString(), {
+      method:'GET',
+      cache:'no-store'
+    }).then(r=>{
+      if(!r.ok) console.warn('Change log write HTTP error:', r.status);
+    }).catch(e=>console.warn('Change log write failed:', e.message));
+  }catch(e){console.warn('Change log write error:',e.message);}
 }
 
 async function saveConfigToSheet(){
@@ -924,7 +934,14 @@ async function saveConfigToSheet(){
 
   if(url){
     try{
-      await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveConfig',data:config})});
+      const cfgParams=new URLSearchParams({
+        action:'saveConfig',
+        trigger_multiplier:config.trigger_multiplier,
+        delta_c:config.delta_c,
+        min_opd:config.min_opd
+      });
+      const cfgResp=await fetch(url+'?'+cfgParams.toString(),{method:'GET',cache:'no-store'});
+      if(!cfgResp.ok) throw new Error('HTTP '+cfgResp.status);
       showSaveStatus('✓ Saved to Sheet');
     }catch(e){showSaveStatus('✓ Saved locally (sheet write failed)');}
   } else {
@@ -1189,145 +1206,6 @@ function renderLog(){
 }
 
 // ── WRITE TO APPS SCRIPT (CHANGE LOG) ────────────────────────────────────────
-async function writeToChangeLog(entry){
-  const url=document.getElementById('script-url').value.trim();
-  if(!url) return;
-  try{
-    // Use no-cors for fire-and-forget write — we don't need to read the response.
-    // Apps Script receives the POST regardless; no-cors just means we can't read reply.
-    // This is intentional for write operations — sync reads use a separate GET call.
-    fetch(url,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'log',data:entry})
-    }).catch(()=>{}); // fire and forget
-  }catch(e){console.warn('Change log write failed:',e.message);}
-}
-
-async function saveConfigToSheet(){
-  const url=document.getElementById('script-url').value.trim();
-  const config={
-    trigger_multiplier:trigMult,
-    delta_c:getDeltaC(),
-    min_opd:getMinOPD()
-  };
-  // Save to localStorage regardless
-  localStorage.setItem('rct_delta_c',getDeltaC());
-  localStorage.setItem('rct_min_opd',getMinOPD());
-  localStorage.setItem('rct_trigger',trigMult);
-  localStorage.setItem('rct_pin',getPin());
-
-  const entry={ts:new Date().toLocaleString('en-IN'),action:'CONFIG CHANGED',city:'',pipeline:'',trigger:'',details:`Trigger: ${trigMult}×, ΔC: ₹${getDeltaC()}, Min OPD: ${getMinOPD()}`};
-  changeLog.unshift(entry);
-
-  if(url){
-    try{
-      await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveConfig',data:config})});
-      showSaveStatus('✓ Saved to Sheet');
-    }catch(e){showSaveStatus('✓ Saved locally (sheet write failed)');}
-  } else {
-    showSaveStatus('✓ Saved locally — connect Apps Script to sync with team');
-  }
-  writeToChangeLog(entry);
-  renderOverview();
-}
-
-function showSaveStatus(msg){
-  const el=document.getElementById('save-status');
-  el.textContent=msg; el.style.display='inline';
-  setTimeout(()=>{el.style.display='none';},3000);
-}
-
-
-async function loadCitySheet(){
-  const url=document.getElementById('sheet-url').value.trim();
-  if(!url){showErr('Paste CITY_METRICS CSV URL.');return;}
-  sheetUrl=url;
-  try{
-    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
-    cityData=parseCSV(await r.text(),['city','pipeline']);
-    if(!cityData.length) throw new Error('No rows found.');
-    setStatus('city-status','✓ '+cityData.length+' CITIES','tag-ok');
-    setDataDate(); localStorage.setItem('rct_city_url',url);
-    renderOverview();if(currentTab==='sim')renderSim();
-    showErr('');updateFooter();
-    logRefresh();
-  }catch(e){showErr('CITY_METRICS: '+e.message);setStatus('city-status','ERROR','tag-no');}
-}
-// BD_AIR_ORDERS removed — air actuals sourced from BD_AIR_MTD tab
-
-async function loadForecastSheet(){
-  const url=document.getElementById('forecast-url').value.trim();
-  if(!url){showErr('Paste BD_AIR_FORECAST CSV URL.');return;}
-  forecastUrl=url;
-  try{
-    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
-    forecastData=parseCSV(await r.text(),['city','expected']);
-    if(!forecastData.length) throw new Error('No rows found.');
-    forecastLoaded=true;
-    setStatus('forecast-status','✓ '+forecastData.length+' CITIES','tag-ok');
-    localStorage.setItem('rct_forecast_url',url);
-    renderOverview();if(currentTab==='sim')renderSim();
-    showErr('');updateFooter();
-  }catch(e){showErr('BD_AIR_FORECAST: '+e.message);setStatus('forecast-status','ERROR','tag-no');}
-}
-
-async function loadMtdSheet(){
-  const url=document.getElementById('mtd-url').value.trim();
-  if(!url){showErr('Paste BD_AIR_MTD CSV URL.');return;}
-  mtdUrl=url;
-  try{
-    const r=await fetch(url);if(!r.ok) throw new Error('HTTP '+r.status);
-    mtdData=parseCSV(await r.text(),['city','mtd']);
-    if(!mtdData.length) throw new Error('No rows found.');
-    mtdLoaded=true;
-    setStatus('mtd-status','✓ '+mtdData.length+' CITIES','tag-ok');
-    localStorage.setItem('rct_mtd_url',url);
-    renderOverview();if(currentTab==='sim')renderSim();
-    showErr('');updateFooter();
-  }catch(e){showErr('BD_AIR_MTD: '+e.message);setStatus('mtd-status','ERROR','tag-no');}
-}
-
-async function loadAll(){
-  // Re-read all URLs from input fields (handles localStorage restore on page load)
-  const cityInput    = document.getElementById('sheet-url').value.trim();
-  const scriptInput  = document.getElementById('script-url').value.trim();
-  const forecastInput= document.getElementById('forecast-url').value.trim();
-  const mtdInput     = document.getElementById('mtd-url').value.trim();
-  if(cityInput)    sheetUrl   = cityInput;
-  if(scriptInput){ scriptUrl  = scriptInput; setStatus('script-status','CONNECTED','tag-ok'); }
-  if(forecastInput) forecastUrl= forecastInput;
-  if(mtdInput)      mtdUrl     = mtdInput;
-
-  // Load sheets — only fall back to sample if NO URLs configured at all
-  const anyUrl = sheetUrl||forecastUrl||mtdUrl;
-  if(sheetUrl)    await loadCitySheet();
-  if(forecastUrl) await loadForecastSheet();
-  if(mtdUrl)      await loadMtdSheet();
-  if(!anyUrl)     loadSampleData();
-  resetAutoRefresh();
-}
-
-function loadSampleData(){
-  cityData=SAMPLE_CITY; airData=SAMPLE_AIR; airLoaded=true;
-  forecastData=SAMPLE_FORECAST; forecastLoaded=true;
-  mtdData=SAMPLE_MTD; mtdLoaded=true;
-  setStatus('city-status','SAMPLE','tag-sample');
-  setStatus('air-status','SAMPLE','tag-sample');
-  setStatus('forecast-status','SAMPLE','tag-sample');
-  setStatus('mtd-status','SAMPLE','tag-sample');
-  setDataDate(); renderOverview();
-  if(currentTab==='sim')renderSim();
-  if(currentTab==='log')renderLog();
-  showErr('');updateFooter();
-}
-
-function logRefresh(){
-  const entry={ts:new Date().toLocaleString('en-IN'),action:'REFRESHED',city:'',pipeline:'',trigger:'',details:'Dashboard data refreshed'};
-  changeLog.unshift(entry);
-  if(changeLog.length>200) changeLog=changeLog.slice(0,200);
-}
 
 // ── AUTO REFRESH (2 min) + STATE SYNC ────────────────────────────────────────
 function startAutoRefresh(){
