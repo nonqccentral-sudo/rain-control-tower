@@ -136,6 +136,15 @@ td{padding:9px 9px;vertical-align:middle;}
 .r-red    td:first-child{border-left:3px solid var(--red);}
 .r-amber  td:first-child{border-left:3px solid var(--amber);}
 .r-green  td:first-child{border-left:3px solid #22c55e33;}
+/* Deact-ready amber: city will move to Watch after deactivation */
+.r-deact-amber{background:#1a130010 !important;}
+.r-deact-amber td:first-child{border-left:3px solid var(--amber) !important;}
+[data-theme="light"] .r-deact-amber{background:#fffbeb !important;}
+/* Deact-ready green: city will move to Normal after deactivation */
+.r-deact-green{background:#07120710 !important;}
+.r-deact-green td:first-child{border-left:3px solid var(--green) !important;}
+[data-theme="light"] .r-deact-green{background:#f0fff4 !important;}
+/* Keep old .r-deact as fallback */
 .r-deact  {background:var(--gbg) !important;}
 .r-deact td:first-child{border-left:3px solid var(--green) !important;}
 
@@ -158,6 +167,9 @@ td{padding:9px 9px;vertical-align:middle;}
 .act-off:hover{background:var(--blue);color:#fff;}
 .act-rdy{background:var(--gbg);border-color:var(--green);color:var(--green);animation:glow 2s infinite;}
 .act-rdy:hover{background:var(--green);color:#fff;}
+.act-deact-amber{background:var(--abg);border-color:var(--amber);color:var(--amber);animation:glow-amber 2s infinite;}
+.act-deact-amber:hover{background:var(--amber);color:#fff;}
+@keyframes glow-amber{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:0 0 7px var(--amber)}}
 @keyframes glow{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:0 0 7px var(--green)}}
 
 /* ── DRILLDOWN ──────────────────────────────────────────────────────────── */
@@ -284,8 +296,7 @@ td{padding:9px 9px;vertical-align:middle;}
       <div class="sub" id="sync-note">—</div>
     </div>
     <button class="btn-icon" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
-    <button class="btn btn-green" id="sync-btn" onclick="syncState()">⟳ Sync State</button>
-    <button class="btn btn-blue" onclick="loadAll()">↻ Refresh</button>
+    <button class="btn btn-green" id="sync-btn" onclick="syncState()">⟳ Sync</button>
   </div>
 </div>
 
@@ -640,14 +651,19 @@ function compute(rows, mult) {
     const io     = r.outflow > 0 ? r.inflow/r.outflow : 0;
     const totAge = (r.aging_1d||0)+(r.aging_2d||0)+(r.aging_3d||0)+(r.aging_gt3d||0);
 
-    // Deactivate-ready signal
+    // Deactivate-ready: highlight whenever pipeline is below trigger (not Critical)
+    // Uses days_below_trigger if available (stricter: 2 days), else single-day fallback
     const dbt = r.days_below_trigger;
     let deactRdy = false;
     if (active) {
-      deactRdy = (dbt !== undefined && dbt !== null && dbt !== '')
-        ? parseFloat(dbt) >= 2
-        : r.pipeline_days < trig;
+      if (dbt !== undefined && dbt !== null && dbt !== '') {
+        deactRdy = parseFloat(dbt) >= 2;
+      } else {
+        deactRdy = r.pipeline_days < trig; // below trigger = not Critical
+      }
     }
+    // Post-deactivation RAG = what RAG the city would have if deactivated now
+    const postDeactRag = r.pipeline_days > (r.bau+0.5) ? 'amber' : 'green';
 
     // RAG — pipeline only
     const pRag = r.pipeline_days > trig ? 'red' : r.pipeline_days > bau+0.5 ? 'amber' : 'green';
@@ -673,7 +689,7 @@ function compute(rows, mult) {
     else                       { action='✓ Normal Ops';                  actionCol='var(--green)'; }
 
     return {
-      ...r, bau, tatAdv, trig, active, io, totAge, deactRdy,
+      ...r, bau, tatAdv, trig, active, io, totAge, deactRdy, postDeactRag,
       pRag, lRag, sRag, ioRag, sec, action, actionCol,
       mtdOrders, mtdCost
     };
@@ -792,9 +808,12 @@ function renderOverview() {
       } else {
         srows.forEach(m => {
           const dr = m.deactRdy && m.active;
-          const rowCls = `data-row ${dr?'r-deact':'r-'+m.sec} ${selCity===m.city?'sel':''}`;
+          // Row colour: if deact-ready, show the colour it will move to after deactivation
+          const rowColour = dr ? 'r-deact-'+m.postDeactRag : 'r-'+m.sec;
+          const rowCls = `data-row ${rowColour} ${selCity===m.city?'sel':''}`;
+          const deactBtnCls = dr ? (m.postDeactRag==='amber'?'act-deact-amber':'act-rdy') : 'act-off';
           const btn = m.active
-            ? `<button class="act-btn ${dr?'act-rdy':'act-off'}" onclick="event.stopPropagation();doDeact('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">${dr?'✅ Deactivate':'Deactivate'}</button>`
+            ? `<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">${dr?(m.postDeactRag==='amber'?'↓ Deactivate (→Watch)':'✅ Deactivate (→Normal)'):'Deactivate'}</button>`
             : m.pRag==='red'
             ? `<button class="act-btn act-on" onclick="event.stopPropagation();doActiv('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">Activate Air</button>`
             : '';
@@ -1000,33 +1019,61 @@ function renderSim() {
   </div>`;
 
   // Sensitivity table
+  // Sensitivity table: CITIES as rows, MULTIPLIERS as columns
   const mults=[0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0];
-  const visCities = filtered(compute(cityData,1.0));
-  const sensRows = mults.map(m2=>{
-    const sr = sorted(filtered(compute(cityData,m2)));
+  // Pre-compute all multiplier scenarios
+  const multScenarios = mults.map(m2=>{
+    const sr=sorted(filtered(compute(cityData,m2)));
     const {mtdTotal:mt,predTotal:pt,breakdown:bd}=calcForecast(sr,m2);
-    const cur = Math.abs(m2-trigMult)<0.01;
-    return `<tr class="${cur?'cur':''}">
-      <td style="color:${cur?'var(--blue)':'var(--muted)'};font-weight:${cur?700:400}">${m2.toFixed(1)}×${cur?' ◀':''}</td>
-      <td style="color:var(--text)">${bd.filter(b=>b.incl).length}</td>
-      ${visCities.map(vc=>{const b=bd.find(b=>b.city===vc.city);return`<td style="color:${b&&b.incl?'var(--amber)':'var(--muted)'}">${b&&b.incl?b.fcOPD+'×'+rd+'d':'—'}</td>`;}).join('')}
-      <td style="color:var(--teal);font-weight:600">${mtdLoaded?inr(mt):'—'}</td>
-      <td style="color:var(--amber);font-weight:600">${fcLoaded?inr(pt):'—'}</td>
-      <td style="color:var(--blue);font-weight:700">${(fcLoaded&&mtdLoaded)?inr(mt+pt):'—'}</td>
+    return {m2,mt,pt,bd};
+  });
+  const visCities = filtered(compute(cityData,1.0));
+
+  // Header row: City | MTD | 0.4× | 0.5× | ... | 2.0× | MTD Cost
+  const sensHeader = `<tr>
+    <th style="min-width:100px">City</th>
+    <th style="color:var(--teal)">MTD Orders</th>
+    <th style="color:var(--teal)">MTD Cost</th>
+    ${mults.map(m2=>{
+      const cur=Math.abs(m2-trigMult)<0.01;
+      return `<th style="color:${cur?'var(--blue)':'var(--muted)'};background:${cur?'var(--bg4)':''};font-weight:${cur?700:400};white-space:nowrap">${m2.toFixed(1)}×${cur?' ◀':''}</th>`;
+    }).join('')}
+  </tr>`;
+
+  // One row per city
+  const sensRows = visCities.map(vc=>{
+    const mtdRow = mtdData.find(m=>m.city===vc.city)||{};
+    const mtdO = mtdRow.mtd_bd_air_orders||0;
+    const mtdC = mtdO * dc;
+    return `<tr>
+      <td style="font-weight:600;color:var(--text)">${vc.city}</td>
+      <td style="font-family:'DM Mono';color:var(--purple)">${mtdLoaded?mtdO.toLocaleString('en-IN'):'—'}</td>
+      <td style="font-family:'DM Mono';color:var(--teal)">${mtdLoaded?inr(mtdC):'—'}</td>
+      ${multScenarios.map(({m2,bd})=>{
+        const b=bd.find(b=>b.city===vc.city);
+        const cur=Math.abs(m2-trigMult)<0.01;
+        const incl=b&&b.incl;
+        return `<td style="font-family:'DM Mono';color:${incl?'var(--amber)':'var(--muted)'};background:${cur?'var(--bg4)':''};font-size:11px">${incl?(b.fcOPD+'/d →'+inr(b.fcC)):'—'}</td>`;
+      }).join('')}
     </tr>`;
   }).join('');
 
+  // Totals row
+  const sensTotal = `<tr style="background:var(--bg3);border-top:2px solid var(--border2)">
+    <td style="font-weight:700">TOTAL</td>
+    <td style="font-family:'DM Mono';font-weight:700;color:var(--purple)">${mtdLoaded?mtdData.reduce((s,m)=>s+(m.mtd_bd_air_orders||0),0).toLocaleString('en-IN'):'—'}</td>
+    <td style="font-family:'DM Mono';font-weight:700;color:var(--teal)">${mtdLoaded?inr(mtdData.reduce((s,m)=>s+(m.mtd_bd_air_orders||0),0)*dc):'—'}</td>
+    ${multScenarios.map(({m2,mt,pt})=>{
+      const cur=Math.abs(m2-trigMult)<0.01;
+      return `<td style="font-family:'DM Mono';font-weight:700;color:var(--blue);background:${cur?'var(--bg4)':''};font-size:11px">${(fcLoaded&&mtdLoaded)?inr(mt+pt):'—'}</td>`;
+    }).join('')}
+  </tr>`;
+
   const sensTbl = `<div class="sens-wrap">
-    <div class="sens-title">Sensitivity Table — Trigger × vs Monthly Cost</div>
+    <div class="sens-title">Sensitivity Table — Cities (rows) vs Trigger Multiplier (columns) · Current: ${trigMult.toFixed(2)}× ◀</div>
     <table class="sens-tbl">
-      <thead><tr>
-        <th>Mult</th><th>Cities</th>
-        ${visCities.map(c=>`<th>${c.city.slice(0,3)}</th>`).join('')}
-        <th style="color:var(--teal)">MTD Actual</th>
-        <th style="color:var(--amber)">Predicted Rest</th>
-        <th style="color:var(--blue)">Total Month</th>
-      </tr></thead>
-      <tbody>${sensRows}</tbody>
+      <thead>${sensHeader}</thead>
+      <tbody>${sensRows}${sensTotal}</tbody>
     </table>
   </div>`;
 
@@ -1151,39 +1198,63 @@ function writeLog(entry) {
 }
 
 async function syncState() {
-  const url = scriptURL();
-  if (!url) { setSyncNote('⚠ No Apps Script URL — set in config'); return; }
   const btn = document.getElementById('sync-btn');
   btn.classList.add('syncing'); btn.textContent='⟳ Syncing...';
-  try {
-    const data = await apsFetch(url+'?action=getActiveState');
-    if (!data || data.status==='error') throw new Error(data?.message||'Script error');
 
-    // Sheet is source of truth for active cities
-    if (Array.isArray(data.activeCities)) {
-      const known = new Set(cityData.map(c=>c.city));
-      activeCities = new Set(data.activeCities.filter(c=>known.has(c)));
-      saveActive();
-    }
-    // Merge change log
-    if (Array.isArray(data.recentLog)) {
-      const seen = new Set(changeLog.map(e=>e.ts+'|'+e.action+'|'+e.city));
-      let added = 0;
-      data.recentLog.forEach(e=>{
-        const k=e.ts+'|'+e.action+'|'+e.city;
-        if (!seen.has(k)){changeLog.push(e);seen.add(k);added++;}
-      });
-      if (added>0){changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts));changeLog=changeLog.slice(0,200);saveLog();}
-    }
-    render();
-    const t=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    setSyncNote('✓ Synced at '+t);
-    resetCountdown();
-  } catch(e) {
-    setSyncNote('⚠ Sync failed: '+e.message.slice(0,50));
-  } finally {
-    btn.classList.remove('syncing'); btn.textContent='⟳ Sync State';
+  // Step 1: Reload all sheet CSV data (picks up any changes in sheet)
+  const cu = document.getElementById('url-city').value.trim();
+  const fu = document.getElementById('url-fc').value.trim();
+  const mu = document.getElementById('url-mtd').value.trim();
+  const reloadPromises = [];
+  if (cu) reloadPromises.push(
+    fetchCSV(cu).then(t=>{
+      const d=parseCSV(t,['city','pipeline']);
+      if(d.length){cityData=d;setTag('st-city','✓ '+d.length+' CITIES','tok');}
+    }).catch(e=>console.warn('City reload:',e.message))
+  );
+  if (fu) reloadPromises.push(
+    fetchCSV(fu).then(t=>{
+      const d=parseCSV(t,['city','expected']);
+      if(d.length){fcData=d;fcLoaded=true;setTag('st-fc','✓ '+d.length+' CITIES','tok');}
+    }).catch(e=>console.warn('Forecast reload:',e.message))
+  );
+  if (mu) reloadPromises.push(
+    fetchCSV(mu).then(t=>{
+      const d=parseCSV(t,['city','mtd']);
+      if(d.length){mtdData=d;mtdLoaded=true;setTag('st-mtd','✓ '+d.length+' CITIES','tok');}
+    }).catch(e=>console.warn('MTD reload:',e.message))
+  );
+  await Promise.all(reloadPromises);
+
+  // Step 2: Sync active state from Apps Script (if connected)
+  const url = scriptURL();
+  if (url) {
+    try {
+      const data = await apsFetch(url+'?action=getActiveState');
+      if (data && data.status !== 'error') {
+        if (Array.isArray(data.activeCities)) {
+          const known = new Set(cityData.map(c=>c.city));
+          activeCities = new Set(data.activeCities.filter(c=>known.has(c)));
+          saveActive();
+        }
+        if (Array.isArray(data.recentLog)) {
+          const seen = new Set(changeLog.map(e=>e.ts+'|'+e.action+'|'+e.city));
+          let added=0;
+          data.recentLog.forEach(e=>{
+            const k=e.ts+'|'+e.action+'|'+e.city;
+            if(!seen.has(k)){changeLog.push(e);seen.add(k);added++;}
+          });
+          if(added>0){changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts));changeLog=changeLog.slice(0,200);saveLog();}
+        }
+      }
+    } catch(e) { console.warn('Active state sync:', e.message); }
   }
+
+  render();
+  const t=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  setSyncNote('✓ Synced at '+t);
+  resetCountdown();
+  btn.classList.remove('syncing'); btn.textContent='⟳ Sync';
 }
 
 async function testScript() {
