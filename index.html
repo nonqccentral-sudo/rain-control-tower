@@ -502,10 +502,10 @@ const DEFAULT_PIN = '1mg2025';
 // ── DEFAULT SHEET URLs — set these once, everyone gets them automatically ──
 // Paste your published CSV URLs here. Any team member opening the dashboard
 // will load data immediately without needing to configure anything.
-const DEFAULT_CITY_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';  // ← paste CITY_METRICS CSV URL here
-const DEFAULT_FORECAST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';  // ← paste BD_AIR_FORECAST CSV URL here
-const DEFAULT_MTD_URL      = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';  // ← paste BD_AIR_MTD CSV URL here
-const DEFAULT_SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbw5kwmtGQIPBn2mKcuKq62hcBkUL-SjYjc4chtgEl0Kn-waAESAMqoLAGklfxvOykQrlw/exec';  // ← paste Apps Script web app URL here
+const DEFAULT_CITY_URL     = '';  // ← paste CITY_METRICS CSV URL here
+const DEFAULT_FORECAST_URL = '';  // ← paste BD_AIR_FORECAST CSV URL here
+const DEFAULT_MTD_URL      = '';  // ← paste BD_AIR_MTD CSV URL here
+const DEFAULT_SCRIPT_URL   = '';  // ← paste Apps Script web app URL here
 const RAG_ORDER = {active:-1, red:0, amber:1, green:2};
 
 // ── SAMPLE DATA ───────────────────────────────────────────────────────────────
@@ -888,15 +888,41 @@ function renderLog(){
     </tr>`;
   }).join('');
 }
+// ── APPS SCRIPT FETCH via JSONP ──────────────────────────────────────────────
+// Apps Script redirects script.google.com → script.googleusercontent.com.
+// This redirect drops CORS headers, breaking fetch() from GitHub Pages.
+// JSONP injects a <script> tag instead — completely bypasses CORS.
+// Apps Script detects ?callback= and wraps the JSON response accordingly.
+function apsFetch(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'heimdallCb_' + Date.now();
+    const script = document.createElement('script');
+    const sep = url.includes('?') ? '&' : '?';
+    script.src = url + sep + 'callback=' + cbName + '&t=' + Date.now();
+    script.onerror = () => {
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('Script load failed — check URL and deployment settings'));
+    };
+    const timer = setTimeout(() => {
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('Apps Script timed out (10s)'));
+    }, 10000);
+    window[cbName] = (data) => {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      resolve(data);
+    };
+    document.body.appendChild(script);
+  });
+}
 
-// ── WRITE TO APPS SCRIPT (CHANGE LOG) ────────────────────────────────────────
 async function writeToChangeLog(entry){
   const url=document.getElementById('script-url').value.trim();
   if(!url) return;
   try{
-    // Use GET with URL params — avoids CORS preflight entirely.
-    // Apps Script doGet handles this and writes to the sheet.
-    // Simple, reliable, no no-cors issues.
     const params=new URLSearchParams({
       action:'log',
       ts:     entry.ts||'',
@@ -906,13 +932,11 @@ async function writeToChangeLog(entry){
       trig:   String(entry.trigger||''),
       detail: entry.details||''
     });
-    // Fire and forget — don't await, don't block the UI
-    fetch(url+'?'+params.toString(), {
-      method:'GET',
-      cache:'no-store'
-    }).then(r=>{
-      if(!r.ok) console.warn('Change log write HTTP error:', r.status);
-    }).catch(e=>console.warn('Change log write failed:', e.message));
+    // Use JSONP — bypasses CORS entirely, works from any domain
+    apsFetch(url+'?'+params.toString())
+      .then(d=>{ if(d.status!=='ok') console.warn('Log write:', d.message); })
+      .catch(e=>console.warn('Log write failed:', e.message));
+    // Fire and forget — don't block UI
   }catch(e){console.warn('Change log write error:',e.message);}
 }
 
@@ -940,8 +964,9 @@ async function saveConfigToSheet(){
         delta_c:config.delta_c,
         min_opd:config.min_opd
       });
-      const cfgResp=await fetch(url+'?'+cfgParams.toString(),{method:'GET',cache:'no-store'});
-      if(!cfgResp.ok) throw new Error('HTTP '+cfgResp.status);
+      // Use JSONP — bypasses CORS entirely
+      const cfgResult=await apsFetch(url+'?'+cfgParams.toString());
+      if(cfgResult.status!=='ok') throw new Error(cfgResult.message||'Save failed');
       showSaveStatus('✓ Saved to Sheet');
     }catch(e){showSaveStatus('✓ Saved locally (sheet write failed)');}
   } else {
@@ -963,10 +988,8 @@ async function testScript(){
   scriptUrl=url;
   setStatus('script-status','TESTING...','tag-sample');
   try{
-    // Real GET fetch — reads the response to confirm script is actually reachable
-    const resp=await fetch(url+'?action=ping&t='+Date.now(),{cache:'no-store'});
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const data=await resp.json();
+    // Use JSONP — bypasses CORS entirely, works from GitHub Pages
+    const data=await apsFetch(url+'?action=ping');
     if(data.status==='ok'){
       setStatus('script-status','✓ CONNECTED','tag-ok');
       localStorage.setItem('rct_script_url',url);
@@ -975,8 +998,8 @@ async function testScript(){
       throw new Error(data.message||'Unexpected response');
     }
   }catch(e){
-    setStatus('script-status','ERROR — '+e.message.slice(0,30),'tag-no');
-    showErr('Apps Script test failed: '+e.message+'. Make sure it is deployed as "Anyone can access".');
+    setStatus('script-status','ERROR','tag-no');
+    showErr('Apps Script test failed: '+e.message+'. Steps to fix: (1) Open Apps Script → Deploy → Manage Deployments → edit → set Who has access to "Anyone" (not "Anyone with Google account") → New Version → Deploy. (2) Copy the new URL and paste it here.');
   }
 }
 
@@ -1240,22 +1263,8 @@ async function syncFromSheet(){
   if(btn){ btn.classList.add('syncing'); btn.textContent='⟳ Syncing...'; }
 
   try{
-    // Append timestamp to bust any cache
-    const fetchUrl=url+'?action=getActiveState&t='+Date.now();
-    const resp=await fetch(fetchUrl, {
-      method:'GET',
-      cache:'no-store',   // never use cached response — always get fresh data
-    });
-
-    if(!resp.ok) throw new Error('HTTP '+resp.status+' — check Apps Script deployment');
-
-    const text=await resp.text();
-    let data;
-    try{
-      data=JSON.parse(text);
-    }catch(e){
-      throw new Error('Invalid JSON from Apps Script. Response: '+text.slice(0,100));
-    }
+    // Use JSONP — bypasses CORS entirely, works from GitHub Pages
+    const data=await apsFetch(url+'?action=getActiveState');
 
     if(!data || data.status==='error'){
       throw new Error(data?.message||'Apps Script returned an error');
