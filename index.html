@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Heimdall v1 — Tata 1mg</title>
+<title>Heimdall v1.4 — Tata 1mg</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ── THEME VARIABLES ─────────────────────────────────────────────────────── */
@@ -233,6 +233,7 @@ td{padding:9px 9px;vertical-align:middle;}
 @media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:700px){.dd-grid{grid-template-columns:1fr 1fr;}.logic-grid{grid-template-columns:1fr;}.sum-cards{grid-template-columns:1fr 1fr;}}
 </style>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='24' fill='%230a1828'/%3E%3Ccircle cx='24' cy='24' r='22' fill='none' stroke='%233b82f6' stroke-width='1' opacity='.35'/%3E%3Cpath d='M8 34 Q24 10 40 34' stroke='%236366f1' stroke-width='1.5' fill='none' opacity='.5'/%3E%3Cpath d='M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z' fill='%233b82f6' opacity='.9'/%3E%3Cpath d='M12 23 L6 19 L10 25' fill='%232dd4bf' opacity='.85'/%3E%3Cpath d='M36 23 L42 19 L38 25' fill='%232dd4bf' opacity='.85'/%3E%3Crect x='18' y='21' width='12' height='5' rx='1' fill='%23060e1c'/%3E%3Crect x='19' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Crect x='25' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Cpath d='M16 27 L14 40 L24 36 L34 40 L32 27 Z' fill='%231e3a5f' opacity='.85'/%3E%3Cpath d='M8 33 Q12 29 16 31 L14 35 Q10 35 8 33Z' fill='%23f59e0b' opacity='.8'/%3E%3Ccircle cx='21' cy='23' r='1.2' fill='%23fff'/%3E%3Ccircle cx='27' cy='23' r='1.2' fill='%23fff'/%3E%3C/svg%3E"/>
 </head>
 <body>
 <div class="wrap">
@@ -272,9 +273,8 @@ td{padding:9px 9px;vertical-align:middle;}
       <div class="hdr-tag">
         <span>Tata 1mg · 3PL Network</span>
         <div class="live-dot"></div>
-        <span style="color:var(--green)">D-1 METRICS</span>
       </div>
-      <h1>Heimdall <span style="font-weight:300;opacity:.45">v1</span><span class="d1b">D-1</span></h1>
+      <h1>Heimdall <span style="font-weight:300;opacity:.45">v1.4</span></h1>
     </div>
   </div>
   <div class="hdr-right">
@@ -291,16 +291,16 @@ td{padding:9px 9px;vertical-align:middle;}
 
 <!-- CONFIG PANEL -->
 <div class="cfg-panel">
-  <div class="cfg-top">
-    <span class="cfg-title">⚙ Configuration</span>
-    <span class="cfg-lock tag" id="cfg-lock-tag">🔒 LOCKED</span>
+  <div class="cfg-top" onclick="toggleCfgPanel()" style="cursor:pointer;user-select:none">
+    <span class="cfg-title"><span id="cfg-chev" style="margin-right:6px;font-size:12px">▸</span>⚙ Configuration</span>
+    <span class="cfg-lock tag" id="cfg-lock-tag">🔒 LOCKED — click to expand</span>
   </div>
-  <!-- Clickable lock overlay -->
-  <div id="cfg-locked-msg" style="text-align:center;padding:8px;font-family:'DM Mono';font-size:11px;color:var(--muted);cursor:pointer;border:1px dashed var(--border2);border-radius:6px;margin-bottom:8px;" onclick="openPin()">
-    Click to unlock config settings
-  </div>
-  <!-- Config content — hidden until unlocked -->
+  <!-- Config content — hidden until expanded + PIN entered -->
   <div id="cfg-content" style="display:none">
+    <div id="cfg-locked-msg" style="text-align:center;padding:8px;font-family:'DM Mono';font-size:11px;color:var(--muted);cursor:pointer;border:1px dashed var(--border2);border-radius:6px;margin-bottom:10px;" onclick="openPin()">
+      🔒 Click to unlock config settings
+    </div>
+    <div id="cfg-fields" style="display:none">
     <div class="cfg-grid">
       <div class="cfg-field">
         <label>ΔC — Incremental Cost / Air Order (₹)</label>
@@ -314,7 +314,10 @@ td{padding:9px 9px;vertical-align:middle;}
       </div>
       <div class="cfg-field">
         <label>Config PIN</label>
-        <input type="password" id="cfg-pin" value="1mg2025" maxlength="12" autocomplete="new-password"/>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="password" id="cfg-pin" value="1mg2025" maxlength="12" autocomplete="new-password" style="flex:1"/>
+          <button onclick="togglePinVis()" id="pin-eye" style="background:var(--bg3);border:1px solid var(--border2);color:var(--muted);padding:6px 9px;border-radius:4px;cursor:pointer;font-size:13px" title="Show/hide PIN">👁</button>
+        </div>
         <span class="cfg-hint">Change after first deploy</span>
       </div>
       <div class="cfg-field" style="grid-column:1/-1">
@@ -360,7 +363,8 @@ td{padding:9px 9px;vertical-align:middle;}
     <div style="margin-top:8px;font-family:'DM Mono';font-size:10px;color:var(--muted);">
       ℹ Team-wide defaults: edit DEFAULT_* constants in index.html → re-upload to GitHub. Personal overrides saved in your browser only.
     </div>
-  </div>
+    </div><!-- /cfg-fields -->
+  </div><!-- /cfg-content -->
 </div>
 
 <div class="err-bar" id="err-bar"></div>
@@ -388,14 +392,18 @@ td{padding:9px 9px;vertical-align:middle;}
     <div class="kpi-sub" id="k-amb-sub">—</div>
   </div>
   <div class="kpi" style="border-color:#a78bfa44">
-    <div class="kpi-lbl">MTD Air Orders</div>
+    <div class="kpi-lbl">MTD Air Orders &amp; Cost</div>
     <div><span class="kpi-val" style="color:var(--purple)" id="k-mtd-o">—</span></div>
     <div class="kpi-sub" id="k-mtd-o-sub">this calendar month</div>
+    <div style="margin-top:4px;font-family:'DM Mono';font-size:11px;color:var(--teal)" id="k-mtd-c">—</div>
+    <div class="kpi-sub" id="k-mtd-c-sub">incremental cost MTD</div>
   </div>
   <div class="kpi" style="border-color:#2dd4bf44">
-    <div class="kpi-lbl">MTD Incremental Cost</div>
-    <div><span class="kpi-val" style="color:var(--teal)" id="k-mtd-c">—</span></div>
-    <div class="kpi-sub" id="k-mtd-c-sub">—</div>
+    <div class="kpi-lbl">Month Total (MTD + Predicted)</div>
+    <div><span class="kpi-val" style="color:var(--teal)" id="k-month-orders">—</span></div>
+    <div class="kpi-sub" id="k-month-orders-sub">total orders this month</div>
+    <div style="margin-top:4px;font-family:'DM Mono';font-size:11px;color:var(--blue)" id="k-month-cost">—</div>
+    <div class="kpi-sub" id="k-month-cost-sub">total incremental cost</div>
   </div>
 </div>
 
@@ -458,7 +466,7 @@ td{padding:9px 9px;vertical-align:middle;}
 </div>
 
 <div class="footer">
-  <span>HEIMDALL v1 · TATA 1MG · RAIN CONTROL TOWER · D-1 DATA</span>
+  <span>HEIMDALL v1.4 · TATA 1MG · RAIN CONTROL TOWER · D-1 DATA</span>
   <span id="footer-r">—</span>
 </div>
 </div><!-- /wrap -->
@@ -474,10 +482,10 @@ td{padding:9px 9px;vertical-align:middle;}
 
 // ── DEFAULT URLs — EDIT THESE, THEN RE-UPLOAD TO GITHUB ──────────────────
 // Every team member who opens the dashboard will use these automatically.
-const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv'; // ← CITY_METRICS published CSV URL
-const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv'; // ← BD_AIR_FORECAST published CSV URL
-const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv'; // ← BD_AIR_MTD published CSV URL
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5kwmtGQIPBn2mKcuKq62hcBkUL-SjYjc4chtgEl0Kn-waAESAMqoLAGklfxvOykQrlw/exec'; // ← Apps Script web app URL
+const DEFAULT_CITY_URL   = ''; // ← CITY_METRICS published CSV URL
+const DEFAULT_FC_URL     = ''; // ← BD_AIR_FORECAST published CSV URL
+const DEFAULT_MTD_URL    = ''; // ← BD_AIR_MTD published CSV URL
+const DEFAULT_SCRIPT_URL = ''; // ← Apps Script web app URL
 const DEFAULT_PIN        = '1mg2025';
 
 // ── SAMPLE DATA ───────────────────────────────────────────────────────────
@@ -512,7 +520,7 @@ let changeLog=[];
 let trigMult=1.0;
 let selCity=null;
 let curTab='ov';
-let syncCountdown=120;
+let syncCountdown=10;
 let syncTimer=null;
 let isSample=false;
 
@@ -653,7 +661,7 @@ function compute(rows, mult) {
     // MTD data
     const mtd = mtdData.find(m => m.city === r.city) || {};
     const mtdOrders = mtd.mtd_bd_air_orders || 0;
-    const mtdCost   = mtd.mtd_cost_inr || 0;
+    const mtdCost   = mtdOrders * dc; // always derive: orders × ΔC from config
 
     // Proposed action
     let action, actionCol;
@@ -734,10 +742,24 @@ function renderKPIs() {
   setText('k-red-sub', red.length ? red.slice(0,3).map(r=>r.city).join(', ')+(red.length>3?'…':'') : '—');
   setText('k-amb', amb.length);
   setText('k-amb-sub', amb.length ? amb.slice(0,3).map(r=>r.city).join(', ')+(amb.length>3?'…':'') : '—');
+  // MTD Air Orders card — show orders + derived cost (orders × ΔC from config)
+  const mtdDerivedCost = (totMtdO !== null) ? totMtdO * getDC() : null;
   setText('k-mtd-o', totMtdO !== null ? totMtdO.toLocaleString('en-IN') : '—');
   setText('k-mtd-o-sub', mtdLoaded ? 'this calendar month' : 'connect BD_AIR_MTD');
-  setText('k-mtd-c', totMtdC !== null ? inr(totMtdC) : '—');
-  setText('k-mtd-c-sub', mtdLoaded ? getMonthName() : 'connect BD_AIR_MTD');
+  setText('k-mtd-c', mtdDerivedCost !== null ? inr(mtdDerivedCost) : '—');
+  setText('k-mtd-c-sub', mtdLoaded ? 'orders × ΔC ₹'+getDC() : '—');
+
+  // Month Total card — MTD + predicted at current sensitivity
+  const rows4kpi = sorted(filtered(compute(cityData, trigMult)));
+  const {mtdTotal:kpiMtdC, predTotal:kpiPredC, breakdown:kpiBd} = calcForecast(rows4kpi, trigMult);
+  const kpiMtdO  = totMtdO || 0;
+  const kpiPredO = kpiBd.filter(b=>b.incl).reduce((s,b)=>s+b.fcO,0);
+  const kpiTotO  = kpiMtdO + kpiPredO;
+  const kpiTotC  = kpiMtdO * getDC() + kpiPredC;
+  setText('k-month-orders', (fcLoaded&&mtdLoaded) ? kpiTotO.toLocaleString('en-IN') : (mtdLoaded ? kpiMtdO.toLocaleString('en-IN') : '—'));
+  setText('k-month-orders-sub', (fcLoaded&&mtdLoaded) ? 'MTD + predicted ('+trigMult.toFixed(2)+'×)' : (mtdLoaded?'MTD only':'connect sheets'));
+  setText('k-month-cost', (fcLoaded&&mtdLoaded) ? inr(kpiTotC) : (mtdLoaded ? inr(kpiMtdO*getDC()) : '—'));
+  setText('k-month-cost-sub', (fcLoaded&&mtdLoaded) ? getMonthName() : (mtdLoaded?'MTD cost only':'—'));
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────
@@ -886,7 +908,8 @@ function calcForecast(rows, mult) {
   const dc=getDC(), rd=remDays();
   let mtdTotal=0, predTotal=0;
   const breakdown = rows.map(m => {
-    const mtdO = m.mtdOrders||0, mtdC = m.mtdCost||0;
+    const mtdO = m.mtdOrders||0;
+    const mtdC = mtdO * dc; // derive cost from orders × ΔC (config), not sheet value
     mtdTotal += mtdC;
     const wTrig = m.pipeline_days > (m.bau+m.tatAdv)*mult;
     const incl  = m.active || wTrig;
@@ -1183,14 +1206,14 @@ async function testScript() {
 }
 
 // ── AUTO SYNC COUNTDOWN ───────────────────────────────────────────────────
-function resetCountdown() { syncCountdown=120; }
+function resetCountdown() { syncCountdown=10; }
 function startCountdown() {
   if (syncTimer) clearInterval(syncTimer);
   syncTimer = setInterval(()=>{
     syncCountdown--;
     const m=Math.floor(syncCountdown/60), s=String(syncCountdown%60).padStart(2,'0');
     setSyncNote('Auto-sync in '+m+':'+s);
-    if (syncCountdown<=0) { syncCountdown=120; syncState(); }
+    if (syncCountdown<=0) { syncCountdown=10; syncState(); }
   },1000);
 }
 function setSyncNote(t) { document.getElementById('sync-note').textContent=t; }
@@ -1245,17 +1268,52 @@ function toggleTheme(){
 
 // ── PIN ───────────────────────────────────────────────────────────────────
 function openPin(){document.getElementById('pin-overlay').style.display='flex';document.getElementById('pin-in').focus();}
+// Config panel collapse/expand
+let cfgExpanded = false;
+let cfgUnlocked = false;
+function toggleCfgPanel(){
+  cfgExpanded = !cfgExpanded;
+  document.getElementById('cfg-chev').textContent = cfgExpanded ? '▾' : '▸';
+  const content = document.getElementById('cfg-content');
+  if (cfgExpanded) {
+    content.style.display = 'block';
+    if (!cfgUnlocked) {
+      document.getElementById('cfg-locked-msg').style.display = 'block';
+      document.getElementById('cfg-fields').style.display = 'none';
+      document.getElementById('cfg-lock-tag').textContent = '🔒 LOCKED — click to unlock';
+      document.getElementById('cfg-lock-tag').className = 'cfg-lock tag tno';
+    }
+  } else {
+    content.style.display = 'none';
+    document.getElementById('cfg-lock-tag').textContent = '🔒 LOCKED — click to expand';
+    document.getElementById('cfg-lock-tag').className = 'cfg-lock tag';
+  }
+}
+
+// PIN eye toggle
+function togglePinVis(){
+  const inp = document.getElementById('cfg-pin');
+  const btn = document.getElementById('pin-eye');
+  if (inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
+  else { inp.type='password'; btn.textContent='👁'; }
+}
+
 function checkPin(){
   const entered=document.getElementById('pin-in').value;
   const correct=lsg('rct_pin')||DEFAULT_PIN;
   if(entered===correct){
+    cfgUnlocked = true;
     document.getElementById('pin-overlay').style.display='none';
     document.getElementById('pin-in').value='';
     document.getElementById('pin-err').style.display='none';
     document.getElementById('cfg-locked-msg').style.display='none';
-    document.getElementById('cfg-content').style.display='block';
+    document.getElementById('cfg-fields').style.display='block';
     document.getElementById('cfg-lock-tag').textContent='🔓 UNLOCKED';
     document.getElementById('cfg-lock-tag').className='cfg-lock tag tok';
+    // Make sure panel stays expanded after unlock
+    cfgExpanded = true;
+    document.getElementById('cfg-content').style.display='block';
+    document.getElementById('cfg-chev').textContent='▾';
   } else {
     document.getElementById('pin-err').style.display='block';
   }
