@@ -425,6 +425,7 @@ const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9S
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv'; // ← BD_AIR_MTD published CSV URL
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5kwmtGQIPBn2mKcuKq62hcBkUL-SjYjc4chtgEl0Kn-waAESAMqoLAGklfxvOykQrlw/exec'; // ← Apps Script web app URL
 const DEFAULT_PIN        = '1mg2025';
+ 
 
 // ── SAMPLE DATA ───────────────────────────────────────────────────────────
 const S_CITY=[
@@ -459,10 +460,11 @@ let trigMult=1.0;
 let selCity=null,curTab='ov';
 let syncCountdown=10,syncTimer=null;
 let cfgExpanded=false,cfgUnlocked=false;
+let lastSyncTs=null; // ISO timestamp of last successful getSheetData response
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
-const getDC  = ()=>parseFloat(document.getElementById('cfg-dc').value)||35;
-const getOPD = ()=>parseFloat(document.getElementById('cfg-opd').value)||0;
+const getDC  = ()=>{const v=parseFloat(document.getElementById('cfg-dc').value);return(isNaN(v)||v<=0)?35:v;};
+const getOPD = ()=>{const v=parseFloat(document.getElementById('cfg-opd').value);return isNaN(v)?0:v;};
 const getPin = ()=>document.getElementById('cfg-pin').value||DEFAULT_PIN;
 
 // ── FORMATTERS ────────────────────────────────────────────────────────────
@@ -505,6 +507,7 @@ function parseCSV(text,mustCols){
     const vs=l.split(','); if(vs.length<2) break;
     const city=vs[0].trim().replace(/['"]/g,'');
     if(!city||city.toLowerCase()===hdrs[0]) break;
+    if(city.length>60) continue; // skip note/instruction rows
     const obj={};
     hdrs.forEach((h,idx)=>{const v=(vs[idx]||'').trim().replace(/['"₹%,]/g,'');obj[h]=(v!==''&&!isNaN(v))?parseFloat(v):v;});
     rows.push(obj);
@@ -573,52 +576,76 @@ function loadSample(){
   setDataDate();render();showErr('');
 }
 
-// ── SYNC STATE ────────────────────────────────────────────────────────────
-// PRIMARY: getSheetData via Apps Script — reads SpreadsheetApp directly, always live
-// FALLBACK: CSV fetch — used when Apps Script not connected
+// ── SYNC STATE ──────────────────────────────────────────────────────────────
+// Apps Script is the ONLY source of truth for city metrics.
+// If Apps Script is connected and getSheetData fails → keep last known data.
+// We NEVER fall back to CSV when script is connected (CSV is cached by Google CDN).
+// We NEVER overwrite cityData unless the new response has valid rows.
 async function syncState(){
   const btn=document.getElementById('sync-btn');
   btn.classList.add('syncing');btn.textContent='⟳ Syncing...';
-
   const url=scriptURL();
 
-  // Step 1: Reload sheet data
+  // ── STEP 1: Reload sheet data ─────────────────────────────────────────────
   if(url){
     try{
       const sd=await apsFetch(url+'?action=getSheetData');
-      if(sd&&sd.status==='ok'){
-        if(Array.isArray(sd.cityMetrics)&&sd.cityMetrics.length){
-          cityData=sd.cityMetrics;
-          const fc=cityData[0];
-          setTag('st-city','✓ '+cityData.length+' · '+fc.city+' '+fc.pipeline_days+'d','tok');
-        }
-        if(Array.isArray(sd.forecast)&&sd.forecast.length){fcData=sd.forecast;fcLoaded=true;setTag('st-fc','✓ '+fcData.length+' CITIES','tok');}
-        if(Array.isArray(sd.mtd)&&sd.mtd.length){mtdData=sd.mtd;mtdLoaded=true;setTag('st-mtd','✓ '+mtdData.length+' CITIES','tok');}
-      } else throw new Error(sd?.message||'getSheetData error');
-    }catch(e){console.warn('getSheetData failed, falling back to CSV:',e.message);await reloadFromCSV();}
+      if(!sd||sd.status==='error') throw new Error(sd?.message||'Script returned error');
+
+      // Only overwrite if response contains valid city rows
+      if(Array.isArray(sd.cityMetrics)&&sd.cityMetrics.length>0){
+        cityData=sd.cityMetrics;
+        const fc=cityData[0];
+        const pip=fc.pipeline_days!==undefined?(' · '+fc.city+' '+Number(fc.pipeline_days).toFixed(1)+'d'):'';
+        setTag('st-city','✓ '+cityData.length+pip,'tok');
+      } else if(Array.isArray(sd.cityMetrics)){
+        // Empty array returned — don't overwrite, warn
+        console.warn('getSheetData returned 0 city rows — keeping existing data');
+        setTag('st-city','⚠ 0 rows from script','tno');
+      }
+      if(Array.isArray(sd.forecast)&&sd.forecast.length>0){
+        fcData=sd.forecast;fcLoaded=true;
+        setTag('st-fc','✓ '+fcData.length+' CITIES','tok');
+      }
+      if(Array.isArray(sd.mtd)&&sd.mtd.length>0){
+        mtdData=sd.mtd;mtdLoaded=true;
+        setTag('st-mtd','✓ '+mtdData.length+' CITIES','tok');
+      }
+    }catch(e){
+      // Script failed — keep last known good data, show warning
+      // Do NOT fall back to CSV (it's stale CDN cache)
+      const msg='Sync failed: '+e.message.slice(0,55);
+      setSyncNote('⚠ '+msg+' — last known data shown');
+      console.warn('syncState error:',e.message);
+      btn.classList.remove('syncing');btn.textContent='⟳ Sync';
+      return; // keep existing data on screen unchanged
+    }
   } else {
+    // No script URL → CSV only (warn: may be cached)
     await reloadFromCSV();
+    setSyncNote('⚠ No Apps Script — CSV data may be cached');
+    btn.classList.remove('syncing');btn.textContent='⟳ Sync';
+    render();
+    return;
   }
 
-  // Step 2: Sync active state + change log
-  if(url){
-    try{
-      const data=await apsFetch(url+'?action=getActiveState');
-      if(data&&data.status!=='error'){
-        if(Array.isArray(data.activeCities)){
-          const known=new Set(cityData.map(c=>c.city));
-          activeCities=new Set(data.activeCities.filter(c=>known.has(c)));
-          saveActive();
-        }
-        if(Array.isArray(data.recentLog)){
-          const seen=new Set(changeLog.map(e=>e.ts+'|'+e.action+'|'+e.city));
-          let added=0;
-          data.recentLog.forEach(e=>{const k=e.ts+'|'+e.action+'|'+e.city;if(!seen.has(k)){changeLog.push(e);seen.add(k);added++;}});
-          if(added>0){changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts));changeLog=changeLog.slice(0,200);saveLog();}
-        }
+  // ── STEP 2: Sync active state + change log ────────────────────────────────
+  try{
+    const data=await apsFetch(url+'?action=getActiveState');
+    if(data&&data.status!=='error'){
+      if(Array.isArray(data.activeCities)){
+        const known=new Set(cityData.map(c=>c.city));
+        activeCities=new Set(data.activeCities.filter(c=>known.has(c)));
+        saveActive();
       }
-    }catch(e){console.warn('Active state sync:',e.message);}
-  }
+      if(Array.isArray(data.recentLog)){
+        const seen=new Set(changeLog.map(e=>e.ts+'|'+e.action+'|'+e.city));
+        let added=0;
+        data.recentLog.forEach(e=>{const k=e.ts+'|'+e.action+'|'+e.city;if(!seen.has(k)){changeLog.push(e);seen.add(k);added++;}});
+        if(added>0){changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts));changeLog=changeLog.slice(0,200);saveLog();}
+      }
+    }
+  }catch(e){console.warn('Active state sync (non-blocking):',e.message);}
 
   render();
   const t=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
