@@ -458,7 +458,7 @@ let activeCities=new Set();
 let changeLog=[];
 let trigMult=1.0;
 let selCity=null,curTab='ov';
-let syncCountdown=10,syncTimer=null;
+let syncCountdown=5,syncTimer=null;
 let cfgExpanded=false,cfgUnlocked=false;
 let lastSyncTs=null; // ISO timestamp of last successful getSheetData response
 
@@ -559,9 +559,19 @@ async function reloadFromCSV(){
 }
 
 async function loadAll(){
+  const su=document.getElementById('url-script').value.trim();
   const cu=document.getElementById('url-city').value.trim();
   const fu=document.getElementById('url-fc').value.trim();
   const mu=document.getElementById('url-mtd').value.trim();
+
+  // If Apps Script is connected — use getSheetData for ALL data loads
+  // This is the only way to guarantee live data on page load, not cached CSV
+  if(su){
+    await syncState(); // syncState handles everything: sheet data + active state
+    return;
+  }
+
+  // No Apps Script — fall back to CSV (may be cached by Google CDN)
   if(cu) await loadCity();
   if(fu) await loadFc();
   if(mu) await loadMtd();
@@ -1090,14 +1100,14 @@ function checkPin(){
 }
 
 // ── COUNTDOWN ─────────────────────────────────────────────────────────────
-function resetCountdown(){syncCountdown=10;}
+function resetCountdown(){syncCountdown=5;}
 function startCountdown(){
   if(syncTimer)clearInterval(syncTimer);
   syncTimer=setInterval(()=>{
     syncCountdown--;
     const m=Math.floor(syncCountdown/60),s=String(syncCountdown%60).padStart(2,'0');
     if(!document.getElementById('sync-btn').classList.contains('syncing')) setSyncNote('Auto-sync in '+m+':'+s);
-    if(syncCountdown<=0){syncCountdown=10;syncState();}
+    if(syncCountdown<=0){syncCountdown=5;syncState();}
   },1000);
 }
 
@@ -1129,9 +1139,9 @@ window.addEventListener('load',()=>{
   if(su){document.getElementById('url-script').value=su;setTag('st-script','CONNECTED','tok');}
   loadActive();loadLog();
   renderLogic();
-  if(cu||fu||mu)loadAll();else loadSample();
+  // loadAll calls syncState directly if script URL present (avoids CSV cache)
+  if(cu||fu||mu||su)loadAll();else loadSample();
   startCountdown();
-  if(su)setTimeout(syncState,2000);
 });
 </script>
 </body>
