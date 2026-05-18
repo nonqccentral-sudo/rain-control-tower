@@ -137,11 +137,11 @@ td{padding:9px 9px;vertical-align:middle;}
 .r-amber  td:first-child{border-left:3px solid var(--amber);}
 .r-green  td:first-child{border-left:3px solid #22c55e33;}
 /* Deact-ready amber: city will move to Watch after deactivation */
-.r-deact-amber{background:#1a130010 !important;}
+.r-deact-amber{background:#2a1e0080 !important;}
 .r-deact-amber td:first-child{border-left:3px solid var(--amber) !important;}
 [data-theme="light"] .r-deact-amber{background:#fffbeb !important;}
 /* Deact-ready green: city will move to Normal after deactivation */
-.r-deact-green{background:#07120710 !important;}
+.r-deact-green{background:#071a0f80 !important;}
 .r-deact-green td:first-child{border-left:3px solid var(--green) !important;}
 [data-theme="light"] .r-deact-green{background:#f0fff4 !important;}
 /* Keep old .r-deact as fallback */
@@ -574,7 +574,9 @@ function parseCSV(text, mustCols) {
 
 // ── SHEET LOADERS ─────────────────────────────────────────────────────────
 async function fetchCSV(url) {
-  const r = await fetch(url, {cache:'no-store'});
+  // Append timestamp to bust Google Sheets CDN cache — no-store alone is not enough
+  const bust = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+  const r = await fetch(bust, {cache:'no-store'});
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.text();
 }
@@ -681,7 +683,7 @@ function compute(rows, mult) {
 
     // Proposed action
     let action, actionCol;
-    if (active && deactRdy)    { action='✅ Ready to Deactivate';       actionCol='var(--green)'; }
+    if (active && deactRdy)    { action = postDeactRag==='amber' ? '↓ Ready — Deactivate (→Watch)' : '✅ Ready — Deactivate (→Normal)'; actionCol = postDeactRag==='amber' ? 'var(--amber)' : 'var(--green)'; }
     else if (active)           { action='✈ Air Active — Monitor Spend'; actionCol='var(--blue)';  }
     else if (pRag==='red')     { action='⚠ Activate Air';               actionCol='var(--red)';   }
     else if (pRag==='amber' && ioRag==='red') { action='↑ Watch — I/O Rising'; actionCol='var(--amber)'; }
@@ -1201,31 +1203,31 @@ async function syncState() {
   const btn = document.getElementById('sync-btn');
   btn.classList.add('syncing'); btn.textContent='⟳ Syncing...';
 
-  // Step 1: Reload all sheet CSV data (picks up any changes in sheet)
+  // Step 1: Reload all sheet CSV data sequentially — await each before rendering
+  // Sequential (not parallel) ensures render() always sees the latest data
   const cu = document.getElementById('url-city').value.trim();
   const fu = document.getElementById('url-fc').value.trim();
   const mu = document.getElementById('url-mtd').value.trim();
-  const reloadPromises = [];
-  if (cu) reloadPromises.push(
-    fetchCSV(cu).then(t=>{
-      const d=parseCSV(t,['city','pipeline']);
-      if(d.length){cityData=d;setTag('st-city','✓ '+d.length+' CITIES','tok');}
-      else setTag('st-city','EMPTY','tno');
-    }).catch(e=>{console.warn('City reload:',e.message);setTag('st-city','FETCH ERROR','tno');})
-  );
-  if (fu) reloadPromises.push(
-    fetchCSV(fu).then(t=>{
-      const d=parseCSV(t,['city','expected']);
-      if(d.length){fcData=d;fcLoaded=true;setTag('st-fc','✓ '+d.length+' CITIES','tok');}
-    }).catch(e=>console.warn('Forecast reload:',e.message))
-  );
-  if (mu) reloadPromises.push(
-    fetchCSV(mu).then(t=>{
-      const d=parseCSV(t,['city','mtd']);
-      if(d.length){mtdData=d;mtdLoaded=true;setTag('st-mtd','✓ '+d.length+' CITIES','tok');}
-    }).catch(e=>console.warn('MTD reload:',e.message))
-  );
-  await Promise.all(reloadPromises);
+  if (cu) {
+    try {
+      const d = parseCSV(await fetchCSV(cu), ['city','pipeline']);
+      if (d.length) { cityData = d; setTag('st-city','✓ '+d.length+' CITIES','tok'); }
+      else setTag('st-city','EMPTY — check sheet','tno');
+    } catch(e) { setTag('st-city','FETCH ERROR','tno'); console.warn('City reload:', e.message); }
+  }
+  if (fu) {
+    try {
+      const d = parseCSV(await fetchCSV(fu), ['city','expected']);
+      if (d.length) { fcData = d; fcLoaded = true; setTag('st-fc','✓ '+d.length+' CITIES','tok'); }
+    } catch(e) { setTag('st-fc','FETCH ERROR','tno'); console.warn('Forecast reload:', e.message); }
+  }
+  if (mu) {
+    try {
+      const d = parseCSV(await fetchCSV(mu), ['city','mtd']);
+      if (d.length) { mtdData = d; mtdLoaded = true; setTag('st-mtd','✓ '+d.length+' CITIES','tok'); }
+    } catch(e) { setTag('st-mtd','FETCH ERROR','tno'); console.warn('MTD reload:', e.message); }
+  }
+  // render() is called AFTER all awaits — guaranteed fresh data every time
 
   // Step 2: Sync active state from Apps Script (if connected)
   const url = scriptURL();
