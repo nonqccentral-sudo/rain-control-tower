@@ -665,7 +665,7 @@ function compute(rows, mult) {
       }
     }
     // Post-deactivation RAG = what RAG the city would have if deactivated now
-    const postDeactRag = r.pipeline_days > (r.bau+0.5) ? 'amber' : 'green';
+    const postDeactRag = r.pipeline_days > (bau+0.5) ? 'amber' : 'green'; // use computed bau var not r.bau
 
     // RAG — pipeline only
     const pRag = r.pipeline_days > trig ? 'red' : r.pipeline_days > bau+0.5 ? 'amber' : 'green';
@@ -815,7 +815,7 @@ function renderOverview() {
           const rowCls = `data-row ${rowColour} ${selCity===m.city?'sel':''}`;
           const deactBtnCls = dr ? (m.postDeactRag==='amber'?'act-deact-amber':'act-rdy') : 'act-off';
           const btn = m.active
-            ? `<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">${dr?(m.postDeactRag==='amber'?'↓ Deactivate (→Watch)':'✅ Deactivate (→Normal)'):'Deactivate'}</button>`
+            ? `<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">Deactivate</button>`
             : m.pRag==='red'
             ? `<button class="act-btn act-on" onclick="event.stopPropagation();doActiv('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">Activate Air</button>`
             : '';
@@ -1210,9 +1210,15 @@ async function syncState() {
   const mu = document.getElementById('url-mtd').value.trim();
   if (cu) {
     try {
-      const d = parseCSV(await fetchCSV(cu), ['city','pipeline']);
-      if (d.length) { cityData = d; setTag('st-city','✓ '+d.length+' CITIES','tok'); }
-      else setTag('st-city','EMPTY — check sheet','tno');
+      const raw = await fetchCSV(cu);
+      const d = parseCSV(raw, ['city','pipeline']);
+      if (d.length) {
+        cityData = d;
+        // Show first city's pipeline days in status so user can confirm fresh data
+        const firstCity = d[0];
+        const pipVal = firstCity ? (firstCity.pipeline_days||firstCity.pipeline||'?') : '?';
+        setTag('st-city','✓ '+d.length+' · '+firstCity.city+' '+pipVal+'d','tok');
+      } else setTag('st-city','EMPTY — check sheet','tno');
     } catch(e) { setTag('st-city','FETCH ERROR','tno'); console.warn('City reload:', e.message); }
   }
   if (fu) {
@@ -1255,7 +1261,8 @@ async function syncState() {
 
   render();
   const t=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-  setSyncNote('✓ Synced at '+t);
+  const syncSummary = cityData.length ? ' · '+cityData.length+' cities' : '';
+  setSyncNote('✓ Synced at '+t+syncSummary);
   resetCountdown();
   btn.classList.remove('syncing'); btn.textContent='⟳ Sync';
 }
