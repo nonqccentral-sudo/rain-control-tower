@@ -801,7 +801,7 @@ function compute(rows,mult){
     const ioRag=io>1.3?'red':io>1.1?'amber':'green';
     const sec=active?'active':pRag;
 
-    const mtd=mtdData.find(m=>m.city===r.city)||{};
+    const mtd=mtdData.find(m=>nc(m.city).toLowerCase()===nc(r.city).toLowerCase())||{};
     const mtdOrders=mtd.mtd_bd_air_orders||0;
     const mtdCost=mtdOrders*dc;
 
@@ -1158,18 +1158,21 @@ function switchTabByName(name){
 // ── HIGH AGEING DUMP ──────────────────────────────────────────────────────────
 function renderDump(){
   const el=document.getElementById('dump-body');
-  const cities=['Pan-India',...new Set([...orderDump.map(o=>o.city),...cityData.map(c=>c.city)].filter(Boolean))].sort((a,b)=>a==='Pan-India'?-1:b==='Pan-India'?1:a.localeCompare(b));
+// Build deduplicated city list — normalise to Title Case, dedupe by lowercase key
+  const _allCities=[...orderDump.map(o=>o.city),...cityData.map(c=>c.city)].filter(Boolean).map(nc);
+  const _cityMap=new Map(); _allCities.forEach(ct=>_cityMap.set(ct.toLowerCase(),ct));
+  const cities=['Pan-India',...[..._cityMap.values()].sort((a,b)=>a.localeCompare(b))];
 
   // Filter visible orders
   const visible = dumpCityFilter==='Pan-India'
     ? orderDump
-    : orderDump.filter(o=>nc(o.city)===nc(dumpCityFilter));
+    : orderDump.filter(o=>nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase());
 
   // Split actioned vs unactioned
   const unactioned=visible.filter(o=>!actionedOrders[o.order_id]);
   const actioned  =visible.filter(o=> actionedOrders[o.order_id]);
 
-  const cityOpts=cities.map(c=>`<option value="${c}" ${c===dumpCityFilter?'selected':''}>${c}</option>`).join('');
+  const cityOpts=cities.map(c=>`<option value="${c}" ${nc(c).toLowerCase()===nc(dumpCityFilter).toLowerCase()?'selected':''}>${c}</option>`).join('');
 
   // Upload section
   const uploadSection=`
@@ -1198,9 +1201,10 @@ function renderDump(){
   const unactionedRows=unactioned.map(o=>{
     const isPendingAir=pendingAirIds.has(o.order_id);
     const isPendingCancel=pendingCancelIds.has(o.order_id);
-    const rowStyle=isPendingAir?'background:var(--bbg)':isPendingCancel?'background:var(--rbg)':'';
-    return`<tr class="data-row" style="${rowStyle}" id="drow-${o.order_id}">
-      <td class="cb-col"><input type="checkbox" class="order-chk" data-id="${o.order_id}" style="accent-color:var(--blue);width:14px;height:14px" ${isPendingAir||isPendingCancel?'checked disabled':''}></td>
+    const isPending=isPendingAir||isPendingCancel;
+    const rowBg=isPendingAir?'background:var(--bbg)':isPendingCancel?'background:var(--rbg)':'';
+    return`<tr class="data-row" style="${rowBg}" id="drow-${o.order_id}">
+      <td class="cb-col"><input type="checkbox" class="order-chk" data-id="${o.order_id}" style="accent-color:var(--blue);width:14px;height:14px" ${isPending?'checked':''}></td>
       <td style="font-family:'DM Mono';font-size:11px">${o.order_id}</td>
       <td style="font-weight:600">${o.city}</td>
       <td style="font-family:'DM Mono';font-size:11px">${o.pincode||'—'}</td>
@@ -1209,19 +1213,22 @@ function renderDump(){
       <td style="font-family:'DM Mono';font-size:11px">${o.promised_delivery_date||'—'}</td>
       <td>${rag(o.aging_days>=8?'red':o.aging_days>=6?'amber':'green',o.aging_days+'d')}</td>
       <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">${o.current_status||'—'}</td>
-      <td>
-        ${isPendingAir?`<div style="display:flex;align-items:center;gap:6px">
-          <input class="repl-input" id="repl-${o.order_id}" placeholder="Replacement Order ID" style="display:block" oninput="storeReplId('${o.order_id}',this.value)" value="${actionedOrders[o.order_id]?.replacement_order_id||''}"/>
-          <button onclick="undoMark('${o.order_id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" title="Undo">↩</button>
-        </div>`
-        :isPendingCancel?`<div style="display:flex;align-items:center;gap:6px">
-          <span style="font-family:'DM Mono';font-size:11px;color:var(--red)">✕ Cancel pending</span>
-          <button onclick="undoMark('${o.order_id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" title="Undo">↩</button>
-        </div>`
-        :`<div style="display:flex;gap:5px">
-          <button class="btn-sm btn-ghost" onclick="markOneAction('${o.order_id}','CANCELLED')" style="border-color:var(--red);color:var(--red)">✕ Cancel</button>
-          <button class="btn-sm btn-blue" onclick="markOneAction('${o.order_id}','MOVED_TO_AIR')">✈ Air</button>
-        </div>`}
+      <td style="min-width:200px">
+        ${isPendingAir
+          ?`<div style="display:flex;align-items:center;gap:6px">
+              <span style="font-family:'DM Mono';font-size:10px;color:var(--blue);white-space:nowrap">✈ Repl. ID:</span>
+              <input class="repl-input" id="repl-${o.order_id}" placeholder="Enter replacement order ID"
+                oninput="storeReplId('${o.order_id}',this.value)"
+                value="${(actionedOrders[o.order_id]||{}).replacement_order_id||''}"
+                style="display:block;flex:1"/>
+              <button onclick="undoMark('${o.order_id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 4px" title="Undo">↩</button>
+            </div>`
+          :isPendingCancel
+          ?`<div style="display:flex;align-items:center;gap:6px">
+              <span style="font-family:'DM Mono';font-size:11px;color:var(--red)">✕ Marked for cancellation</span>
+              <button onclick="undoMark('${o.order_id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 4px" title="Undo">↩</button>
+            </div>`
+          :''}
       </td>
     </tr>`;
   }).join('');
@@ -1249,9 +1256,9 @@ function renderDump(){
       <select class="dump-filter" onchange="dumpCityFilter=this.value;renderDump()">${cityOpts}</select>
       <span class="dump-count">${unactioned.length} unactioned · ${actioned.length} actioned · ${visible.length} total</span>
       <div class="dump-actions">
-        <button class="btn btn-ghost btn-sm" onclick="bulkMarkAction('CANCELLED')">✕ Cancel Selected</button>
-        <button class="btn btn-blue btn-sm" onclick="bulkMarkAction('MOVED_TO_AIR')">✈ Move to Air Selected</button>
-        <button class="btn btn-green btn-sm" onclick="submitInlineActions()">✓ Submit All</button>
+        <button class="btn btn-red btn-sm" onclick="bulkMarkAction('CANCELLED')">✕ Mark Cancel</button>
+        <button class="btn btn-blue btn-sm" onclick="bulkMarkAction('MOVED_TO_AIR')">✈ Mark Move to Air</button>
+        <button class="btn btn-green btn-sm" onclick="submitInlineActions()">✓ Submit</button>
       </div>
     </div>
     <div class="tbl-wrap">
@@ -1276,21 +1283,21 @@ function renderDump(){
 function toggleSelectAll(chk){
   document.querySelectorAll('.order-chk:not([disabled])').forEach(c=>{c.checked=chk.checked;});
 }
-// Mark a single order for an action (per-row buttons)
-function markOneAction(id,action){
-  if(action==='MOVED_TO_AIR'){
-    actionedOrders[id]={action:'MOVED_TO_AIR_PENDING',replacement_order_id:''};
-  } else {
-    actionedOrders[id]={action:'CANCELLED_PENDING',replacement_order_id:''};
-  }
-  renderDump();
-}
 // Bulk mark selected rows
 function bulkMarkAction(action){
-  const checked=[...document.querySelectorAll('.order-chk:not([disabled]):checked')].map(c=>c.dataset.id);
+  const checked=[...document.querySelectorAll('.order-chk:checked')].map(c=>c.dataset.id);
   if(!checked.length){showErr('Select at least one order first.');return;}
   showErr('');
-  checked.forEach(id=>markOneAction(id,action));
+  checked.forEach(id=>{
+    // Don't overwrite already-pending air entries that have a repl ID typed
+    if(action==='MOVED_TO_AIR'){
+      if(!actionedOrders[id]||actionedOrders[id].action==='CANCELLED_PENDING')
+        actionedOrders[id]={action:'MOVED_TO_AIR_PENDING',replacement_order_id:''};
+    } else {
+      actionedOrders[id]={action:'CANCELLED_PENDING',replacement_order_id:''};
+    }
+  });
+  renderDump();
 }
 // Undo a pending mark
 function undoMark(id){
@@ -1532,11 +1539,13 @@ function renderReplacement(){
 let ppCityFilter='All Cities';
 function renderPartnerPincode(){
   const el=document.getElementById('pp-body');
-  const cities=['All Cities',...new Set([...partnerData.map(p=>p.city),...pincodeData.map(p=>p.city)].filter(Boolean))].sort((a,b)=>a==='All Cities'?-1:b==='All Cities'?1:a.localeCompare(b));
-  const cityOpts=cities.map(c=>`<option value="${c}" ${c===ppCityFilter?'selected':''}>${c}</option>`).join('');
+  const _ppAllCities=[...partnerData.map(p=>p.city),...pincodeData.map(p=>p.city)].filter(Boolean).map(nc);
+  const _ppCityMap=new Map(); _ppAllCities.forEach(ct=>_ppCityMap.set(ct.toLowerCase(),ct));
+  const cities=['All Cities',...[..._ppCityMap.values()].sort((a,b)=>a.localeCompare(b))];
+  const cityOpts=cities.map(c=>`<option value="${c}" ${nc(c).toLowerCase()===nc(ppCityFilter).toLowerCase()?'selected':''}>${c}</option>`).join('');
 
-  const filteredPartner=ppCityFilter==='All Cities'?partnerData:partnerData.filter(p=>p.city===ppCityFilter);
-  const filteredPincode=ppCityFilter==='All Cities'?pincodeData:pincodeData.filter(p=>p.city===ppCityFilter);
+  const filteredPartner=ppCityFilter==='All Cities'?partnerData:partnerData.filter(p=>nc(p.city).toLowerCase()===nc(ppCityFilter).toLowerCase());
+  const filteredPincode=ppCityFilter==='All Cities'?pincodeData:pincodeData.filter(p=>nc(p.city).toLowerCase()===nc(ppCityFilter).toLowerCase());
 
   // RAG helpers for partner/pincode
   const tatR=v=>v>4?'red':v>=3?'amber':'green';
@@ -1612,7 +1621,7 @@ function calcForecast(rows,mult){
     mtdTotal+=mtdC;
     const wTrig=m.pipeline_days>(m.bau+m.tatAdv)*mult;
     const incl=m.active||wTrig;
-    const fcOPD=(fcData.find(f=>f.city===m.city)||{}).expected_bd_air_orders||0;
+    const fcOPD=(fcData.find(f=>nc(f.city).toLowerCase()===nc(m.city).toLowerCase())||{}).expected_bd_air_orders||0;
     const fcO=incl?fcOPD*rd:0,fcC=fcO*dc;
     predTotal+=fcC;
     return{city:m.city,inflow:m.inflow,mtdO,mtdC,fcOPD,fcO,fcC,incl,active:m.active,pRag:m.pRag};
@@ -1649,7 +1658,7 @@ function renderSim(){
   const sensHeader=`<tr><th style="min-width:90px">City</th><th style="color:var(--purple)">MTD Orders</th><th style="color:var(--teal)">MTD Cost</th>
     ${mults.map(m2=>{const cur=Math.abs(m2-trigMult)<0.01;return`<th style="color:${cur?'var(--blue)':'var(--muted)'};background:${cur?'var(--bg4)':''};font-weight:${cur?700:400};white-space:nowrap">${m2.toFixed(1)}×${cur?' ◀':''}</th>`;}).join('')}</tr>`;
   const sensRows=visCities.map(vc=>{
-    const mtdRow=mtdData.find(m=>m.city===vc.city)||{};
+    const mtdRow=mtdData.find(m=>nc(m.city).toLowerCase()===nc(vc.city).toLowerCase())||{};
     const mtdO=mtdRow.mtd_bd_air_orders||0,mtdC=mtdO*dc;
     return`<tr><td style="font-weight:600">${vc.city}</td>
       <td style="font-family:'DM Mono';color:var(--purple)">${mtdLoaded?mtdO.toLocaleString('en-IN'):'—'}</td>
