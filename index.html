@@ -236,8 +236,10 @@ input[type=checkbox]{accent-color:var(--blue);width:14px;height:14px;cursor:poin
 .repl-input:focus{outline:none;border-color:var(--blue);}
 .actioned-section{margin-top:20px;}
 .actioned-hdr{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:8px 0;border-top:2px solid var(--border2);margin-bottom:8px;}
-tr.row-cancelled td{background:#1a080820;color:var(--muted);text-decoration:line-through;}
-tr.row-moved-air td{background:#07101a;}
+tr.row-cancelled td{background:var(--rbg);color:var(--muted);text-decoration:line-through;}
+tr.row-moved-air td{background:var(--bbg);}
+[data-theme="light"] tr.row-cancelled td{background:#fee2e2;color:#9ca3af;}
+[data-theme="light"] tr.row-moved-air td{background:#eff6ff;}
 .upload-zone{border:2px dashed var(--border2);border-radius:8px;padding:20px;text-align:center;font-family:'DM Mono';font-size:12px;color:var(--muted);cursor:pointer;transition:border-color .18s;margin-bottom:12px;}
 .upload-zone:hover{border-color:var(--blue);}
 .upload-zone input[type=file]{display:none;}
@@ -603,6 +605,8 @@ const lakh  = v=>'₹'+(v/100000).toFixed(1)+'L';
 const pct   = v=>(+v).toFixed(1)+'%';
 const rag   = (s,v)=>`<span class="rag rag-${s}"><span class="rdot"></span>${v}</span>`;
 const tdesc = m=>m<1?'← Aggressive (triggers earlier)':m>1?'Conservative (triggers later) →':'BAU threshold';
+// Normalise city name to Title Case to prevent case-sensitivity mismatches
+const nc = s=>String(s||'').trim().replace(/\b\w/g,ch=>ch.toUpperCase());
 
 // ── JSONP ─────────────────────────────────────────────────────────────────────
 function apsFetch(url){
@@ -684,7 +688,10 @@ async function loadAll(){
   resetCountdown();
 }
 function loadSample(){
-  cityData=[...S_CITY];fcData=[...S_FC];mtdData=[...S_MTD];orderDump=[...S_ORDERS];
+  cityData=S_CITY.map(r=>({...r,city:nc(r.city)}));
+  fcData=S_FC.map(r=>({...r,city:nc(r.city)}));
+  mtdData=S_MTD.map(r=>({...r,city:nc(r.city)}));
+  orderDump=S_ORDERS.map(r=>({...r,city:nc(r.city)}));
   fcLoaded=true;mtdLoaded=true;
   setTag('st-city','SAMPLE','tsmp');setTag('st-fc','SAMPLE','tsmp');setTag('st-mtd','SAMPLE','tsmp');
   setDataDate();render();showErr('');
@@ -702,17 +709,17 @@ async function syncState(){
       const sd=await apsFetch(url+'?action=getSheetData');
       if(!sd||sd.status==='error') throw new Error(sd?.message||'Script error');
       if(Array.isArray(sd.cityMetrics)&&sd.cityMetrics.length>0){
-        cityData=sd.cityMetrics;
+        cityData=sd.cityMetrics.map(r=>({...r,city:nc(r.city)}));
         const fc=cityData[0];
         setTag('st-city','✓ '+cityData.length+(fc.pipeline_days!==undefined?' · '+fc.city+' '+Number(fc.pipeline_days).toFixed(1)+'d':''),'tok');
       } else if(Array.isArray(sd.cityMetrics)){
         console.warn('getSheetData returned 0 city rows — keeping existing data');
         setTag('st-city','⚠ 0 rows','tno');
       }
-      if(Array.isArray(sd.forecast)&&sd.forecast.length>0){fcData=sd.forecast;fcLoaded=true;setTag('st-fc','✓ '+fcData.length+' CITIES','tok');}
-      if(Array.isArray(sd.mtd)&&sd.mtd.length>0){mtdData=sd.mtd;mtdLoaded=true;setTag('st-mtd','✓ '+mtdData.length+' CITIES','tok');}
-      if(Array.isArray(sd.partner)) partnerData=sd.partner;
-      if(Array.isArray(sd.pincode)) pincodeData=sd.pincode;
+      if(Array.isArray(sd.forecast)&&sd.forecast.length>0){fcData=sd.forecast.map(r=>({...r,city:nc(r.city)}));fcLoaded=true;setTag('st-fc','✓ '+fcData.length+' CITIES','tok');}
+      if(Array.isArray(sd.mtd)&&sd.mtd.length>0){mtdData=sd.mtd.map(r=>({...r,city:nc(r.city)}));mtdLoaded=true;setTag('st-mtd','✓ '+mtdData.length+' CITIES','tok');}
+      if(Array.isArray(sd.partner)) partnerData=sd.partner.map(r=>({...r,city:nc(r.city)}));
+      if(Array.isArray(sd.pincode)) pincodeData=sd.pincode.map(r=>({...r,city:nc(r.city)}));
     }catch(e){
       setSyncNote('⚠ Sync failed: '+e.message.slice(0,55)+' — last known data shown');
       btn.classList.remove('syncing');btn.textContent='⟳ Sync';
@@ -739,7 +746,7 @@ async function syncState(){
     // Step 3: order dump
     try{
       const od=await apsFetch(url+'?action=getOrderDump');
-      if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders;
+      if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city)}));
     }catch(e){console.warn('Order dump sync:',e.message);}
 
     // Step 4: moved-to-air orders
@@ -899,7 +906,7 @@ function renderNetworkSummary(){
   const cityGrid = rows.map(r=>{
     const borderCol=r.active?'var(--blue)':r.pRag==='red'?'var(--red)':r.pRag==='amber'?'var(--amber)':'#22c55e44';
     const statusLabel=r.active?'✈ Active':r.pRag==='red'?'🔴 Critical':r.pRag==='amber'?'🟡 Watch':'🟢 Normal';
-    return`<div class="ns-city-card" style="border-color:${borderCol}" onclick="switchTabByName('ov');setTimeout(()=>openDD('${r.city}'),100)">
+    return`<div class="ns-city-card" style="border-color:${borderCol}" onclick="goToCityDD('${r.city}')">
       <div class="ns-city-name" style="color:${borderCol}">${r.city}</div>
       <div class="ns-city-pipe">${r.pipeline_days.toFixed(1)}d pipeline · ${statusLabel}</div>
       <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:4px">${r.inflow.toLocaleString('en-IN')}/day · trigger ${r.trig.toFixed(1)}d</div>
@@ -920,12 +927,8 @@ function renderNetworkSummary(){
       <div class="ns-commentary-body">${commentary}</div>
     </div>
     <div style="margin-bottom:10px">
-      <div class="ns-section-title">Network State — All Cities</div>
+      <div class="ns-section-title">Network State — All Cities <span style="font-size:10px;font-family:'DM Mono';color:var(--muted);margin-left:8px">click a city to open drilldown</span></div>
       <div class="ns-city-grid">${cityGrid}</div>
-    </div>
-    <div class="ns-actions">
-      <div class="ns-actions-title">⚡ Recommended Actions (${actionItems.length})</div>
-      ${actionItems.map(a=>`<div class="ns-action-item"><span style="font-size:16px">${a.icon}</span><span style="color:${a.color};font-size:12px">${a.text}</span></div>`).join('')}
     </div>`;
 }
 
@@ -1124,24 +1127,31 @@ function buildDDInline(m){
   </div>`;
 }
 
+// ── JUMP TO CITY DRILLDOWN FROM NETWORK SUMMARY ──────────────────────────────
+function goToCityDD(city){
+  openDDCity=city;
+  switchTabByName('ov');
+  // Scroll to the opened drilldown after render
+  setTimeout(()=>{
+    const el=document.querySelector('.dd-row-wrap');
+    if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+  },80);
+}
+
 // ── JUMP TO DUMP ──────────────────────────────────────────────────────────────
 function goToDump(city){
   dumpCityFilter=city;
   switchTabByName('dump');
 }
 function switchTabByName(name){
-  const tabMap={ns:'🌐 Network Summary',ov:'City Overview',sim:'Cost Simulator',dump:'High Ageing Dump',rep:'Replacement Orders',pp:'Partner & Pincode',log:'Change Log',logic:'Decision Logic'};
+  curTab=name;
   document.querySelectorAll('.tab').forEach(b=>{
-    if(b.textContent.trim()===tabMap[name]||b.getAttribute('onclick').includes("'"+name+"'")){
-      b.classList.add('active');
-      curTab=name;
-    } else {
-      b.classList.remove('active');
-    }
-    document.querySelectorAll('[id^="t-"]').forEach(d=>d.style.display='none');
-    const el=document.getElementById('t-'+name);
-    if(el) el.style.display='block';
+    const matches=b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+name+"'");
+    b.classList.toggle('active',matches);
   });
+  document.querySelectorAll('[id^="t-"]').forEach(d=>d.style.display='none');
+  const el=document.getElementById('t-'+name);
+  if(el) el.style.display='block';
   render();
 }
 
@@ -1153,7 +1163,7 @@ function renderDump(){
   // Filter visible orders
   const visible = dumpCityFilter==='Pan-India'
     ? orderDump
-    : orderDump.filter(o=>o.city===dumpCityFilter);
+    : orderDump.filter(o=>nc(o.city)===nc(dumpCityFilter));
 
   // Split actioned vs unactioned
   const unactioned=visible.filter(o=>!actionedOrders[o.order_id]);
@@ -1181,9 +1191,16 @@ function renderDump(){
 
   // Unactioned table
   const selAll=unactioned.length>0?`<input type="checkbox" id="chk-all" onchange="toggleSelectAll(this)" style="accent-color:var(--blue);width:14px;height:14px"/>`:' ';
-  const unactionedRows=unactioned.map(o=>`
-    <tr class="data-row">
-      <td class="cb-col"><input type="checkbox" class="order-chk" data-id="${o.order_id}" style="accent-color:var(--blue);width:14px;height:14px"/></td>
+  // pendingAir tracks which unactioned orders are marked for air (repl ID input visible)
+  const pendingAirIds=new Set(Object.entries(actionedOrders).filter(([,v])=>v.action==='MOVED_TO_AIR_PENDING').map(([id])=>id));
+  const pendingCancelIds=new Set(Object.entries(actionedOrders).filter(([,v])=>v.action==='CANCELLED_PENDING').map(([id])=>id));
+
+  const unactionedRows=unactioned.map(o=>{
+    const isPendingAir=pendingAirIds.has(o.order_id);
+    const isPendingCancel=pendingCancelIds.has(o.order_id);
+    const rowStyle=isPendingAir?'background:var(--bbg)':isPendingCancel?'background:var(--rbg)':'';
+    return`<tr class="data-row" style="${rowStyle}" id="drow-${o.order_id}">
+      <td class="cb-col"><input type="checkbox" class="order-chk" data-id="${o.order_id}" style="accent-color:var(--blue);width:14px;height:14px" ${isPendingAir||isPendingCancel?'checked disabled':''}></td>
       <td style="font-family:'DM Mono';font-size:11px">${o.order_id}</td>
       <td style="font-weight:600">${o.city}</td>
       <td style="font-family:'DM Mono';font-size:11px">${o.pincode||'—'}</td>
@@ -1192,8 +1209,22 @@ function renderDump(){
       <td style="font-family:'DM Mono';font-size:11px">${o.promised_delivery_date||'—'}</td>
       <td>${rag(o.aging_days>=8?'red':o.aging_days>=6?'amber':'green',o.aging_days+'d')}</td>
       <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">${o.current_status||'—'}</td>
-      <td><input class="repl-input" id="repl-${o.order_id}" placeholder="Replacement Order ID" style="display:none"/></td>
-    </tr>`).join('');
+      <td>
+        ${isPendingAir?`<div style="display:flex;align-items:center;gap:6px">
+          <input class="repl-input" id="repl-${o.order_id}" placeholder="Replacement Order ID" style="display:block" oninput="storeReplId('${o.order_id}',this.value)" value="${actionedOrders[o.order_id]?.replacement_order_id||''}"/>
+          <button onclick="undoMark('${o.order_id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" title="Undo">↩</button>
+        </div>`
+        :isPendingCancel?`<div style="display:flex;align-items:center;gap:6px">
+          <span style="font-family:'DM Mono';font-size:11px;color:var(--red)">✕ Cancel pending</span>
+          <button onclick="undoMark('${o.order_id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" title="Undo">↩</button>
+        </div>`
+        :`<div style="display:flex;gap:5px">
+          <button class="btn-sm btn-ghost" onclick="markOneAction('${o.order_id}','CANCELLED')" style="border-color:var(--red);color:var(--red)">✕ Cancel</button>
+          <button class="btn-sm btn-blue" onclick="markOneAction('${o.order_id}','MOVED_TO_AIR')">✈ Air</button>
+        </div>`}
+      </td>
+    </tr>`;
+  }).join('');
 
   const actionedRows=actioned.map(o=>{
     const info=actionedOrders[o.order_id]||{};
@@ -1218,9 +1249,9 @@ function renderDump(){
       <select class="dump-filter" onchange="dumpCityFilter=this.value;renderDump()">${cityOpts}</select>
       <span class="dump-count">${unactioned.length} unactioned · ${actioned.length} actioned · ${visible.length} total</span>
       <div class="dump-actions">
-        <button class="btn btn-red btn-sm" onclick="bulkAction('CANCELLED')">✕ Cancel Selected</button>
-        <button class="btn btn-blue btn-sm" onclick="bulkAction('MOVED_TO_AIR')">✈ Move to Air Selected</button>
-        <button class="btn btn-green btn-sm" onclick="submitInlineActions()">✓ Submit Actions</button>
+        <button class="btn btn-ghost btn-sm" onclick="bulkMarkAction('CANCELLED')">✕ Cancel Selected</button>
+        <button class="btn btn-blue btn-sm" onclick="bulkMarkAction('MOVED_TO_AIR')">✈ Move to Air Selected</button>
+        <button class="btn btn-green btn-sm" onclick="submitInlineActions()">✓ Submit All</button>
       </div>
     </div>
     <div class="tbl-wrap">
@@ -1243,46 +1274,61 @@ function renderDump(){
 }
 
 function toggleSelectAll(chk){
-  document.querySelectorAll('.order-chk').forEach(c=>{c.checked=chk.checked;});
+  document.querySelectorAll('.order-chk:not([disabled])').forEach(c=>{c.checked=chk.checked;});
 }
-
-function bulkAction(action){
-  const checked=[...document.querySelectorAll('.order-chk:checked')].map(c=>c.dataset.id);
-  if(!checked.length){showErr('Select at least one order first.');return;}
+// Mark a single order for an action (per-row buttons)
+function markOneAction(id,action){
   if(action==='MOVED_TO_AIR'){
-    // Show replacement ID inputs for selected
-    checked.forEach(id=>{
-      const inp=document.getElementById('repl-'+id);
-      if(inp) inp.style.display='block';
-    });
-    showErr('');
-    // Mark as pending air
-    checked.forEach(id=>{if(!actionedOrders[id])actionedOrders[id]={action:'MOVED_TO_AIR_PENDING',replacement_order_id:''};});
+    actionedOrders[id]={action:'MOVED_TO_AIR_PENDING',replacement_order_id:''};
   } else {
-    checked.forEach(id=>{actionedOrders[id]={action:'CANCELLED',replacement_order_id:''};});
-    renderDump();
+    actionedOrders[id]={action:'CANCELLED_PENDING',replacement_order_id:''};
   }
+  renderDump();
+}
+// Bulk mark selected rows
+function bulkMarkAction(action){
+  const checked=[...document.querySelectorAll('.order-chk:not([disabled]):checked')].map(c=>c.dataset.id);
+  if(!checked.length){showErr('Select at least one order first.');return;}
+  showErr('');
+  checked.forEach(id=>markOneAction(id,action));
+}
+// Undo a pending mark
+function undoMark(id){
+  delete actionedOrders[id];
+  renderDump();
+}
+// Store replacement ID as user types (keeps state across re-renders)
+function storeReplId(id,val){
+  if(actionedOrders[id]) actionedOrders[id].replacement_order_id=val;
 }
 
 function submitInlineActions(){
-  // Collect all pending + freshly selected cancellations
-  const pending=Object.entries(actionedOrders).filter(([,v])=>v.action==='MOVED_TO_AIR_PENDING');
-  // Validate replacement IDs for air moves
-  const missing=pending.filter(([id])=>{
-    const inp=document.getElementById('repl-'+id);
-    return !inp||!inp.value.trim();
-  });
-  if(missing.length>0){showErr('Missing replacement order IDs for: '+missing.map(([id])=>id).join(', '));return;}
-  // Finalise
-  pending.forEach(([id])=>{
-    const inp=document.getElementById('repl-'+id);
-    if(inp) actionedOrders[id]={action:'MOVED_TO_AIR',replacement_order_id:inp.value.trim()};
-  });
-  // Check nothing remaining
-  const allToSubmit=Object.entries(actionedOrders).filter(([,v])=>v.action!=='MOVED_TO_AIR_PENDING');
-  if(!allToSubmit.length){showErr('No actions to submit.');return;}
-  showErr('');
-  requestNameThen(()=>submitActions(allToSubmit));
+  // Finalise MOVED_TO_AIR_PENDING: check repl IDs
+  const airPending=Object.entries(actionedOrders).filter(([,v])=>v.action==='MOVED_TO_AIR_PENDING');
+  const cancelPending=Object.entries(actionedOrders).filter(([,v])=>v.action==='CANCELLED_PENDING');
+
+  const missingRepl=airPending.filter(([id])=>!(actionedOrders[id].replacement_order_id||'').trim());
+  const readyAir=airPending.filter(([id])=>(actionedOrders[id].replacement_order_id||'').trim());
+
+  // Promote ready ones
+  readyAir.forEach(([id])=>{actionedOrders[id].action='MOVED_TO_AIR';});
+  cancelPending.forEach(([id])=>{actionedOrders[id].action='CANCELLED';});
+
+  const toSubmit=Object.entries(actionedOrders).filter(([,v])=>v.action==='MOVED_TO_AIR'||v.action==='CANCELLED');
+
+  if(!toSubmit.length&&!missingRepl.length){showErr('No actions to submit. Mark some orders first.');return;}
+  if(!toSubmit.length&&missingRepl.length){
+    showErr('Enter replacement order IDs for: '+missingRepl.map(([id])=>id).join(', '));return;
+  }
+  if(missingRepl.length){
+    // partial: warn but proceed with ready orders
+    showErr('⚠ Skipped '+missingRepl.length+' order(s) with missing replacement ID: '+missingRepl.map(([id])=>id).join(', ')+'. Rest will be submitted.');
+    // Revert skipped back to pending
+    missingRepl.forEach(([id])=>{actionedOrders[id].action='MOVED_TO_AIR_PENDING';});
+  } else {
+    showErr('');
+  }
+  requestNameThen((name)=>submitActions(toSubmit,name));
 }
 
 function requestNameThen(cb){
@@ -1299,7 +1345,6 @@ function submitName(){
 }
 
 async function submitActions(pairs,actionedBy){
-  if(typeof pairs==='string'){actionedBy=pairs;pairs=Object.entries(actionedOrders).filter(([,v])=>v.action!=='MOVED_TO_AIR_PENDING');}
   const url=scriptURL();
   const orders=pairs.map(([id,info])=>{
     const order=orderDump.find(o=>o.order_id===id)||{};
@@ -1312,7 +1357,8 @@ async function submitActions(pairs,actionedBy){
       orderActionLog.unshift({timestamp:ts,actioned_by:actionedBy,order_id:o.order_id,city:o.city,partner_name:o.partner_name,aging_days:o.aging_days,action:o.action,replacement_order_id:o.replacement_order_id,remarks:''});
     });
     saveOrderLog();
-    showErr('');
+    pairs.forEach(([id])=>{ if(actionedOrders[id]&&(actionedOrders[id].action==='MOVED_TO_AIR'||actionedOrders[id].action==='CANCELLED')) delete actionedOrders[id]; });
+    if(!Object.keys(actionedOrders).length) showErr('');
     renderDump();
     return;
   }
@@ -1325,7 +1371,8 @@ async function submitActions(pairs,actionedBy){
         orderActionLog.unshift({timestamp:ts,actioned_by:actionedBy,order_id:o.order_id,city:o.city,partner_name:o.partner_name,aging_days:o.aging_days,action:o.action,replacement_order_id:o.replacement_order_id,remarks:''});
       });
       saveOrderLog();
-      showErr('');
+      pairs.forEach(([id])=>{ if(actionedOrders[id]&&(actionedOrders[id].action==='MOVED_TO_AIR'||actionedOrders[id].action==='CANCELLED')) delete actionedOrders[id]; });
+      if(!Object.keys(actionedOrders).length) showErr('');
       renderDump();
     } else {
       showErr('Submit failed: '+(result?.message||'Unknown error'));
@@ -1421,11 +1468,23 @@ function showUploadOk(msg){
 // ── REPLACEMENT ORDERS ────────────────────────────────────────────────────────
 function renderReplacement(){
   const el=document.getElementById('rep-body');
-  const open=movedToAirOrders.filter(o=>{
+  // Merge sheet data with local action log (local takes precedence for freshly actioned)
+  const localAir=orderActionLog.filter(e=>e.action==='MOVED_TO_AIR').map(e=>({
+    original_order_id:e.order_id,
+    replacement_order_id:e.replacement_order_id||'',
+    city:e.city,partner_name:e.partner_name,
+    actioned_on:e.timestamp,actioned_by:e.actioned_by,
+    new_status:'',new_aging:'',
+  }));
+  // Merge: sheet rows + local rows not already in sheet
+  const sheetIds=new Set(movedToAirOrders.map(o=>o.original_order_id));
+  const merged=[...movedToAirOrders,...localAir.filter(r=>!sheetIds.has(r.original_order_id))];
+
+  const open=merged.filter(o=>{
     const s=String(o.new_status||'').trim().toLowerCase();
     return s===''||(!isNaN(parseFloat(s))&&s!=='');
   });
-  const closed=movedToAirOrders.filter(o=>{
+  const closed=merged.filter(o=>{
     const s=String(o.new_status||'').trim().toLowerCase();
     return s==='under eta'||s==='delivered'||s==='cancelled';
   });
