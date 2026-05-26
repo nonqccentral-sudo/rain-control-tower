@@ -1532,8 +1532,27 @@ function renderDump(){
   Object.entries(dumpActioned).forEach(function(pair){if(pair[1].action==='CLOSED')closedIds.add(pair[0]);});
   var unactioned=storeFiltered.filter(function(o){return !dumpPending[o.order_id]&&!dumpActioned[o.order_id]&&!closedIds.has(o.order_id);});
   var pending   =storeFiltered.filter(function(o){return !!dumpPending[o.order_id];});
-  var airActioned=storeFiltered.filter(function(o){return dumpActioned[o.order_id]&&dumpActioned[o.order_id].action!=='CLOSED';});
-  var closedRows=storeFiltered.filter(function(o){return closedIds.has(o.order_id);});
+  // Build actioned/closed from state — NOT from storeFiltered
+  // This ensures orders remain visible even after SQL removes them from ORDER_DUMP
+  var dumpLookup={};
+  orderDump.forEach(function(o){dumpLookup[o.order_id]=o;});
+  var airActioned=Object.entries(dumpActioned)
+    .filter(function(p){return p[1].action!=='CLOSED';})
+    .filter(function(p){var o=dumpLookup[p[0]];if(!o)return true;var st=(o.store_type||'FC').toUpperCase();return dumpStoreFilter==='All'||(dumpStoreFilter===st);})
+    .filter(function(p){var o=dumpLookup[p[0]];if(!o)return isPI;return isPI||nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();})
+    .map(function(p){return dumpLookup[p[0]]||{order_id:p[0],city:'',pincode:'',partner_name:'',pickup_date:'',promised_date:'',current_status:'',aging_days:0,store_type:'FC'};});
+  var closedRows=Object.entries(dumpActioned)
+    .filter(function(p){return p[1].action==='CLOSED';})
+    .filter(function(p){var o=dumpLookup[p[0]];if(!o)return true;var st=(o.store_type||'FC').toUpperCase();return dumpStoreFilter==='All'||(dumpStoreFilter===st);})
+    .filter(function(p){var o=dumpLookup[p[0]];if(!o)return isPI;return isPI||nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();})
+    .map(function(p){return dumpLookup[p[0]]||{order_id:p[0],city:'',pincode:'',partner_name:'',pickup_date:'',promised_date:'',current_status:'',aging_days:0,store_type:'FC'};})
+    .concat(closedOrders.filter(function(o){
+      if(dumpActioned[o.order_id]) return false; // already in dumpActioned closed
+      var st=(o.store_type||'FC').toUpperCase();
+      var cityOk=isPI||nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();
+      var storeOk=dumpStoreFilter==='All'||(dumpStoreFilter===st);
+      return cityOk&&storeOk;
+    }));
   var isMp=function(o){return (o.store_type||'').toUpperCase()==='MP';};
   function stBadge(o){var s=(o.store_type||'FC').toUpperCase();return '<span class="st-badge '+(s==='MP'?'st-mp':'st-fc')+'">'+s+'</span>';}
   function agRag(d){return rag(d>=8?'red':d>=6?'amber':'green',d+'d');}
@@ -1873,12 +1892,23 @@ function renderReplacement(){
     return{original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:o.partner_name||'',
            actioned_on:info.ts||'',actioned_by:info.by||'',eta:'',new_status:'',new_aging:''};
   }).filter(function(r){return !sheetIds.has(r.original_order_id);});
+  // Also include user-Closed orders in the closed section (these never go to movedToAirOrders)
+  var closedByUser=Object.entries(dumpActioned).filter(function(p){return p[1].action==='CLOSED'&&p[1].ts;}).map(function(pair){
+    var id=pair[0],info=pair[1];
+    var o=orderDump.find(function(x){return x.order_id===id;})||{};
+    return{original_order_id:id,replacement_order_id:'',city:o.city||'',partner_name:o.partner_name||'',
+           actioned_on:info.ts||'',actioned_by:info.by||'',eta:'',new_status:'Closed',new_aging:''};
+  });
+  // Sheet-level closed (SQL updated new_status to Closed/Delivered/Cancelled)
   var all=movedToAirOrders.concat(localRows);
+  // Merge user-closed that aren't already in movedToAirOrders
+  var allIds=new Set(all.map(function(o){return o.original_order_id;}));
+  closedByUser.forEach(function(o){if(!allIds.has(o.original_order_id))all.push(o);});
   if(!all.length){
     el.innerHTML='<div class="notice notice-amber">No replacement orders yet. Move orders to Air in the High Ageing Dump tab.</div>';
     return;
   }
-  function isClosed(s){var v=(s||'').trim().toLowerCase();return v==='delivered'||v==='cancelled'||v==='closed'||v==='under eta';}
+  function isClosed(s){var v=(s||'').trim().toLowerCase();return v==='delivered'||v==='cancelled'||v==='closed';}
   var open  =all.filter(function(o){var s=String(o.new_status||'').trim().toLowerCase();return s===''||(!isNaN(parseFloat(s))&&s!=='');});
   var closed=all.filter(function(o){return isClosed(o.new_status);});
   var thd='<tr><th>Original Order</th><th>Replacement Order</th><th>City</th><th>Partner</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Status</th><th>Aging</th></tr>';
