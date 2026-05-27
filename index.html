@@ -453,7 +453,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
   <button class="tab" onclick="switchTab('logic',this)">Decision Logic</button>
 </div>
 
-<div id="t-ns" style="display:none"><div id="ns-body"></div></div>
+<div id="t-ns"><div id="ns-body"></div></div>
 <div id="t-ov" style="display:none">
   <div class="tbl-wrap">
     <table>
@@ -1269,8 +1269,10 @@ window.addEventListener('load',()=>{
   loadActive();loadLog();loadDumpActioned();
   renderLogic();
   // loadAll calls syncState directly if script URL present (avoids CSV cache)
+  // Show default tab (ns) on load
+  ['ov','sim','dump','rep','pp','log','logic'].forEach(function(id){var el=document.getElementById('t-'+id);if(el)el.style.display='none';});
+  var nsEl=document.getElementById('t-ns');if(nsEl)nsEl.style.display='block';
   // Always pre-load sample data so all tabs show content immediately
-  // Real data overwrites this once Apps Script sync succeeds
   loadSample();
   if(su||cu||fu||mu) setTimeout(loadAll, 100);
   startCountdown();
@@ -1952,58 +1954,104 @@ function processUploadCSV(text){
 // ── REPLACEMENT ORDERS ────────────────────────────────────────────────────────
 function renderReplacement(){
   var el=document.getElementById('rep-body');
-  // Source of truth: MOVED_TO_AIR_ORDERS sheet (read via Apps Script on every sync)
-  // Open  = new_status blank or numeric (still aging)
-  // Closed = new_status Delivered / Cancelled / Closed (SQL updates nightly)
-  // Also merge locally actioned orders not yet synced to sheet
+  if(!el) return;
+
+  // Build the full list: sheet data + locally actioned orders not yet synced
   var sheetIds=new Set(movedToAirOrders.map(function(o){return o.original_order_id;}));
-  var localRows=Object.entries(dumpActioned).filter(function(p){return p[1].action==='MOVED_TO_AIR'&&p[1].ts;}).map(function(pair){
-    var id=pair[0],info=pair[1];
-    var o=orderDump.find(function(x){return x.order_id===id;})||{};
-    return{original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:o.partner_name||'',
-           actioned_on:info.ts||'',actioned_by:info.by||'',eta:'',new_status:'',new_aging:''};
-  }).filter(function(r){return !sheetIds.has(r.original_order_id);});
+  var localRows=Object.entries(dumpActioned)
+    .filter(function(p){return p[1].action==='MOVED_TO_AIR'&&p[1].ts;})
+    .filter(function(p){return !sheetIds.has(p[0]);})
+    .map(function(pair){
+      var id=pair[0],info=pair[1];
+      var src=orderDump.find(function(x){return x.order_id===id;})||{};
+      return{original_order_id:id,replacement_order_id:info.repl,
+             city:src.city||'',partner_name:src.partner_name||'',
+             actioned_on:info.ts||'',actioned_by:info.by||'',
+             eta:'',new_status:'',new_aging:''};
+    });
   var all=movedToAirOrders.concat(localRows);
+
   if(!all.length){
-    el.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:24px;text-align:center">'
-      +'<div style="font-size:32px;margin-bottom:10px">&#x1F4E6;</div>'
-      +'<div style="font-family:monospace;font-size:13px;color:var(--text);margin-bottom:6px">No replacement orders yet</div>'
-      +'<div style="font-family:monospace;font-size:11px;color:var(--muted)">Orders moved to Air in the High Ageing Dump tab will appear here.</div>'
-      +'<div style="font-family:monospace;font-size:11px;color:var(--muted);margin-top:4px">SQL updates ETA, Status and Aging nightly from MOVED_TO_AIR_ORDERS sheet.</div>'
+    el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px">'
+      +'<div style="font-size:36px;margin-bottom:12px">&#x1F4E6;</div>'
+      +'<div style="font-size:14px;color:var(--text);margin-bottom:8px;font-weight:600">No replacement orders yet</div>'
+      +'<div style="font-size:12px;color:var(--muted)">Orders moved to Air from the High Ageing Dump tab will appear here.</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-top:4px">SQL team fills ETA, Status and Aging in MOVED_TO_AIR_ORDERS nightly.</div>'
       +'</div>';
     return;
   }
-  function isTerminalStatus(s){var v=(s||'').trim().toLowerCase();return v==='delivered'||v==='cancelled'||v==='closed';}
-  var open  =all.filter(function(o){var s=String(o.new_status||'').trim().toLowerCase();return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!=='');});
-  var closed=all.filter(function(o){return isTerminalStatus(o.new_status);});
-  var thd='<tr><th>Original Order</th><th>Replacement Order</th><th>City</th><th>Partner</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Status</th><th>Aging</th></tr>';
-  function mkRow(o,isOpen){
+
+  // Split open vs closed
+  function isTerminal(s){var v=String(s||'').trim().toLowerCase();return v==='delivered'||v==='cancelled'||v==='closed';}
+  var open  =all.filter(function(o){
+    var s=String(o.new_status||'').trim().toLowerCase();
+    return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!=='');
+  });
+  var closed=all.filter(function(o){return isTerminal(o.new_status);});
+
+  function statusCell(o,isOpen){
     var s=String(o.new_status||'').trim();
-    var aging=String(o.new_aging||'').trim();
-    var ageNum=parseFloat(aging);
-    var statusCell=isOpen
-      ?(s?'<span style="font-family:monospace;font-size:11px">'+s+'</span>':'<span style="font-family:monospace;font-size:11px;color:var(--muted)">Awaiting SQL</span>')
-      :'<span style="font-family:monospace;font-size:11px;font-weight:600;color:'+(s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)')+'">'+s+'</span>';
-    var agingCell=isOpen&&aging&&!isNaN(ageNum)?rag(ageNum>=5?'red':ageNum>=3?'amber':'green',ageNum+'d'):'<span style="color:var(--muted)">&#x2014;</span>';
+    if(isOpen){
+      if(!s) return '<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>';
+      return '<span style="font-size:11px;color:var(--text)">'+s+'</span>';
+    }
+    var col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)';
+    return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>';
+  }
+  function agingCell(o){
+    var a=String(o.new_aging||'').trim();
+    if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">&#x2014;</span>';
+    var n=parseFloat(a);
+    return rag(n>=5?'red':n>=3?'amber':'green',n+'d');
+  }
+
+  var thHtml='<thead><tr style="border-bottom:1px solid var(--border2)">'
+    +'<th>Original Order</th><th>Replacement Order</th><th>City</th>'
+    +'<th>Partner</th><th>Actioned On</th><th>By</th>'
+    +'<th>ETA</th><th>Status</th><th>Aging</th>'
+    +'</tr></thead>';
+
+  function mkRow(o,isOpen){
     return '<tr class="data-row">'
       +'<td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td>'
       +'<td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'&#x2014;')+'</td>'
-      +'<td>'+o.city+'</td><td style="font-size:11px">'+o.partner_name+'</td>'
+      +'<td>'+o.city+'</td>'
+      +'<td style="font-size:11px">'+o.partner_name+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px;color:var(--teal)">'+(o.eta||'&#x2014;')+'</td>'
-      +'<td>'+statusCell+'</td>'
-      +'<td>'+agingCell+'</td>'
+      +'<td>'+statusCell(o,isOpen)+'</td>'
+      +'<td>'+agingCell(o)+'</td>'
       +'</tr>';
   }
-  var html='<div class="rep-section"><div class="rep-lbl">&#x1F4E6; Open Replacement Orders ('+open.length+') &#x2014; SQL updates ETA / Status / Aging nightly</div>'
-    +(open.length?'<div class="tbl-wrap"><table><thead>'+thd+'</thead><tbody>'+open.map(function(o){return mkRow(o,true);}).join('')+'</tbody></table></div>'
-      :'<div style="font-size:12px;color:var(--muted);font-family:monospace">None open.</div>')
-    +'</div>';
-  if(closed.length){
-    html+='<div class="rep-section"><div class="rep-lbl">&#x2705; Closed &#x2014; Delivered / Cancelled / Closed ('+closed.length+')</div>'
-      +'<div class="tbl-wrap"><table><thead>'+thd+'</thead><tbody>'+closed.map(function(o){return mkRow(o,false);}).join('')+'</tbody></table></div></div>';
+
+  var html='';
+
+  // Open section
+  html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
+  html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">';
+  html+='&#x1F4E6; Open Replacement Orders ('+open.length+') &#x2014; SQL updates ETA / Status / Aging nightly</div>';
+  if(open.length){
+    html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html+=thHtml+'<tbody>';
+    open.forEach(function(o){html+=mkRow(o,true);});
+    html+='</tbody></table>';
+  } else {
+    html+='<div style="font-size:12px;color:var(--muted)">No open replacement orders.</div>';
   }
+  html+='</div>';
+
+  // Closed section
+  if(closed.length){
+    html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto">';
+    html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">';
+    html+='&#x2705; Closed &#x2014; Delivered / Cancelled / Closed ('+closed.length+')</div>';
+    html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html+=thHtml+'<tbody>';
+    closed.forEach(function(o){html+=mkRow(o,false);});
+    html+='</tbody></table></div>';
+  }
+
   el.innerHTML=html;
 }
 
