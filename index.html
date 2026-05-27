@@ -380,7 +380,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
       </div>
       <div class="cfg-actions">
         <button class="btn btn-blue" onclick="saveConfig()">💾 Save Config</button>
-        <button class="btn btn-ghost" onclick="loadSample()">▶ Load Sample Data</button>
+
         <span class="save-msg" id="save-msg" style="display:none"></span>
       </div>
       <div style="margin-top:8px;font-family:'DM Mono';font-size:10px;color:var(--muted)">
@@ -512,28 +512,9 @@ const DEFAULT_PIN        = '1mg2025';
  
 
 // ── SAMPLE DATA ───────────────────────────────────────────────────────────
-const S_CITY=[
-  {city:'Mumbai',bau_pipeline:3.5,surface_tat:5,air_tat:2,pipeline_days:6.8,long_tail_pct:9.2,sla_breach_pct:13.1,inflow:420,outflow:310,aging_1d:180,aging_2d:90,aging_3d:55,aging_4d:35,aging_5d:20,aging_gt5d:15,days_below_trigger:0},
-  {city:'Delhi',bau_pipeline:3.0,surface_tat:4,air_tat:2,pipeline_days:5.9,long_tail_pct:7.8,sla_breach_pct:10.4,inflow:510,outflow:390,aging_1d:210,aging_2d:100,aging_3d:60,aging_4d:40,aging_5d:22,aging_gt5d:18,days_below_trigger:0},
-  {city:'Bengaluru',bau_pipeline:3.2,surface_tat:5,air_tat:2,pipeline_days:4.1,long_tail_pct:3.1,sla_breach_pct:4.8,inflow:380,outflow:360,aging_1d:300,aging_2d:50,aging_3d:20,aging_4d:8,aging_5d:3,aging_gt5d:1,days_below_trigger:0},
-  {city:'Chennai',bau_pipeline:3.8,surface_tat:5,air_tat:3,pipeline_days:7.2,long_tail_pct:11.4,sla_breach_pct:15.6,inflow:290,outflow:190,aging_1d:110,aging_2d:70,aging_3d:50,aging_4d:45,aging_5d:30,aging_gt5d:22,days_below_trigger:0},
-  {city:'Hyderabad',bau_pipeline:3.3,surface_tat:5,air_tat:2,pipeline_days:5.2,long_tail_pct:5.4,sla_breach_pct:7.2,inflow:310,outflow:265,aging_1d:180,aging_2d:60,aging_3d:30,aging_4d:18,aging_5d:9,aging_gt5d:5,days_below_trigger:0},
-  {city:'Kolkata',bau_pipeline:4.0,surface_tat:6,air_tat:3,pipeline_days:6.0,long_tail_pct:14.2,sla_breach_pct:18.3,inflow:260,outflow:160,aging_1d:100,aging_2d:65,aging_3d:55,aging_4d:50,aging_5d:28,aging_gt5d:22,days_below_trigger:0},
-  {city:'Pune',bau_pipeline:3.0,surface_tat:4,air_tat:2,pipeline_days:4.8,long_tail_pct:4.2,sla_breach_pct:5.9,inflow:220,outflow:200,aging_1d:160,aging_2d:40,aging_3d:18,aging_4d:10,aging_5d:4,aging_gt5d:2,days_below_trigger:0},
-  {city:'Ahmedabad',bau_pipeline:3.5,surface_tat:5,air_tat:2,pipeline_days:5.5,long_tail_pct:6.1,sla_breach_pct:8.8,inflow:195,outflow:160,aging_1d:120,aging_2d:50,aging_3d:28,aging_4d:20,aging_5d:10,aging_gt5d:6,days_below_trigger:0},
-];
-const S_FC=[
-  {city:'Mumbai',expected_bd_air_orders:155},{city:'Delhi',expected_bd_air_orders:190},
-  {city:'Bengaluru',expected_bd_air_orders:40},{city:'Chennai',expected_bd_air_orders:110},
-  {city:'Hyderabad',expected_bd_air_orders:55},{city:'Kolkata',expected_bd_air_orders:95},
-  {city:'Pune',expected_bd_air_orders:30},{city:'Ahmedabad',expected_bd_air_orders:35},
-];
-const S_MTD=[
-  {city:'Mumbai',mtd_bd_air_orders:1890},{city:'Delhi',mtd_bd_air_orders:2140},
-  {city:'Bengaluru',mtd_bd_air_orders:120},{city:'Chennai',mtd_bd_air_orders:980},
-  {city:'Hyderabad',mtd_bd_air_orders:0},{city:'Kolkata',mtd_bd_air_orders:1050},
-  {city:'Pune',mtd_bd_air_orders:0},{city:'Ahmedabad',mtd_bd_air_orders:0},
-];
+
+
+
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let cityData=[],fcData=[],mtdData=[];
@@ -666,17 +647,13 @@ async function loadAll(){
   if(cu) await loadCity();
   if(fu) await loadFc();
   if(mu) await loadMtd();
-  if(!cu&&!fu&&!mu) loadSample();
+  if(!cu&&!fu&&!mu) showErr('No data source configured. Add your Apps Script URL in Config.');
   resetCountdown();
 }
 
 function loadSample(){
-  cityData=[...S_CITY];fcData=[...S_FC];mtdData=[...S_MTD];
-  orderDump=[...S_ORDERS];partnerData=[...S_PARTNER];pincodeData=[...S_PINCODE];
-  movedToAirOrders=[...S_MOVED_TO_AIR];closedOrders=[];
-  fcLoaded=true;mtdLoaded=true;
-  setTag('st-city','SAMPLE','tsmp');setTag('st-fc','SAMPLE','tsmp');setTag('st-mtd','SAMPLE','tsmp');
-  setDataDate();render();showErr('');
+  // Sample data removed — all data comes from sheet only
+  showErr('No Apps Script connected. Add your Apps Script URL in Config to load live data.');
 }
 
 // ── SYNC STATE ──────────────────────────────────────────────────────────────
@@ -1272,9 +1249,8 @@ window.addEventListener('load',()=>{
   // Show default tab (ns) on load
   ['ov','sim','dump','rep','pp','log','logic'].forEach(function(id){var el=document.getElementById('t-'+id);if(el)el.style.display='none';});
   var nsEl=document.getElementById('t-ns');if(nsEl)nsEl.style.display='block';
-  // Always pre-load sample data so all tabs show content immediately
-  loadSample();
-  if(su||cu||fu||mu) setTimeout(loadAll, 100);
+  // Load data from sheet only — no built-in sample data
+  if(su||cu||fu||mu) loadAll(); else showErr('No data source configured. Add your Apps Script URL in Config.');
   startCountdown();
 });
 
@@ -1283,110 +1259,12 @@ window.addEventListener('load',()=>{
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── SAMPLE DATA v2 ──────────────────────────────────────────────────────────
-const S_ORDERS=[
-  // Mumbai FC
-  {order_id:'ORD-MUM-001',city:'Mumbai',   pincode:'400051',partner_name:'Delhivery',  pickup_date:'2026-05-10',promised_date:'2026-05-12',current_status:'MDQ',             aging_days:14,store_type:'FC'},
-  {order_id:'ORD-MUM-002',city:'Mumbai',   pincode:'400051',partner_name:'Delhivery',  pickup_date:'2026-05-11',promised_date:'2026-05-13',current_status:'MDQ',             aging_days:13,store_type:'FC'},
-  {order_id:'ORD-MUM-003',city:'Mumbai',   pincode:'400063',partner_name:'XpressBees', pickup_date:'2026-05-12',promised_date:'2026-05-14',current_status:'Out for Delivery',aging_days:12,store_type:'FC'},
-  {order_id:'ORD-MUM-004',city:'Mumbai',   pincode:'400076',partner_name:'Delhivery',  pickup_date:'2026-05-14',promised_date:'2026-05-16',current_status:'MDQ',             aging_days:9, store_type:'FC'},
-  // Mumbai MP
-  {order_id:'ORD-MUM-005',city:'Mumbai',   pincode:'400092',partner_name:'XpressBees', pickup_date:'2026-05-13',promised_date:'2026-05-15',current_status:'MDQ',             aging_days:11,store_type:'MP'},
-  {order_id:'ORD-MUM-006',city:'Mumbai',   pincode:'400051',partner_name:'Delhivery',  pickup_date:'2026-05-15',promised_date:'2026-05-17',current_status:'MDQ',             aging_days:8, store_type:'MP'},
-  // Delhi FC
-  {order_id:'ORD-DEL-001',city:'Delhi',    pincode:'110044',partner_name:'Delhivery',  pickup_date:'2026-05-09',promised_date:'2026-05-11',current_status:'MDQ',             aging_days:15,store_type:'FC'},
-  {order_id:'ORD-DEL-002',city:'Delhi',    pincode:'110044',partner_name:'Delhivery',  pickup_date:'2026-05-11',promised_date:'2026-05-13',current_status:'MDQ',             aging_days:13,store_type:'FC'},
-  {order_id:'ORD-DEL-003',city:'Delhi',    pincode:'110001',partner_name:'XpressBees', pickup_date:'2026-05-13',promised_date:'2026-05-15',current_status:'Out for Delivery',aging_days:11,store_type:'FC'},
-  {order_id:'ORD-DEL-004',city:'Delhi',    pincode:'110058',partner_name:'Ecom Express',pickup_date:'2026-05-15',promised_date:'2026-05-17',current_status:'MDQ',             aging_days:8, store_type:'FC'},
-  // Delhi MP
-  {order_id:'ORD-DEL-005',city:'Delhi',    pincode:'110019',partner_name:'XpressBees', pickup_date:'2026-05-14',promised_date:'2026-05-16',current_status:'MDQ',             aging_days:10,store_type:'MP'},
-  // Chennai FC
-  {order_id:'ORD-CHN-001',city:'Chennai',  pincode:'600001',partner_name:'Delhivery',  pickup_date:'2026-05-09',promised_date:'2026-05-11',current_status:'MDQ',             aging_days:15,store_type:'FC'},
-  {order_id:'ORD-CHN-002',city:'Chennai',  pincode:'600018',partner_name:'Delhivery',  pickup_date:'2026-05-10',promised_date:'2026-05-12',current_status:'MDQ',             aging_days:14,store_type:'FC'},
-  {order_id:'ORD-CHN-003',city:'Chennai',  pincode:'600040',partner_name:'XpressBees', pickup_date:'2026-05-12',promised_date:'2026-05-14',current_status:'Out for Delivery',aging_days:12,store_type:'FC'},
-  {order_id:'ORD-CHN-004',city:'Chennai',  pincode:'600001',partner_name:'Delhivery',  pickup_date:'2026-05-15',promised_date:'2026-05-17',current_status:'MDQ',             aging_days:8, store_type:'MP'},
-  // Kolkata FC
-  {order_id:'ORD-KOL-001',city:'Kolkata',  pincode:'700001',partner_name:'Delhivery',  pickup_date:'2026-05-08',promised_date:'2026-05-10',current_status:'MDQ',             aging_days:16,store_type:'FC'},
-  {order_id:'ORD-KOL-002',city:'Kolkata',  pincode:'700027',partner_name:'Delhivery',  pickup_date:'2026-05-10',promised_date:'2026-05-12',current_status:'MDQ',             aging_days:14,store_type:'FC'},
-  {order_id:'ORD-KOL-003',city:'Kolkata',  pincode:'700091',partner_name:'XpressBees', pickup_date:'2026-05-12',promised_date:'2026-05-14',current_status:'MDQ',             aging_days:12,store_type:'FC'},
-  {order_id:'ORD-KOL-004',city:'Kolkata',  pincode:'700027',partner_name:'XpressBees', pickup_date:'2026-05-14',promised_date:'2026-05-16',current_status:'MDQ',             aging_days:9, store_type:'MP'},
-  // Hyderabad
-  {order_id:'ORD-HYD-001',city:'Hyderabad',pincode:'500001',partner_name:'Delhivery',  pickup_date:'2026-05-13',promised_date:'2026-05-15',current_status:'Out for Delivery',aging_days:11,store_type:'FC'},
-  {order_id:'ORD-HYD-002',city:'Hyderabad',pincode:'500034',partner_name:'Ecom Express',pickup_date:'2026-05-15',promised_date:'2026-05-17',current_status:'MDQ',             aging_days:8, store_type:'FC'},
-  {order_id:'ORD-HYD-003',city:'Hyderabad',pincode:'500001',partner_name:'Delhivery',  pickup_date:'2026-05-16',promised_date:'2026-05-18',current_status:'MDQ',             aging_days:7, store_type:'MP'},
-  // Pune
-  {order_id:'ORD-PUN-001',city:'Pune',     pincode:'411001',partner_name:'Delhivery',  pickup_date:'2026-05-14',promised_date:'2026-05-16',current_status:'MDQ',             aging_days:9, store_type:'FC'},
-  {order_id:'ORD-PUN-002',city:'Pune',     pincode:'411028',partner_name:'XpressBees', pickup_date:'2026-05-15',promised_date:'2026-05-17',current_status:'MDQ',             aging_days:8, store_type:'FC'},
-  {order_id:'ORD-PUN-003',city:'Pune',     pincode:'411001',partner_name:'Delhivery',  pickup_date:'2026-05-16',promised_date:'2026-05-18',current_status:'MDQ',             aging_days:7, store_type:'MP'},
-  // Ahmedabad
-  {order_id:'ORD-AHM-001',city:'Ahmedabad',pincode:'380001',partner_name:'Delhivery',  pickup_date:'2026-05-14',promised_date:'2026-05-16',current_status:'MDQ',             aging_days:9, store_type:'FC'},
-  {order_id:'ORD-AHM-002',city:'Ahmedabad',pincode:'380015',partner_name:'XpressBees', pickup_date:'2026-05-15',promised_date:'2026-05-17',current_status:'MDQ',             aging_days:8, store_type:'FC'},
-  // Bengaluru
-  {order_id:'ORD-BLR-001',city:'Bengaluru',pincode:'560001',partner_name:'XpressBees', pickup_date:'2026-05-16',promised_date:'2026-05-18',current_status:'MDQ',             aging_days:7, store_type:'FC'},
-  {order_id:'ORD-BLR-002',city:'Bengaluru',pincode:'560034',partner_name:'Delhivery',  pickup_date:'2026-05-17',promised_date:'2026-05-19',current_status:'Out for Delivery',aging_days:5, store_type:'FC'},
-];
-const S_PARTNER=[
-  {city:'Mumbai',   partner_name:'Delhivery',   orders_assigned:1240,orders_delivered:1054,avg_tat:3.2,sla_breach_pct:12.4,long_tail_pct:8.1, cancellation_pct:4.1,aging_gt5d_count:28},
-  {city:'Mumbai',   partner_name:'XpressBees',  orders_assigned:890, orders_delivered:800, avg_tat:2.9,sla_breach_pct:9.1, long_tail_pct:5.2, cancellation_pct:3.2,aging_gt5d_count:7},
-  {city:'Mumbai',   partner_name:'Ecom Express',orders_assigned:420, orders_delivered:378, avg_tat:2.7,sla_breach_pct:7.8, long_tail_pct:4.1, cancellation_pct:2.9,aging_gt5d_count:2},
-  {city:'Delhi',    partner_name:'Delhivery',   orders_assigned:1650,orders_delivered:1402,avg_tat:3.4,sla_breach_pct:13.2,long_tail_pct:9.0, cancellation_pct:4.5,aging_gt5d_count:35},
-  {city:'Delhi',    partner_name:'XpressBees',  orders_assigned:1100,orders_delivered:990, avg_tat:2.8,sla_breach_pct:8.5, long_tail_pct:4.8, cancellation_pct:3.0,aging_gt5d_count:8},
-  {city:'Delhi',    partner_name:'Ecom Express',orders_assigned:680, orders_delivered:619, avg_tat:2.6,sla_breach_pct:7.1, long_tail_pct:3.9, cancellation_pct:2.7,aging_gt5d_count:1},
-  {city:'Chennai',  partner_name:'Delhivery',   orders_assigned:780, orders_delivered:616, avg_tat:4.1,sla_breach_pct:18.5,long_tail_pct:12.3,cancellation_pct:5.8,aging_gt5d_count:38},
-  {city:'Chennai',  partner_name:'XpressBees',  orders_assigned:520, orders_delivered:426, avg_tat:3.8,sla_breach_pct:15.1,long_tail_pct:9.8, cancellation_pct:4.9,aging_gt5d_count:14},
-  {city:'Kolkata',  partner_name:'Delhivery',   orders_assigned:680, orders_delivered:530, avg_tat:4.5,sla_breach_pct:21.2,long_tail_pct:14.8,cancellation_pct:6.2,aging_gt5d_count:44},
-  {city:'Kolkata',  partner_name:'XpressBees',  orders_assigned:420, orders_delivered:340, avg_tat:4.1,sla_breach_pct:17.8,long_tail_pct:11.9,cancellation_pct:5.5,aging_gt5d_count:18},
-  {city:'Hyderabad',partner_name:'Delhivery',   orders_assigned:860, orders_delivered:773, avg_tat:2.9,sla_breach_pct:8.8, long_tail_pct:5.5, cancellation_pct:3.4,aging_gt5d_count:9},
-  {city:'Hyderabad',partner_name:'Ecom Express',orders_assigned:540, orders_delivered:492, avg_tat:2.7,sla_breach_pct:7.2, long_tail_pct:4.1, cancellation_pct:2.9,aging_gt5d_count:3},
-  {city:'Pune',     partner_name:'Delhivery',   orders_assigned:590, orders_delivered:537, avg_tat:2.6,sla_breach_pct:7.1, long_tail_pct:4.0, cancellation_pct:3.0,aging_gt5d_count:4},
-  {city:'Pune',     partner_name:'XpressBees',  orders_assigned:380, orders_delivered:349, avg_tat:2.5,sla_breach_pct:6.5, long_tail_pct:3.5, cancellation_pct:2.7,aging_gt5d_count:2},
-  {city:'Ahmedabad',partner_name:'Delhivery',   orders_assigned:520, orders_delivered:468, avg_tat:2.8,sla_breach_pct:8.5, long_tail_pct:5.2, cancellation_pct:3.5,aging_gt5d_count:7},
-  {city:'Ahmedabad',partner_name:'XpressBees',  orders_assigned:370, orders_delivered:337, avg_tat:2.7,sla_breach_pct:7.8, long_tail_pct:4.6, cancellation_pct:3.1,aging_gt5d_count:3},
-  {city:'Bengaluru',partner_name:'Delhivery',   orders_assigned:980, orders_delivered:892, avg_tat:2.5,sla_breach_pct:6.8, long_tail_pct:3.5, cancellation_pct:2.8,aging_gt5d_count:4},
-  {city:'Bengaluru',partner_name:'XpressBees',  orders_assigned:720, orders_delivered:662, avg_tat:2.4,sla_breach_pct:5.9, long_tail_pct:2.9, cancellation_pct:2.5,aging_gt5d_count:2},
-];
-const S_PINCODE=[
-  {city:'Mumbai',   pincode:'400001',orders_assigned:180,orders_delivered:162,avg_tat:2.8,sla_breach_pct:8.1, long_tail_pct:4.5, cancellation_pct:3.2,aging_gt5d_count:2, dominant_partner:'Delhivery'},
-  {city:'Mumbai',   pincode:'400051',orders_assigned:145,orders_delivered:116,avg_tat:3.8,sla_breach_pct:15.2,long_tail_pct:9.8, cancellation_pct:5.1,aging_gt5d_count:12,dominant_partner:'XpressBees'},
-  {city:'Mumbai',   pincode:'400063',orders_assigned:210,orders_delivered:193,avg_tat:2.6,sla_breach_pct:6.8, long_tail_pct:3.2, cancellation_pct:2.8,aging_gt5d_count:1, dominant_partner:'Ecom Express'},
-  {city:'Mumbai',   pincode:'400076',orders_assigned:98, orders_delivered:69, avg_tat:4.9,sla_breach_pct:22.5,long_tail_pct:15.1,cancellation_pct:7.2,aging_gt5d_count:18,dominant_partner:'Delhivery'},
-  {city:'Mumbai',   pincode:'400092',orders_assigned:155,orders_delivered:139,avg_tat:2.9,sla_breach_pct:9.2, long_tail_pct:5.4, cancellation_pct:3.5,aging_gt5d_count:4, dominant_partner:'Delhivery'},
-  {city:'Delhi',    pincode:'110001',orders_assigned:220,orders_delivered:187,avg_tat:3.3,sla_breach_pct:12.5,long_tail_pct:8.2, cancellation_pct:4.4,aging_gt5d_count:9, dominant_partner:'Delhivery'},
-  {city:'Delhi',    pincode:'110019',orders_assigned:195,orders_delivered:176,avg_tat:2.7,sla_breach_pct:8.1, long_tail_pct:4.8, cancellation_pct:3.0,aging_gt5d_count:3, dominant_partner:'XpressBees'},
-  {city:'Delhi',    pincode:'110044',orders_assigned:168,orders_delivered:126,avg_tat:4.8,sla_breach_pct:21.4,long_tail_pct:14.2,cancellation_pct:6.5,aging_gt5d_count:22,dominant_partner:'Delhivery'},
-  {city:'Delhi',    pincode:'110058',orders_assigned:142,orders_delivered:131,avg_tat:2.5,sla_breach_pct:6.2, long_tail_pct:3.1, cancellation_pct:2.5,aging_gt5d_count:0, dominant_partner:'Ecom Express'},
-  {city:'Delhi',    pincode:'110092',orders_assigned:178,orders_delivered:152,avg_tat:3.1,sla_breach_pct:11.8,long_tail_pct:7.6, cancellation_pct:4.1,aging_gt5d_count:7, dominant_partner:'Delhivery'},
-  {city:'Chennai',  pincode:'600001',orders_assigned:195,orders_delivered:147,avg_tat:4.5,sla_breach_pct:20.8,long_tail_pct:13.5,cancellation_pct:6.1,aging_gt5d_count:21,dominant_partner:'Delhivery'},
-  {city:'Chennai',  pincode:'600018',orders_assigned:168,orders_delivered:143,avg_tat:3.4,sla_breach_pct:13.2,long_tail_pct:8.8, cancellation_pct:4.8,aging_gt5d_count:8, dominant_partner:'XpressBees'},
-  {city:'Chennai',  pincode:'600040',orders_assigned:142,orders_delivered:108,avg_tat:4.2,sla_breach_pct:19.1,long_tail_pct:12.4,cancellation_pct:5.9,aging_gt5d_count:14,dominant_partner:'Delhivery'},
-  {city:'Kolkata',  pincode:'700001',orders_assigned:188,orders_delivered:141,avg_tat:4.8,sla_breach_pct:22.1,long_tail_pct:15.4,cancellation_pct:7.0,aging_gt5d_count:28,dominant_partner:'Delhivery'},
-  {city:'Kolkata',  pincode:'700027',orders_assigned:142,orders_delivered:112,avg_tat:4.4,sla_breach_pct:18.5,long_tail_pct:12.1,cancellation_pct:6.2,aging_gt5d_count:16,dominant_partner:'XpressBees'},
-  {city:'Kolkata',  pincode:'700091',orders_assigned:108,orders_delivered:95, avg_tat:3.1,sla_breach_pct:11.2,long_tail_pct:7.1, cancellation_pct:4.0,aging_gt5d_count:4, dominant_partner:'Delhivery'},
-  {city:'Hyderabad',pincode:'500001',orders_assigned:145,orders_delivered:130,avg_tat:2.7,sla_breach_pct:7.5, long_tail_pct:4.2, cancellation_pct:3.1,aging_gt5d_count:3, dominant_partner:'Delhivery'},
-  {city:'Hyderabad',pincode:'500034',orders_assigned:112,orders_delivered:98, avg_tat:3.0,sla_breach_pct:9.8, long_tail_pct:5.8, cancellation_pct:3.6,aging_gt5d_count:6, dominant_partner:'Ecom Express'},
-  {city:'Pune',     pincode:'411001',orders_assigned:135,orders_delivered:124,avg_tat:2.6,sla_breach_pct:6.8, long_tail_pct:3.8, cancellation_pct:2.9,aging_gt5d_count:2, dominant_partner:'Delhivery'},
-  {city:'Pune',     pincode:'411028',orders_assigned:118,orders_delivered:108,avg_tat:2.5,sla_breach_pct:6.2, long_tail_pct:3.4, cancellation_pct:2.7,aging_gt5d_count:1, dominant_partner:'XpressBees'},
-  {city:'Ahmedabad',pincode:'380001',orders_assigned:125,orders_delivered:113,avg_tat:2.8,sla_breach_pct:8.2, long_tail_pct:4.9, cancellation_pct:3.3,aging_gt5d_count:4, dominant_partner:'Delhivery'},
-  {city:'Ahmedabad',pincode:'380015',orders_assigned:98, orders_delivered:88, avg_tat:2.7,sla_breach_pct:7.5, long_tail_pct:4.1, cancellation_pct:3.0,aging_gt5d_count:2, dominant_partner:'XpressBees'},
-  {city:'Bengaluru',pincode:'560001',orders_assigned:165,orders_delivered:152,avg_tat:2.4,sla_breach_pct:6.1, long_tail_pct:3.0, cancellation_pct:2.4,aging_gt5d_count:1, dominant_partner:'XpressBees'},
-  {city:'Bengaluru',pincode:'560034',orders_assigned:198,orders_delivered:182,avg_tat:2.5,sla_breach_pct:6.5, long_tail_pct:3.3, cancellation_pct:2.6,aging_gt5d_count:2, dominant_partner:'Delhivery'},
-  {city:'Bengaluru',pincode:'560076',orders_assigned:121,orders_delivered:107,avg_tat:2.9,sla_breach_pct:9.8, long_tail_pct:5.9, cancellation_pct:3.4,aging_gt5d_count:5, dominant_partner:'Delhivery'},
-];
+
+
+
 
 // ── SAMPLE MOVED-TO-AIR ORDERS ───────────────────────────────────────────────
-const S_MOVED_TO_AIR=[
-  {original_order_id:'ORD-MUM-010',replacement_order_id:'REP-MUM-010',city:'Mumbai',   partner_name:'Delhivery', actioned_on:'24/05/2026, 09:12:00',actioned_by:'Rahul', eta:'2026-05-28',new_status:'Under ETA',new_aging:''},
-  {original_order_id:'ORD-DEL-010',replacement_order_id:'REP-DEL-010',city:'Delhi',    partner_name:'XpressBees',actioned_on:'24/05/2026, 09:15:00',actioned_by:'Priya', eta:'2026-05-27',new_status:'Under ETA',new_aging:''},
-  {original_order_id:'ORD-CHN-010',replacement_order_id:'REP-CHN-010',city:'Chennai',  partner_name:'Delhivery', actioned_on:'23/05/2026, 10:30:00',actioned_by:'Amit',  eta:'2026-05-29',new_status:'',         new_aging:''},
-  {original_order_id:'ORD-KOL-010',replacement_order_id:'REP-KOL-010',city:'Kolkata',  partner_name:'Delhivery', actioned_on:'23/05/2026, 10:45:00',actioned_by:'Rahul', eta:'2026-05-28',new_status:'3',        new_aging:'3'},
-  {original_order_id:'ORD-HYD-010',replacement_order_id:'REP-HYD-010',city:'Hyderabad',partner_name:'Delhivery', actioned_on:'22/05/2026, 11:00:00',actioned_by:'Priya', eta:'2026-05-27',new_status:'5',        new_aging:'5'},
-  {original_order_id:'ORD-PUN-010',replacement_order_id:'REP-PUN-010',city:'Pune',     partner_name:'XpressBees',actioned_on:'22/05/2026, 11:15:00',actioned_by:'Sneha', eta:'',          new_status:'',         new_aging:''},
-  {original_order_id:'ORD-AHM-010',replacement_order_id:'REP-AHM-010',city:'Ahmedabad',partner_name:'Delhivery', actioned_on:'21/05/2026, 09:00:00',actioned_by:'Amit',  eta:'2026-05-26',new_status:'Under ETA',new_aging:''},
-  {original_order_id:'ORD-MUM-020',replacement_order_id:'REP-MUM-020',city:'Mumbai',   partner_name:'XpressBees',actioned_on:'18/05/2026, 08:30:00',actioned_by:'Rahul', eta:'2026-05-22',new_status:'Delivered', new_aging:''},
-  {original_order_id:'ORD-DEL-020',replacement_order_id:'REP-DEL-020',city:'Delhi',    partner_name:'Delhivery', actioned_on:'17/05/2026, 09:00:00',actioned_by:'Priya', eta:'2026-05-21',new_status:'Delivered', new_aging:''},
-  {original_order_id:'ORD-CHN-020',replacement_order_id:'REP-CHN-020',city:'Chennai',  partner_name:'Delhivery', actioned_on:'16/05/2026, 10:00:00',actioned_by:'Amit',  eta:'2026-05-20',new_status:'Cancelled', new_aging:''},
-  {original_order_id:'ORD-KOL-020',replacement_order_id:'REP-KOL-020',city:'Kolkata',  partner_name:'XpressBees',actioned_on:'15/05/2026, 11:00:00',actioned_by:'Sneha', eta:'2026-05-19',new_status:'Closed',    new_aging:''},
-  {original_order_id:'ORD-BLR-020',replacement_order_id:'REP-BLR-020',city:'Bengaluru',partner_name:'Delhivery', actioned_on:'14/05/2026, 09:30:00',actioned_by:'Rahul', eta:'2026-05-18',new_status:'Delivered', new_aging:''},
-];
+
 
 // ── DUMP PERSISTENCE ─────────────────────────────────────────────────────────
 function saveDumpActioned(){try{localStorage.setItem('rct_dump_actioned',JSON.stringify(dumpActioned));}catch(e){}}
@@ -1518,7 +1396,11 @@ function renderNetworkSummary(){
   var el=document.getElementById('ns-body');
   var rows=sorted(filtered(compute(cityData,trigMult)));
   if(!rows.length){
-    el.innerHTML='<div class="notice notice-amber">No data loaded. Connect Apps Script or click Load Sample Data in Config.</div>';
+    el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px">'
+      +'<div style="font-size:36px;margin-bottom:12px">&#x1F50C;</div>'
+      +'<div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px">No data loaded</div>'
+      +'<div style="font-size:12px;color:var(--muted)">Add your Apps Script URL in Config and click Sync.</div>'
+      +'</div>';
     return;
   }
   var active  =rows.filter(function(r){return r.active;});
