@@ -1269,7 +1269,10 @@ window.addEventListener('load',()=>{
   loadActive();loadLog();loadDumpActioned();
   renderLogic();
   // loadAll calls syncState directly if script URL present (avoids CSV cache)
-  if(cu||fu||mu||su)loadAll();else loadSample();
+  // Always pre-load sample data so all tabs show content immediately
+  // Real data overwrites this once Apps Script sync succeeds
+  loadSample();
+  if(su||cu||fu||mu) setTimeout(loadAll, 100);
   startCountdown();
 });
 
@@ -1962,7 +1965,12 @@ function renderReplacement(){
   }).filter(function(r){return !sheetIds.has(r.original_order_id);});
   var all=movedToAirOrders.concat(localRows);
   if(!all.length){
-    el.innerHTML='<div class="notice notice-amber">No replacement orders yet. Move orders to Air in the High Ageing Dump tab.</div>';
+    el.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:24px;text-align:center">'
+      +'<div style="font-size:32px;margin-bottom:10px">&#x1F4E6;</div>'
+      +'<div style="font-family:monospace;font-size:13px;color:var(--text);margin-bottom:6px">No replacement orders yet</div>'
+      +'<div style="font-family:monospace;font-size:11px;color:var(--muted)">Orders moved to Air in the High Ageing Dump tab will appear here.</div>'
+      +'<div style="font-family:monospace;font-size:11px;color:var(--muted);margin-top:4px">SQL updates ETA, Status and Aging nightly from MOVED_TO_AIR_ORDERS sheet.</div>'
+      +'</div>';
     return;
   }
   function isTerminalStatus(s){var v=(s||'').trim().toLowerCase();return v==='delivered'||v==='cancelled'||v==='closed';}
