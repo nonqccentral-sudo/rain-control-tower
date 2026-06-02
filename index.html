@@ -533,6 +533,7 @@ let dumpPending={},dumpActioned={};
 let pendingNameCb=null,ppCityFilter='All';
 let adherence={denominator:0,numerator:0,reset_date:null};
 const nc=s=>String(s||'').trim().replace(/\b\w/g,ch=>ch.toUpperCase());
+function fmtDate(s){if(!s)return'\u2014';var m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[3]+'/'+m[2]+'/'+m[1];return String(s);}
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
 const getDC  = ()=>{const v=parseFloat(document.getElementById('cfg-dc').value);return(isNaN(v)||v<=0)?35:v;};
@@ -1462,7 +1463,7 @@ function renderNetworkSummary(){
   }).join('');
 
   el.innerHTML='<div class="ns-wrap">'
-    +'<div class="ns-card"><div class="ns-lbl">&#x1F4E1; Network Summary &#x2014; Rule-Based (D-1)</div>'
+    +'<div class="ns-card"><div class="ns-lbl">&#x1F4E1; Network Summary &#x2014; D-1</div>'
     +'<div class="ns-body">'+parts.join(' ')+'</div></div>'
     +'<div><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">'
     +'All Cities &#x2014; click to open drilldown</div>'
@@ -1507,7 +1508,7 @@ function renderDump(){
   var isMp=function(o){return (o.store_type||'').toUpperCase()==='MP';};
   function stBadge(o){var s=(o.store_type||'FC').toUpperCase();return '<span class="st-badge '+(s==='MP'?'st-mp':'st-fc')+'">'+s+'</span>';}
   function agRag(d){return rag(d>=8?'red':d>=6?'amber':'green',d+'d');}
-  function eta(o){return o.promised_date||o.promised_delivery_date||'&#x2014;';}
+  function eta(o){return fmtDate(o.promised_date||o.promised_delivery_date||'');}
   var cityOpts=cities.map(function(c){return '<option value="'+c+'"'+(nc(c).toLowerCase()===nc(dumpCityFilter).toLowerCase()?' selected':'')+'>'+c+'</option>';}).join('');
   var storeOpts=['All','FC','MP'].map(function(s){return '<option value="'+s+'"'+(s===dumpStoreFilter?' selected':'')+'>'+s+'</option>';}).join('');
   // Unactioned rows
@@ -1521,7 +1522,7 @@ function renderDump(){
       +'<td style="font-weight:600">'+o.city+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(o.pincode||'&#x2014;')+'</td>'
       +'<td style="font-size:11px">'+(o.partner_name||'&#x2014;')+'</td>'
-      +'<td style="font-family:monospace;font-size:11px">'+(o.pickup_date||'&#x2014;')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
       +'<td>'+agRag(o.aging_days||0)+'</td>'
       +'<td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'&#x2014;')+'</td>'
@@ -1540,7 +1541,7 @@ function renderDump(){
         +'<td style="font-weight:600">'+o.city+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+(o.pincode||'&#x2014;')+'</td>'
         +'<td style="font-size:11px">'+(o.partner_name||'&#x2014;')+'</td>'
-        +'<td style="font-family:monospace;font-size:11px">'+(o.pickup_date||'&#x2014;')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
         +'<td>'+agRag(o.aging_days||0)+'</td>'
         +'<td colspan="2"><div style="display:flex;align-items:center;gap:8px">'
@@ -1561,7 +1562,7 @@ function renderDump(){
         +'<td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td>'
         +'<td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td>'
         +'<td style="font-size:11px">'+(o.partner_name||'')+'</td>'
-        +'<td style="font-family:monospace;font-size:11px">'+(o.pickup_date||'')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
         +'<td>'+agRag(o.aging_days||0)+'</td>'
         +'<td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(info.repl||'')+'</td>'
@@ -1579,7 +1580,7 @@ function renderDump(){
         +'<td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td>'
         +'<td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td>'
         +'<td style="font-size:11px">'+(o.partner_name||'')+'</td>'
-        +'<td style="font-family:monospace;font-size:11px">'+(o.pickup_date||'')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
         +'<td>'+agRag(o.aging_days||0)+'</td>'
         +'<td colspan="2" style="font-family:monospace;font-size:11px;color:var(--muted)">'+(info.by||info.closed_by||'')+(info.remarks?' &middot; '+info.remarks:'')+'</td>'
@@ -1674,46 +1675,77 @@ function markSelectedForAir(){
   var checked=[...document.querySelectorAll('.order-chk:checked')].map(function(c){return c.dataset.id;});
   if(!checked.length){showDumpMsg('Select at least one order first.','err');return;}
   var added=0;
-  checked.forEach(function(id){if(!dumpActioned[id]&&!dumpPending[id]){dumpPending[id]={repl:'',err:false};added++;}});
-  if(!added){showDumpMsg('Selected orders are already marked.','err');return;}
+  checked.forEach(function(id){
+    if(!dumpActioned[id]&&!dumpPending[id]){dumpPending[id]={repl:'',err:false};added++;}
+  });
+  if(!added){showDumpMsg('Selected orders are already marked or actioned.','err');return;}
   showDumpMsg('','');
-  updatePendingSection();updateDumpInfo();
+  updatePendingSection();
+  updateDumpInfo();
 }
 function markSelectedClosed(){
   var checked=[...document.querySelectorAll('.order-chk:checked')].map(function(c){return c.dataset.id;});
   if(!checked.length){showDumpMsg('Select at least one order first.','err');return;}
-  checked.forEach(function(id){if(!dumpActioned[id])dumpPending[id]={repl:'closed',err:false};});
+  var added=0;
+  checked.forEach(function(id){
+    if(!dumpActioned[id]&&!dumpPending[id]){
+      // Directly add to dumpActioned as CLOSED (no repl ID needed, no pending step)
+      dumpActioned[id]={action:'CLOSED',repl:'',by:'',ts:''};
+      added++;
+      // Visually mark the row immediately
+      var cb=document.querySelector('[data-id="'+id+'"]');
+      if(cb){cb.checked=false;var tr=cb.closest('tr');if(tr){tr.style.opacity='0.4';tr.style.textDecoration='line-through';}}
+    }
+  });
+  if(!added){showDumpMsg('Selected orders are already marked or actioned.','err');return;}
   showDumpMsg('','');
-  saveDumpActioned();renderDump();
+  saveDumpActioned();
+  updateDumpInfo();
+  // Re-render dump to move rows to closed section
+  setTimeout(function(){renderDump();},200);
 }
 
 function submitDumpActions(){
+  // Step 1: read any typed replacement IDs from DOM into state
+  Object.keys(dumpPending).forEach(function(id){
+    var inp=document.getElementById('repl-'+id);
+    if(inp) dumpPending[id].repl=inp.value.trim();
+  });
+
   var pairs=Object.entries(dumpPending);
   if(!pairs.length){showDumpMsg('No pending orders. Select orders and mark them first.','err');return;}
-  // Read from DOM inputs
-  pairs.forEach(function(pair){
-    var inp=document.getElementById('repl-'+pair[0]);
-    if(inp) dumpPending[pair[0]].repl=inp.value.trim();
-  });
-  // Classify: 'closed' → CLOSED, others need a real repl ID
-  var toClose=[],toAir=[],errors=[];
+
+  // Step 2: classify each pending order
+  var ready=[],errors=[];
   pairs.forEach(function(pair){
     var id=pair[0],repl=(dumpPending[id].repl||'').trim();
-    if(repl.toLowerCase()==='closed'){ toClose.push([id,{action:'CLOSED',repl:''}]); }
-    else if(repl){ toAir.push([id,{action:'MOVED_TO_AIR',repl:repl}]); }
-    else{ dumpPending[id].err=true; errors.push(id); }
+    if(repl.toLowerCase()==='closed'){
+      ready.push([id,{action:'CLOSED',repl:''}]);
+    } else if(repl){
+      ready.push([id,{action:'MOVED_TO_AIR',repl:repl}]);
+    } else {
+      dumpPending[id].err=true;
+      errors.push(id);
+    }
   });
-  var ready=toClose.concat(toAir);
+
   if(!ready.length){
-    showDumpMsg('Enter replacement IDs (or type "closed" to close without air movement).','err');
-    updatePendingSection();return;
+    // All have errors — show which ones and refresh pending section
+    showDumpMsg('Enter replacement IDs for: '+errors.join(', ')+'. Or type "closed" to close.','err');
+    updatePendingSection();
+    return;
   }
+
   if(errors.length){
-    showDumpMsg('Missing replacement IDs for '+errors.length+' order(s) — submitting the rest.','err');
+    showDumpMsg('Submitting '+ready.length+' order(s). Missing IDs for: '+errors.join(', '),'err');
   } else {
     showDumpMsg('','');
   }
+
+  // Remove submitted orders from pending (errors stay pending)
   ready.forEach(function(pair){delete dumpPending[pair[0]];});
+
+  // Show name modal then finalise
   openNameModal(ready);
 }
 
@@ -1747,13 +1779,9 @@ async function finaliseDumpSubmit(pairs,actionedBy){
           city:o.city||'',partner_name:o.partner_name||'',
           actioned_on:ts,actioned_by:actionedBy,eta:'',new_status:'',new_aging:''});
       }
-    } else {
-      if(!closedOrders.find(function(x){return x.order_id===id;})){
-        closedOrders.push({order_id:id,city:o.city||'',partner_name:o.partner_name||'',
-          store_type:o.store_type||'',aging_days:o.aging_days||0,
-          closed_on:ts,closed_by:actionedBy,remarks:''});
-      }
     }
+    // CLOSED_ORDERS sheet is SQL-managed only (replacement orders reaching terminal status)
+    // Dump-tab closed orders are tracked in dumpActioned state only
   });
   var url=scriptURL();
   if(url){
@@ -1901,7 +1929,7 @@ function renderReplacement(){
       +'<td style="font-size:11px">'+o.partner_name+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'&#x2014;')+'</td>'
-      +'<td style="font-family:monospace;font-size:11px;color:var(--teal)">'+(o.eta||'&#x2014;')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td>'
       +'<td>'+statusCell(o,isOpen)+'</td>'
       +'<td>'+agingCell(o)+'</td>'
       +'</tr>';
