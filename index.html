@@ -301,7 +301,16 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     </div>
     <div class="login-err" id="login-err"></div>
     <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
-    <div class="login-footer">Access is restricted to authorised team members only.</div>
+    <div id="login-url-section" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;text-align:left;display:none">
+      <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Apps Script URL (Admin only)</div>
+      <div style="display:flex;gap:6px">
+        <input id="login-script-url" type="text" placeholder="https://script.google.com/macros/s/..." 
+          style="flex:1;background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:11px;padding:7px 9px;border-radius:5px;"/>
+        <button onclick="saveLoginUrl()" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:'DM Mono';font-size:11px;padding:7px 12px;border-radius:5px;cursor:pointer;white-space:nowrap">Save URL</button>
+      </div>
+      <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:5px">Deploy settings: Execute as Me &#x2022; Access: Anyone</div>
+    </div>
+    <div class="login-footer">Access is restricted to authorised team members only. &nbsp;<span style="cursor:pointer;text-decoration:underline" onclick="toggleLoginUrl()">Admin setup &#x2197;</span></div>
   </div>
 </div>
 <!-- PIN MODAL -->
@@ -1829,6 +1838,25 @@ function setUserBadge(){
     el.style.display='none';
   }
 }
+function toggleLoginUrl(){
+  var s=document.getElementById('login-url-section');
+  if(s) s.style.display=s.style.display==='none'?'block':'none';
+  // Pre-fill with current URL
+  var inp=document.getElementById('login-script-url');
+  if(inp) inp.value=scriptURL()||localStorage.getItem('rct_script_url')||'';
+}
+function saveLoginUrl(){
+  var inp=document.getElementById('login-script-url');
+  if(!inp||!inp.value.trim()){alert('Paste your Apps Script URL first.');return;}
+  var url=inp.value.trim();
+  localStorage.setItem('rct_script_url',url);
+  document.getElementById('url-script').value=url;
+  // Also update DEFAULT constant reference
+  var errEl=document.getElementById('login-err');
+  if(errEl) errEl.textContent='URL saved. Try signing in now.';
+  errEl.style.color='var(--green)';
+  document.getElementById('login-url-section').style.display='none';
+}
 function logoutUser(){
   if(!confirm('Sign out of Heimdall?')) return;
   clearSession();
@@ -1870,7 +1898,7 @@ async function doLogin(){
       btn.disabled=false;btn.textContent='Sign In';
     }
   }catch(e){
-    errEl.textContent='Cannot reach Apps Script. Check URL in config.';
+    errEl.textContent='Cannot reach Apps Script. Verify the Apps Script URL is correct and deployed as: Execute as Me, Access: Anyone.';
     btn.disabled=false;btn.textContent='Sign In';
   }
 }
