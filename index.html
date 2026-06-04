@@ -541,7 +541,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxTMLUQd-BkPfX4eKgk1qhflnqsWdj60fT3h-ouSmHWlZd2cfql3St2pOXUxLo93dBNfA/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygh-9UTo70xzSyAxc1T-6blQTRcZMzLNXXhKxTbKiPypPQvCs-ykWU-owTvZ-BIcLqlQ/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -961,7 +961,17 @@ function renderNetworkSummary(){
   else parts.push('BD Air is active in '+active.length+' '+(active.length===1?'city':'cities')+'. No new activations required today.');
   if(critical.length>0){ const w=[...critical].sort((a,b)=>b.pipeline_days-a.pipeline_days).slice(0,3); parts.push('Critical: '+w.map(r=>r.city+' ('+r.pipeline_days.toFixed(1)+'d vs trigger '+r.trig.toFixed(1)+'d)').join(', ')+(critical.length>3?' +more.':'.')); }
   if(rdyDeact.length>0) parts.push(rdyDeact.map(r=>r.city).join(', ')+' '+(rdyDeact.length===1?'is':'are')+' ready to deactivate.');
-  if(p5>0){ const topA=[...rows].sort((a,b)=>(b.aging_gt5d||0)-(a.aging_gt5d||0)).filter(r=>(r.aging_gt5d||0)>0).slice(0,3); parts.push(p5+' orders are 5+ days old pan-India ('+topA.map(r=>r.city+' '+r.aging_gt5d).join(', ')+').'); }
+  if(p5>0){
+    // Count per city from orderDump (actual orders), fall back to cityData aging_gt5d
+    const cityCount={};
+    if(orderDump.length>0){
+      orderDump.forEach(o=>{ const k=nc(o.city||''); cityCount[k]=(cityCount[k]||0)+1; });
+    } else {
+      rows.forEach(r=>{ if(r.aging_gt5d>0) cityCount[r.city]=r.aging_gt5d; });
+    }
+    const topA=Object.entries(cityCount).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    parts.push(p5+' orders are 5+ days old pan-India ('+topA.map(e=>e[0]+' '+e[1]).join(', ')+').');
+  }
   if(totMtdO>0) parts.push('MTD Air spend: '+inr(totMtdO*getDC())+' ('+totMtdO.toLocaleString('en-IN')+' orders).'+(predTotal>0?' Projected additional: '+inr(predTotal)+' at '+trigMult.toFixed(2)+'×.':''));
   if(watch.length>0) parts.push(watch.length+' '+(watch.length===1?'city is':'cities are')+' in Watch: '+watch.map(r=>r.city).join(', ')+'.');
   if(adhPct!==null){ const col=adhPct>=80?'var(--green)':adhPct>=50?'var(--amber)':'var(--red)'; parts.push('Ageing adherence: <b style="color:'+col+'">'+adhPct+'%</b> ('+adhN+' of '+adhD+' orders actioned'+(adherence.reset_date?' since '+adherence.reset_date:'')+').'); }
@@ -1197,6 +1207,7 @@ function markSelectedForAir(){
   checked.forEach(id=>{ if(!dumpActioned[id]&&!dumpPending[id]){ dumpPending[id]={repl:'',mode:'AIR',err:false}; added++; } });
   if(!added){ showDumpMsg('Selected orders are already actioned.','err'); return; }
   showDumpMsg('','');
+  window.scrollTo({top:0,behavior:'smooth'});
   // Inject pending rows without re-rendering whole dump
   const existing=document.getElementById('pending-tbody'); if(existing) existing.remove();
   const pairs=Object.entries(dumpPending);
@@ -1407,13 +1418,12 @@ function showSave(msg){ const el=document.getElementById('save-msg'); el.textCon
 
 // ── ADHERENCE ─────────────────────────────────────────────────────────────────
 function maybeAppendSeenOrders(){
-  const today=new Date().toISOString().slice(0,10);
-  const last=lsg('rct_dump_write_date');
-  if(last===today||!orderDump.length) return;
+  if(!orderDump.length) return;
+  // Run on every sync - server deduplicates by order_id so no double-counting
   const url=scriptURL(); if(!url) return;
   const orders=orderDump.map(o=>({order_id:o.order_id,city:o.city||'',store_type:o.store_type||'',first_seen_date:today}));
   const params=new URLSearchParams({action:'appendSeenOrders',orders:JSON.stringify(orders)});
-  apsFetch(url+'?'+params.toString()).then(r=>{ if(r&&r.status==='ok') ls('rct_dump_write_date',today); }).catch(e=>console.warn('appendSeenOrders:',e.message));
+  apsFetch(url+'?'+params.toString()).then(r=>{ if(r&&r.status==='ok') console.log('Adherence: seen orders appended'); }).catch(e=>console.warn('appendSeenOrders:',e.message));
 }
 function resetAdherenceLocal(){
   const url=scriptURL(); if(!url){ showErr('Connect Apps Script first.'); return; }
