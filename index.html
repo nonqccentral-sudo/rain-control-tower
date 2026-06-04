@@ -250,21 +250,58 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 .rep-lbl{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
 .notice{border-radius:7px;padding:10px 14px;font-size:12px;font-family:'DM Mono';margin-bottom:12px;}
 .notice-amber{background:var(--abg);border:1px solid var(--amber);color:var(--amber);}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:40px 44px;width:380px;text-align:center;}
+.login-logo{width:64px;height:64px;margin:0 auto 16px;}
+.login-title{font-family:'Syne';font-size:26px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--muted);margin-bottom:28px;}
+.login-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;text-align:left;}
+.login-field label{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.login-field input{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:14px;padding:10px 12px;border-radius:6px;width:100%;}
+.login-field input:focus{outline:none;border-color:var(--blue);}
+.login-err{font-family:'DM Mono';font-size:11px;color:var(--red);margin-bottom:10px;min-height:16px;}
+.btn-login{width:100%;background:var(--blue);border:none;color:#fff;font-family:'DM Mono';font-size:13px;padding:11px;border-radius:7px;cursor:pointer;font-weight:600;transition:opacity .18s;}
+.btn-login:hover{opacity:.85;}
+.btn-login:disabled{opacity:.5;cursor:default;}
+.login-footer{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:18px;}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<!-- NAME MODAL -->
-<div id="name-overlay" class="overlay" style="display:none">
-  <div class="modal">
-    <div style="font-size:32px;margin-bottom:10px">&#x270D;&#xFE0F;</div>
-    <h3>Who is actioning?</h3>
-    <p>Your name will be logged with these actions</p>
-    <input id="name-in" type="text" maxlength="40" placeholder="Your name"
-      style="width:100%;background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:16px;padding:9px;border-radius:6px;text-align:center;margin-bottom:10px;"
-      onkeydown="if(event.key==='Enter')submitNameModal()"/>
-    <button class="btn btn-blue" style="width:100%;display:block;" onclick="submitNameModal()">Confirm</button>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <svg class="login-logo" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="24" fill="#0a1828"/>
+      <circle cx="24" cy="24" r="22" fill="none" stroke="#3b82f6" stroke-width="1" opacity=".35"/>
+      <path d="M8 34 Q24 10 40 34" stroke="#6366f1" stroke-width="1.5" fill="none" opacity=".5"/>
+      <path d="M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z" fill="#3b82f6" opacity=".9"/>
+      <path d="M12 23 L6 19 L10 25" fill="#2dd4bf" opacity=".85"/>
+      <path d="M36 23 L42 19 L38 25" fill="#2dd4bf" opacity=".85"/>
+      <rect x="18" y="21" width="12" height="5" rx="1" fill="#060e1c"/>
+      <rect x="19" y="22" width="4" height="3" rx="1" fill="#3b82f6" opacity=".8"/>
+      <rect x="25" y="22" width="4" height="3" rx="1" fill="#3b82f6" opacity=".8"/>
+      <path d="M16 27 L14 40 L24 36 L34 40 L32 27 Z" fill="#1e3a5f" opacity=".85"/>
+      <circle cx="21" cy="23" r="1.2" fill="#fff"/>
+      <circle cx="27" cy="23" r="1.2" fill="#fff"/>
+    </svg>
+    <div class="login-title">Heimdall</div>
+    <div class="login-sub">Tata 1mg &middot; Rain Control Tower &middot; v2.1</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input id="login-email" type="email" placeholder="you@1mg.com" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"/>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-footer">Access is restricted to authorised team members only.</div>
   </div>
 </div>
 <!-- PIN MODAL -->
@@ -308,6 +345,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
       <div class="val" id="data-date">—</div>
       <div class="sub" id="sync-note">—</div>
     </div>
+    <span id="user-badge" style="font-family:'DM Mono';font-size:11px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:5px;border:1px solid var(--border2)" onclick="logoutUser()" title="Click to sign out"></span>
     <button class="btn-icon" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
     <button class="btn btn-green" id="sync-btn" onclick="syncState()">⟳ Sync</button>
   </div>
@@ -447,7 +485,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
   <button class="tab" onclick="switchTab('ov',this)">City Overview</button>
   <button class="tab" onclick="switchTab('sim',this)">Cost Simulator</button>
   <button class="tab" onclick="switchTab('dump',this)">High Ageing Dump</button>
-  <button class="tab" onclick="switchTab('rep',this)">Replacement Orders</button>
+  <button class="tab" onclick="switchTab('rep',this)">Replaced Orders</button>
   <button class="tab" onclick="switchTab('pp',this)">Partner &amp; Pincode</button>
   <button class="tab" onclick="switchTab('log',this)">Change Log</button>
   <button class="tab" onclick="switchTab('logic',this)">Decision Logic</button>
@@ -459,8 +497,8 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     <table>
       <thead><tr>
         <th>City</th><th>Pipeline Days</th><th>Trigger At</th>
-        <th>Long Tail %</th><th>SLA Breach %</th><th>I/O Ratio</th>
-        <th>Aging →</th><th>MTD Air Orders</th><th>Air</th>
+        <th>Open Pipeline</th><th>Long Tail %</th><th>SLA Breach %</th><th>I/O Ratio</th>
+        <th>MTD Air Orders</th><th>Air</th>
         <th>Proposed Action</th><th>Action</th>
       </tr></thead>
       <tbody id="city-tbody"></tbody>
@@ -501,6 +539,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 
 <script>
 
+
 'use strict';
 
 // ── DEFAULT URLs — edit these, re-upload to GitHub ────────────────────────
@@ -527,12 +566,20 @@ let syncCountdown=5,syncTimer=null;
 let cfgExpanded=false,cfgUnlocked=false;
 let lastSyncTs=null;
 // v2.1 state
-let partnerData=[],pincodeData=[],orderDump=[],movedToAirOrders=[],closedOrders=[];
+let partnerData=[],pincodeData=[],orderDump=[],replacedOrders=[],closedOrders=[],cpDump=[];
 let dumpCityFilter='Pan-India',dumpStoreFilter='All';
 let dumpPending={},dumpActioned={};
 let pendingNameCb=null,ppCityFilter='All';
 let adherence={denominator:0,numerator:0,reset_date:null};
 const nc=s=>String(s||'').trim().replace(/\b\w/g,ch=>ch.toUpperCase());
+// Get delivery attempts for an order_id from CP Dump
+function cpAttempts(orderId){
+  if(!orderId||!cpDump.length) return null;
+  var row=cpDump.find(function(r){return String(r.order_id||r.Order_ID||r.orderid||'').trim()===String(orderId).trim();});
+  if(!row) return null;
+  var v=row.delivery_attempts||row.Delivery_Attempts||row.number_of_delivery_attempts||row['Number of Delivery Attempts']||null;
+  return v!==null&&v!==undefined&&v!==''?Number(v):null;
+}
 function fmtDate(s){if(!s)return'\u2014';var m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[3]+'/'+m[2]+'/'+m[1];return String(s);}
 
 // ── CONFIG ────────────────────────────────────────────────────────────────
@@ -729,8 +776,9 @@ async function syncState(){
 
   // Steps 3-6: order dump, moved-to-air, closed orders, adherence
   try{const od=await apsFetch(url+'?action=getOrderDump');if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city)}));}catch(e){console.warn('dump:',e.message);}
-  try{const ma=await apsFetch(url+'?action=getMovedToAirOrders');if(ma&&ma.status!=='error'&&Array.isArray(ma.orders)) movedToAirOrders=ma.orders.map(r=>({...r,city:nc(r.city)}));}catch(e){console.warn('mta:',e.message);}
+  try{const ma=await apsFetch(url+'?action=getReplacedOrders');if(ma&&ma.status!=='error'&&Array.isArray(ma.orders)) replacedOrders=ma.orders.map(r=>({...r,city:nc(r.city)}));}catch(e){console.warn('replaced:',e.message);}
   try{const cl=await apsFetch(url+'?action=getClosedOrders');if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders.map(r=>({...r,city:nc(r.city)}));}catch(e){console.warn('closed:',e.message);}
+  try{const cp=await apsFetch(url+'?action=getCpDump');if(cp&&cp.status!=='error'&&Array.isArray(cp.orders)) cpDump=cp.orders;}catch(e){console.warn('cp:',e.message);}
   try{const ad=await apsFetch(url+'?action=getAdherenceStats');if(ad&&ad.status!=='error') adherence={denominator:ad.denominator||0,numerator:ad.numerator||0,reset_date:ad.reset_date||null};}catch(e){console.warn('adherence:',e.message);}
   maybeAppendSeenOrders();
 
@@ -762,6 +810,7 @@ function compute(rows,mult){
     const active=activeCities.has(r.city);
     const io    =r.outflow>0?r.inflow/r.outflow:0;
     const totAge=(r.aging_1d||0)+(r.aging_2d||0)+(r.aging_3d||0)+(r.aging_4d||0)+(r.aging_5d||0)+(r.aging_gt5d||0);
+    const openPipeline=r.open_orders_pipeline||0;
 
     // Deactivation ready
     const dbt=r.days_below_trigger;
@@ -796,7 +845,7 @@ function compute(rows,mult){
     else if(pRag==='amber')    {action='~ Watch — Approaching Trigger';actionCol='var(--amber)';}
     else                       {action='✓ Normal Ops';                 actionCol='var(--green)';}
 
-    return{...r,bau,tatAdv,trig,active,io,totAge,deactRdy,postDeactRag,pRag,lRag,sRag,ioRag,sec,action,actionCol,mtdOrders,mtdCost};
+    return{...r,bau,tatAdv,trig,active,io,totAge,openPipeline,deactRdy,postDeactRag,pRag,lRag,sRag,ioRag,sec,action,actionCol,mtdOrders,mtdCost};
   });
 }
 
@@ -905,9 +954,10 @@ function renderOverview(){
             :'';
           const isSelCity=(selCity===m.city);
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
-            <td style="font-weight:600;color:var(--text)">${m.city}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
+            <td style="font-weight:600;color:var(--text)">${m.city}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span>${gt5html}</td>
             <td>${rag(m.pRag,m.pipeline_days.toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
             <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">&gt;${m.trig.toFixed(1)}d</td>
+            <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'&#x2014;'}</td>
             <td>${rag(m.lRag,pct(m.long_tail_pct))}</td>
             <td>${rag(m.sRag,pct(m.sla_breach_pct))}</td>
             <td>${rag(m.ioRag,m.io.toFixed(2))}</td>
@@ -1119,16 +1169,26 @@ function renderLogic(){
 // ── ACTIVATE / DEACTIVATE ─────────────────────────────────────────────────
 function doActiv(city,pipe,trig){
   activeCities.add(city);saveActive();
-  const e={ts:now(),action:'ACTIVATED',city,pipeline:pipe,trigger:trig,details:`Air activated for ${city}. Pipeline ${pipe}d > Trigger ${trig}d`};
+  const e={ts:now(),action:'ACTIVATED',city,pipeline:pipe,trigger:trig,details:`Air activated for ${city}. Pipeline ${pipe}d > Trigger ${trig}d. By: ${actionedBy()}`};
   addLog(e);writeLog(e);render();
 }
 function doDeact(city,pipe,trig){
   activeCities.delete(city);saveActive();
-  const e={ts:now(),action:'DEACTIVATED',city,pipeline:pipe,trigger:trig,details:`Air deactivated for ${city}. Pipeline ${pipe}d. Below trigger ${trig}d`};
+  const e={ts:now(),action:'DEACTIVATED',city,pipeline:pipe,trigger:trig,details:`Air deactivated for ${city}. Pipeline ${pipe}d. Below trigger ${trig}d. By: ${actionedBy()}`};
   addLog(e);writeLog(e);render();
 }
 function addLog(e){changeLog.unshift(e);if(changeLog.length>200)changeLog=changeLog.slice(0,200);saveLog();}
-function now(){return new Date().toLocaleString('en-IN');}
+function now(){
+  var d=new Date();
+  var pad=function(n){return String(n).padStart(2,'0');};
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+// Display any timestamp — already formatted or ISO
+function fmtTs(s){
+  if(!s||s==='—') return '—';
+  // Already in our format or locale format — just return
+  return String(s);
+}
 
 function writeLog(entry){
   const url=scriptURL();if(!url)return;
@@ -1247,11 +1307,19 @@ window.addEventListener('load',()=>{
   loadActive();loadLog();loadDumpActioned();
   renderLogic();
   // loadAll calls syncState directly if script URL present (avoids CSV cache)
-  // Show default tab (ns) on load
+  // Show default tab (ns)
   ['ov','sim','dump','rep','pp','log','logic'].forEach(function(id){var el=document.getElementById('t-'+id);if(el)el.style.display='none';});
   var nsEl=document.getElementById('t-ns');if(nsEl)nsEl.style.display='block';
-  // Load data from sheet only — no built-in sample data
-  if(su||cu||fu||mu) loadAll(); else showErr('No data source configured. Add your Apps Script URL in Config.');
+  // Check for existing valid session
+  if(loadSession()){
+    document.getElementById('login-screen').style.display='none';
+    setUserBadge();
+    if(su||cu||fu||mu) loadAll(); else showErr('No Apps Script URL configured. Add your Apps Script URL in Config.');
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+    // Pre-fill script URL check for login hint
+    if(!su) document.getElementById('login-err').textContent='Note: Apps Script URL not set yet — add it in Config after login.';
+  }
   startCountdown();
 });
 
@@ -1525,6 +1593,7 @@ function renderDump(){
       +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
       +'<td>'+agRag(o.aging_days||0)+'</td>'
+      +'<td style="font-family:monospace;font-size:11px;text-align:center;color:var(--text)">'+(cpAttempts(o.order_id)!==null?String(cpAttempts(o.order_id)):'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'&#x2014;')+'</td>'
       +'</tr>';
   }).join('')
@@ -1544,6 +1613,7 @@ function renderDump(){
         +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
         +'<td>'+agRag(o.aging_days||0)+'</td>'
+        +'<td style="font-family:monospace;font-size:11px;text-align:center">'+(cpAttempts(o.order_id)!==null?String(cpAttempts(o.order_id)):'&#x2014;')+'</td>'
         +'<td colspan="2"><div style="display:flex;align-items:center;gap:8px">'
         +'<input class="repl-inp'+(p.err?' err':'')+'" id="repl-'+o.order_id+'" data-oid="'+o.order_id+'" placeholder="Replacement Order ID (or type closed)" value="'+(p.repl||'')+'" oninput="onReplInput(this)">'
         +(p.err?'<span style="font-family:monospace;font-size:10px;color:var(--red)">Required</span>':'')
@@ -1565,6 +1635,7 @@ function renderDump(){
         +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
         +'<td>'+agRag(o.aging_days||0)+'</td>'
+        +'<td style="font-family:monospace;font-size:11px;text-align:center">'+(cpAttempts(o.order_id)!==null?String(cpAttempts(o.order_id)):'&#x2014;')+'</td>'
         +'<td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(info.repl||'')+'</td>'
         +'<td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(info.by||'')+'</td>'
         +'</tr>';
@@ -1583,6 +1654,7 @@ function renderDump(){
         +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+eta(o)+'</td>'
         +'<td>'+agRag(o.aging_days||0)+'</td>'
+        +'<td style="font-family:monospace;font-size:11px;text-align:center">'+(cpAttempts(o.order_id)!==null?String(cpAttempts(o.order_id)):'&#x2014;')+'</td>'
         +'<td colspan="2" style="font-family:monospace;font-size:11px;color:var(--muted)">'+(info.by||info.closed_by||'')+(info.remarks?' &middot; '+info.remarks:'')+'</td>'
         +'</tr>';
     }).join('');
@@ -1593,14 +1665,14 @@ function renderDump(){
     +'<select class="dump-sel" style="min-width:75px" onchange="dumpStoreFilter=this.value;renderDump()">'+storeOpts+'</select>'
     +'<span class="dump-info" id="dump-info-span">FC: <b>'+fcCount+'</b> &middot; MP: <b>'+mpCount+'</b> &middot; '+unactioned.length+' unactioned &middot; '+pending.length+' pending</span>'
     +'<div class="dump-btns">'
-    +'<button class="btn-air" onclick="markSelectedForAir()">&#x2708; Cancel &amp; Move to Air</button>'
+    +'<button class="btn-air" onclick="markSelectedForAir()">&#x2708; Cancel &amp; Replace</button>'
     +'<button class="btn-close-action" onclick="markSelectedClosed()">&#x2715; Mark as Closed</button>'
     +'<button class="btn-submit" onclick="submitDumpActions()">&#x2713; Submit</button>'
     +'</div></div>'
     +'<div class="tbl-wrap"><table>'
     +'<thead><tr>'
     +'<th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th>'
-    +'<th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Status</th>'
+    +'<th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Status</th>'
     +'</tr></thead>'
     +'<tbody id="dump-tbody">'+uRows+'</tbody>'
     +'</table></div>'
@@ -1625,183 +1697,18 @@ function showDumpMsg(msg,type){
   if(!el)return;
   el.textContent=msg;el.className='dump-msg'+(type?' '+type:'');el.style.display=msg?'block':'none';
 }
-function onReplInput(el){var id=el.dataset.oid;if(id&&dumpPending[id]){dumpPending[id].repl=el.value;dumpPending[id].err=false;el.classList.remove('err');}}
-function undoPending(id){
-  delete dumpPending[id];
-  var pr=document.getElementById('prow-'+id);if(pr)pr.remove();
-  var cb=document.querySelector('[data-id="'+id+'"]');if(cb){cb.checked=false;}
-  updateDumpInfo();
-}
-function updateDumpInfo(){
-  var el=document.getElementById('dump-info-span');
-  if(!el)return;
-  var isPI=dumpCityFilter==='Pan-India';
-  var cityFiltered=isPI?orderDump:orderDump.filter(function(o){return nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();});
-  var fcCount=cityFiltered.filter(function(o){return (o.store_type||'FC').toUpperCase()==='FC';}).length;
-  var mpCount=cityFiltered.filter(function(o){return (o.store_type||'').toUpperCase()==='MP';}).length;
-  var pend=Object.keys(dumpPending).length;
-  el.innerHTML='FC: <b>'+fcCount+'</b> &middot; MP: <b>'+mpCount+'</b> &middot; '+pend+' pending';
-}
-function updatePendingSection(){
-  // Add pending rows to the DOM without full re-render
-  var existing=document.getElementById('pending-tbody');
-  if(existing)existing.remove();
-  var pairs=Object.entries(dumpPending);
-  if(!pairs.length)return;
-  var isPI=dumpCityFilter==='Pan-India';
-  var visible=isPI?orderDump:orderDump.filter(function(o){return nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();});
-  var html='<tr style="background:var(--bbg);border-top:2px solid var(--blue)"><td colspan="10" style="padding:6px 10px;font-family:monospace;font-size:10px;color:var(--blue)">&#x2708; PENDING &#x2014; Enter replacement IDs then Submit</td></tr>';
-  pairs.forEach(function(pair){
-    var id=pair[0],p=pair[1];
-    var o=visible.find(function(x){return x.order_id===id;})||{};
-    html+='<tr class="r-pending" id="prow-'+id+'">'
-      +'<td></td><td style="font-family:monospace;font-size:11px">'+id+'</td>'
-      +'<td>'+( o.city||'')+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td>'
-      +'<td>'+(o.partner_name||'')+'</td><td style="font-family:monospace;font-size:11px">'+(o.pickup_date||'')+'</td>'
-      +'<td style="font-family:monospace;font-size:11px">'+(o.promised_date||o.promised_delivery_date||'')+'</td>'
-      +'<td>'+rag((o.aging_days||0)>=8?'red':(o.aging_days||0)>=6?'amber':'green',(o.aging_days||0)+'d')+'</td>'
-      +'<td colspan="2"><div style="display:flex;align-items:center;gap:8px">'
-      +'<input class="repl-inp'+(p.err?' err':'')+'" id="repl-'+id+'" data-oid="'+id+'" placeholder="Replacement Order ID (or closed)" value="'+(p.repl||'')+'" oninput="onReplInput(this)">'
-      +(p.err?'<span style="font-size:10px;color:var(--red)">Required</span>':'')
-      +'<button onclick="undoPending(\''+id+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">&#x21A9;</button>'
-      +'</div></td></tr>';
-  });
-  var frag=document.createElement('tbody');frag.id='pending-tbody';frag.innerHTML=html;
-  var main=document.getElementById('dump-tbody');
-  if(main&&main.parentNode)main.parentNode.insertBefore(frag,main.nextSibling);
-}
 
-function markSelectedForAir(){
-  var checked=[...document.querySelectorAll('.order-chk:checked')].map(function(c){return c.dataset.id;});
-  if(!checked.length){showDumpMsg('Select at least one order first.','err');return;}
-  var added=0;
-  checked.forEach(function(id){
-    if(!dumpActioned[id]&&!dumpPending[id]){dumpPending[id]={repl:'',err:false};added++;}
-  });
-  if(!added){showDumpMsg('Selected orders are already marked or actioned.','err');return;}
-  showDumpMsg('','');
-  updatePendingSection();
-  updateDumpInfo();
-}
-function markSelectedClosed(){
-  var checked=[...document.querySelectorAll('.order-chk:checked')].map(function(c){return c.dataset.id;});
-  if(!checked.length){showDumpMsg('Select at least one order first.','err');return;}
-  var added=0;
-  checked.forEach(function(id){
-    if(!dumpActioned[id]&&!dumpPending[id]){
-      // Directly add to dumpActioned as CLOSED (no repl ID needed, no pending step)
-      dumpActioned[id]={action:'CLOSED',repl:'',by:'',ts:''};
-      added++;
-      // Visually mark the row immediately
-      var cb=document.querySelector('[data-id="'+id+'"]');
-      if(cb){cb.checked=false;var tr=cb.closest('tr');if(tr){tr.style.opacity='0.4';tr.style.textDecoration='line-through';}}
-    }
-  });
-  if(!added){showDumpMsg('Selected orders are already marked or actioned.','err');return;}
-  showDumpMsg('','');
-  saveDumpActioned();
-  updateDumpInfo();
-  // Re-render dump to move rows to closed section
-  setTimeout(function(){renderDump();},200);
-}
 
-function submitDumpActions(){
-  // Step 1: read any typed replacement IDs from DOM into state
-  Object.keys(dumpPending).forEach(function(id){
-    var inp=document.getElementById('repl-'+id);
-    if(inp) dumpPending[id].repl=inp.value.trim();
-  });
 
-  var pairs=Object.entries(dumpPending);
-  if(!pairs.length){showDumpMsg('No pending orders. Select orders and mark them first.','err');return;}
 
-  // Step 2: classify each pending order
-  var ready=[],errors=[];
-  pairs.forEach(function(pair){
-    var id=pair[0],repl=(dumpPending[id].repl||'').trim();
-    if(repl.toLowerCase()==='closed'){
-      ready.push([id,{action:'CLOSED',repl:''}]);
-    } else if(repl){
-      ready.push([id,{action:'MOVED_TO_AIR',repl:repl}]);
-    } else {
-      dumpPending[id].err=true;
-      errors.push(id);
-    }
-  });
 
-  if(!ready.length){
-    // All have errors — show which ones and refresh pending section
-    showDumpMsg('Enter replacement IDs for: '+errors.join(', ')+'. Or type "closed" to close.','err');
-    updatePendingSection();
-    return;
-  }
 
-  if(errors.length){
-    showDumpMsg('Submitting '+ready.length+' order(s). Missing IDs for: '+errors.join(', '),'err');
-  } else {
-    showDumpMsg('','');
-  }
 
-  // Remove submitted orders from pending (errors stay pending)
-  ready.forEach(function(pair){delete dumpPending[pair[0]];});
 
-  // Show name modal then finalise
-  openNameModal(ready);
-}
 
-function openNameModal(pairs){
-  pendingNameCb=function(name){finaliseDumpSubmit(pairs,name);};
-  document.getElementById('name-overlay').style.display='flex';
-  document.getElementById('name-in').value='';
-  document.getElementById('name-in').focus();
-}
-function submitNameModal(){
-  var name=document.getElementById('name-in').value.trim();
-  if(!name)return;
-  document.getElementById('name-overlay').style.display='none';
-  if(pendingNameCb){pendingNameCb(name);pendingNameCb=null;}
-}
 
-async function finaliseDumpSubmit(pairs,actionedBy){
-  var ts=new Date().toLocaleString('en-IN');
-  pairs.forEach(function(pair){
-    var id=pair[0],info=pair[1];
-    dumpActioned[id]={action:info.action,repl:info.repl,by:actionedBy,ts:ts};
-  });
-  saveDumpActioned();
-  // Update local movedToAirOrders and closedOrders immediately
-  pairs.forEach(function(pair){
-    var id=pair[0],info=pair[1];
-    var o=orderDump.find(function(x){return x.order_id===id;})||{};
-    if(info.action==='MOVED_TO_AIR'){
-      if(!movedToAirOrders.find(function(x){return x.original_order_id===id;})){
-        movedToAirOrders.push({original_order_id:id,replacement_order_id:info.repl,
-          city:o.city||'',partner_name:o.partner_name||'',
-          actioned_on:ts,actioned_by:actionedBy,eta:'',new_status:'',new_aging:''});
-      }
-    }
-    // CLOSED_ORDERS sheet is SQL-managed only (replacement orders reaching terminal status)
-    // Dump-tab closed orders are tracked in dumpActioned state only
-  });
-  var url=scriptURL();
-  if(url){
-    var orders=pairs.map(function(pair){
-      var id=pair[0],info=pair[1];
-      var o=orderDump.find(function(x){return x.order_id===id;})||{};
-      return{order_id:id,city:o.city||'',partner_name:o.partner_name||'',
-             store_type:o.store_type||'',aging_days:o.aging_days||0,
-             action:info.action,replacement_order_id:info.repl||'',actioned_by:actionedBy};
-    });
-    var params=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(orders),actioned_by:actionedBy});
-    try{
-      var r=await apsFetch(url+'?'+params.toString());
-      showDumpMsg(r&&r.status==='ok'?'Done! '+pairs.length+' order(s) actioned.':'Error: '+(r&&r.message||'unknown'),r&&r.status==='ok'?'ok':'err');
-    }catch(e){showDumpMsg('Saved locally (script unreachable).','ok');}
-  } else {
-    showDumpMsg('Done! '+pairs.length+' order(s) actioned (local only).','ok');
-  }
-  renderDump();
-}
+
+
 
 function exportDumpCSV(){
   var isPI=dumpCityFilter==='Pan-India';
@@ -1810,9 +1717,10 @@ function exportDumpCSV(){
   var rows=(isPI?orderDump:orderDump.filter(function(o){return nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();}))
     .filter(function(o){return (o.store_type||'FC').toUpperCase()==='FC'&&!dumpActioned[o.order_id]&&!closedSet.has(o.order_id);});
   if(!rows.length){showDumpMsg('No unactioned FC orders to export.','err');return;}
-  var hdr='order_id,city,pincode,partner_name,pickup_date,eta,current_status,aging_days,store_type,replacement_order_id,remarks';
+  var hdr='order_id,city,pincode,partner_name,pickup_date,eta,current_status,aging_days,store_type,delivery_attempts,replacement_order_id,mode,remarks';
   var lines=rows.map(function(o){
-    return[o.order_id,o.city,o.pincode||'',o.partner_name||'',o.pickup_date||'',(o.promised_date||o.promised_delivery_date||''),o.current_status||'',o.aging_days,'FC','',''].join(',');
+    var att=cpAttempts(o.order_id);
+    return[o.order_id,o.city,o.pincode||'',o.partner_name||'',o.pickup_date||'',(o.promised_date||o.promised_delivery_date||''),o.current_status||'',o.aging_days,'FC',att!==null?att:'','','',''].join(',');
   });
   var csv=[hdr].concat(lines).join('\n');
   var a=document.createElement('a');
@@ -1837,13 +1745,17 @@ function processUploadCSV(text){
   var hdrs=lines[0].toLowerCase().split(',').map(function(h){return h.trim().replace(/"/g,'');});
   var idIdx=hdrs.indexOf('order_id');
   var replIdx=hdrs.indexOf('replacement_order_id');
+  var modeIdx=hdrs.indexOf('mode');
   if(idIdx<0){showUploadMsg('CSV must have column: order_id','err');return;}
+  if(modeIdx<0){showUploadMsg('CSV must have column: mode (AIR or SURFACE)','err');return;}
   var remIdx=hdrs.indexOf('remarks');
   var parsed=[];
   for(var i=1;i<lines.length;i++){
     var cols=lines[i].split(',').map(function(c){return c.trim().replace(/"/g,'');});
     var id=cols[idIdx]||'';if(!id)continue;
     var repl=replIdx>=0?(cols[replIdx]||''):'';
+    var mode=(modeIdx>=0?(cols[modeIdx]||'').toUpperCase().trim():'');
+    if(mode!=='AIR'&&mode!=='SURFACE'){showUploadMsg('Row '+(i)+': mode must be AIR or SURFACE for order '+id,'err');return;}
     parsed.push({id:id,repl:repl,remarks:remIdx>=0?(cols[remIdx]||''):''});
   }
   // Validate: non-closed rows must have replacement_order_id
@@ -1855,50 +1767,347 @@ function processUploadCSV(text){
   var already=ids.filter(function(id){return !!dumpActioned[id];});
   if(already.length){showUploadMsg('Already actioned: '+already.join(', '),'err');return;}
   parsed.forEach(function(p){
-    dumpPending[p.id]=p.repl.toLowerCase()==='closed'?{repl:'closed',err:false}:{repl:p.repl,err:false,remarks:p.remarks||''};
+    dumpPending[p.id]=p.repl.toLowerCase()==='closed'
+      ?{repl:'closed',err:false,mode:p.mode||''}
+      :{repl:p.repl,err:false,mode:p.mode||'AIR',remarks:p.remarks||''};
   });
   showUploadMsg(parsed.length+' orders loaded. Click Submit to finalise.','ok');
   renderDump();
 }
 
-// ── REPLACEMENT ORDERS ────────────────────────────────────────────────────────
+
+
+
+
+// ── RESET ADHERENCE BUTTON — inject into config panel on load ─────────────────
+window.addEventListener('load',function(){
+  var cfgActions=document.querySelector('.cfg-actions');
+  if(cfgActions){
+    var btn=document.createElement('button');
+    btn.className='btn btn-ghost';btn.innerHTML='&#x21BA; Reset Adherence';
+    btn.onclick=resetAdherenceLocal;
+    cfgActions.appendChild(btn);
+  }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HEIMDALL v2.2 — NEW FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── LOGIN / SESSION ───────────────────────────────────────────────────────────
+function loadSession(){
+  try{
+    var s=localStorage.getItem('rct_session');
+    if(!s) return false;
+    var sess=JSON.parse(s);
+    if(!sess||!sess.expires||Date.now()>sess.expires) return false;
+    currentUser={email:sess.email,display_name:sess.display_name,role:sess.role};
+    return true;
+  }catch(e){return false;}
+}
+function saveSession(user){
+  try{
+    localStorage.setItem('rct_session',JSON.stringify({
+      email:user.email,display_name:user.display_name,role:user.role,
+      expires:Date.now()+24*60*60*1000
+    }));
+  }catch(e){}
+}
+function clearSession(){
+  try{localStorage.removeItem('rct_session');}catch(e){}
+  currentUser=null;
+}
+function setUserBadge(){
+  var el=document.getElementById('user-badge');
+  if(!el) return;
+  if(currentUser){
+    el.textContent='Logged in as: '+currentUser.display_name+' \u2715';
+    el.title='Click to sign out';
+    el.style.display='inline-flex';
+  } else {
+    el.style.display='none';
+  }
+}
+function logoutUser(){
+  if(!confirm('Sign out of Heimdall?')) return;
+  clearSession();
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-err').textContent='';
+  setUserBadge();
+}
+async function doLogin(){
+  var email=(document.getElementById('login-email').value||'').trim().toLowerCase();
+  var pass=(document.getElementById('login-pass').value||'').trim();
+  var errEl=document.getElementById('login-err');
+  var btn=document.getElementById('login-btn');
+  if(!email||!pass){errEl.textContent='Email and password are required.';return;}
+  var url=scriptURL();
+  if(!url){errEl.textContent='No Apps Script URL configured. Contact admin.';return;}
+  btn.disabled=true;btn.textContent='Signing in...';errEl.textContent='';
+  try{
+    var params=new URLSearchParams({action:'login',email:email,password:pass});
+    var res=await apsFetch(url+'?'+params.toString());
+    if(res&&res.status==='ok'&&res.display_name){
+      currentUser={email:email,display_name:res.display_name,role:res.role||'ops'};
+      saveSession(currentUser);
+      document.getElementById('login-screen').style.display='none';
+      setUserBadge();
+      // Lock config for ops role
+      if(currentUser.role==='ops'){
+        var cfgPanel=document.getElementById('cfg-panel');
+        if(cfgPanel) cfgPanel.style.display='none';
+        var cfgHdr=document.querySelector('.cfg-hdr');
+        if(cfgHdr) cfgHdr.onclick=function(){
+          showErr('Config panel is restricted to admins.');
+        };
+      }
+      loadAll();
+    } else {
+      errEl.textContent=res&&res.message?res.message:'Invalid email or password.';
+      btn.disabled=false;btn.textContent='Sign In';
+    }
+  }catch(e){
+    errEl.textContent='Cannot reach Apps Script. Check URL in config.';
+    btn.disabled=false;btn.textContent='Sign In';
+  }
+}
+
+// ── ACTIONED_BY from session ──────────────────────────────────────────────────
+function actionedBy(){
+  return currentUser?currentUser.display_name:'Unknown';
+}
+
+// ── OPEN NAME MODAL — replaced by session (kept as no-op for compat) ──────────
+function openNameModal(pairs){
+  // No modal needed — use session display_name directly
+  finaliseDumpSubmit(pairs, actionedBy());
+}
+function submitNameModal(){} // no-op
+
+// ── AIR/SURFACE PENDING SECTION ───────────────────────────────────────────────
+function onReplInput(el){
+  var id=el.dataset.oid;
+  if(id&&dumpPending[id]){
+    dumpPending[id].repl=el.value;
+    dumpPending[id].err=false;
+    el.classList.remove('err');
+  }
+}
+function setAllMode(mode){
+  Object.keys(dumpPending).forEach(function(id){
+    dumpPending[id].mode=mode;
+    var radio=document.querySelector('input[name="mode-'+id+'"][value="'+mode+'"]');
+    if(radio) radio.checked=true;
+  });
+}
+function updatePendingSection(){
+  var existing=document.getElementById('pending-tbody');
+  if(existing) existing.remove();
+  var pairs=Object.entries(dumpPending);
+  if(!pairs.length) return;
+  var isPI=dumpCityFilter==='Pan-India';
+  var visible=isPI?orderDump:orderDump.filter(function(o){return nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();});
+  var html='<tr style="background:var(--bbg);border-top:2px solid var(--blue)">'
+    +'<td colspan="11" style="padding:8px 12px">'
+    +'<div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px">'
+    +'<span style="color:var(--blue);font-weight:600">&#x2708; PENDING ('+pairs.length+')</span>'
+    +'<span style="color:var(--muted)">Set all:</span>'
+    +'<button onclick="setAllMode(\'AIR\')" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Air</button>'
+    +'<button onclick="setAllMode(\'SURFACE\')" style="background:var(--gbg);border:1px solid var(--green);color:var(--green);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Surface</button>'
+    +'<span style="color:var(--muted)">&#x2014; or select per row below &darr;</span>'
+    +'</div></td></tr>';
+  pairs.forEach(function(pair){
+    var id=pair[0],p=pair[1];
+    var o=visible.find(function(x){return x.order_id===id;})||{};
+    var modeVal=p.mode||'AIR';
+    html+='<tr class="r-pending" id="prow-'+id+'">'
+      +'<td></td>'
+      +'<td style="font-family:monospace;font-size:11px">'+id+'</td>'
+      +'<td style="font-weight:600">'+(o.city||'')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+(o.pincode||'&#x2014;')+'</td>'
+      +'<td style="font-size:11px">'+(o.partner_name||'&#x2014;')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+fmtDate(o.promised_date||o.promised_delivery_date||'')+'</td>'
+      +'<td>'+rag((o.aging_days||0)>=8?'red':(o.aging_days||0)>=6?'amber':'green',(o.aging_days||0)+'d')+'</td>'
+      +'<td>'
+        +'<label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--blue);cursor:pointer;margin-right:8px">'
+        +'<input type="radio" name="mode-'+id+'" value="AIR" '+(modeVal==='AIR'?'checked':'')+' onchange="dumpPending[\''+id+'\'].mode=\'AIR\'">'
+        +'Air</label>'
+        +'<label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--green);cursor:pointer">'
+        +'<input type="radio" name="mode-'+id+'" value="SURFACE" '+(modeVal==='SURFACE'?'checked':'')+' onchange="dumpPending[\''+id+'\'].mode=\'SURFACE\'">'
+        +'Surface</label>'
+      +'</td>'
+      +'<td><div style="display:flex;align-items:center;gap:6px">'
+        +'<input class="repl-inp'+(p.err?' err':'')+'" id="repl-'+id+'" data-oid="'+id+'" placeholder="Replacement Order ID" value="'+(p.repl||'')+'" oninput="onReplInput(this)">'
+        +(p.err?'<span style="font-size:10px;color:var(--red)">Required</span>':'')
+        +'<button onclick="undoPending(\''+id+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">&#x21A9;</button>'
+      +'</div></td>'
+      +'</tr>';
+  });
+  var frag=document.createElement('tbody');
+  frag.id='pending-tbody';
+  frag.innerHTML=html;
+  var main=document.getElementById('dump-tbody');
+  if(main&&main.parentNode) main.parentNode.insertBefore(frag,main.nextSibling);
+}
+function undoPending(id){
+  delete dumpPending[id];
+  var pr=document.getElementById('prow-'+id);if(pr)pr.remove();
+  var cb=document.querySelector('[data-id="'+id+'"]');if(cb){cb.checked=false;}
+  var hdr=document.getElementById('pending-tbody');
+  if(hdr&&!Object.keys(dumpPending).length) hdr.remove();
+  updateDumpInfo();
+}
+function updateDumpInfo(){
+  var el=document.getElementById('dump-info-span');if(!el) return;
+  var isPI=dumpCityFilter==='Pan-India';
+  var cf=isPI?orderDump:orderDump.filter(function(o){return nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase();});
+  var fc=cf.filter(function(o){return (o.store_type||'FC').toUpperCase()==='FC';}).length;
+  var mp=cf.filter(function(o){return (o.store_type||'').toUpperCase()==='MP';}).length;
+  el.innerHTML='FC: <b>'+fc+'</b> &middot; MP: <b>'+mp+'</b> &middot; '+Object.keys(dumpPending).length+' pending';
+}
+function markSelectedForAir(){
+  var checked=[...document.querySelectorAll('.order-chk:checked')].map(function(c){return c.dataset.id;});
+  if(!checked.length){showDumpMsg('Select at least one order first.','err');return;}
+  var added=0;
+  checked.forEach(function(id){
+    if(!dumpActioned[id]&&!dumpPending[id]){
+      dumpPending[id]={repl:'',mode:'AIR',err:false};
+      added++;
+    }
+  });
+  if(!added){showDumpMsg('Selected orders are already marked or actioned.','err');return;}
+  showDumpMsg('','');
+  updatePendingSection();
+  updateDumpInfo();
+}
+function markSelectedClosed(){
+  var checked=[...document.querySelectorAll('.order-chk:checked')].map(function(c){return c.dataset.id;});
+  if(!checked.length){showDumpMsg('Select at least one order first.','err');return;}
+  var added=0;
+  checked.forEach(function(id){
+    if(!dumpActioned[id]&&!dumpPending[id]){
+      dumpActioned[id]={action:'CLOSED',repl:'',mode:'',by:actionedBy(),ts:now()};
+      added++;
+      var cb=document.querySelector('[data-id="'+id+'"]');
+      if(cb){cb.checked=false;var tr=cb.closest('tr');if(tr){tr.style.opacity='0.4';tr.style.textDecoration='line-through';}}
+    }
+  });
+  if(!added){showDumpMsg('Selected orders are already marked or actioned.','err');return;}
+  showDumpMsg('','');
+  saveDumpActioned();
+  updateDumpInfo();
+  setTimeout(function(){renderDump();},200);
+}
+function submitDumpActions(){
+  Object.keys(dumpPending).forEach(function(id){
+    var inp=document.getElementById('repl-'+id);
+    if(inp) dumpPending[id].repl=inp.value.trim();
+    var modeRadio=document.querySelector('input[name="mode-'+id+'"]:checked');
+    if(modeRadio) dumpPending[id].mode=modeRadio.value;
+  });
+  var pairs=Object.entries(dumpPending);
+  if(!pairs.length){showDumpMsg('No pending orders. Select orders and mark them first.','err');return;}
+  var ready=[],errors=[];
+  pairs.forEach(function(pair){
+    var id=pair[0],p=dumpPending[id];
+    var repl=(p.repl||'').trim();
+    var mode=(p.mode||'AIR');
+    if(repl.toLowerCase()==='closed'){
+      ready.push([id,{action:'CLOSED',repl:'',mode:''}]);
+    } else if(repl){
+      ready.push([id,{action:'REPLACED',repl:repl,mode:mode}]);
+    } else {
+      dumpPending[id].err=true;
+      errors.push(id);
+    }
+  });
+  if(!ready.length){
+    showDumpMsg('Enter replacement IDs. Type "closed" to close without replacement.','err');
+    updatePendingSection();return;
+  }
+  if(errors.length) showDumpMsg('Submitting '+ready.length+' — missing IDs for: '+errors.join(', '),'err');
+  else showDumpMsg('','');
+  ready.forEach(function(pair){delete dumpPending[pair[0]];});
+  finaliseDumpSubmit(ready, actionedBy());
+}
+async function finaliseDumpSubmit(pairs,actionedByName){
+  var ts=now();
+  pairs.forEach(function(pair){
+    var id=pair[0],info=pair[1];
+    dumpActioned[id]={action:info.action,repl:info.repl,mode:info.mode||'',by:actionedByName,ts:ts};
+  });
+  saveDumpActioned();
+  pairs.forEach(function(pair){
+    var id=pair[0],info=pair[1];
+    if(info.action==='REPLACED'){
+      if(!replacedOrders.find(function(x){return x.original_order_id===id;})){
+        var o=orderDump.find(function(x){return x.order_id===id;})||{};
+        replacedOrders.push({original_order_id:id,replacement_order_id:info.repl,
+          city:o.city||'',partner_name:o.partner_name||'',
+          actioned_on:ts,actioned_by:actionedByName,mode:info.mode||'AIR',
+          eta:'',new_status:'',new_aging:''});
+      }
+    }
+  });
+  var url=scriptURL();
+  if(url){
+    var orders=pairs.map(function(pair){
+      var id=pair[0],info=pair[1];
+      var o=orderDump.find(function(x){return x.order_id===id;})||{};
+      return{order_id:id,city:o.city||'',partner_name:o.partner_name||'',
+             store_type:o.store_type||'',aging_days:o.aging_days||0,
+             action:info.action,replacement_order_id:info.repl||'',
+             mode:info.mode||'',actioned_by:actionedByName};
+    });
+    var params=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(orders),actioned_by:actionedByName});
+    try{
+      var r=await apsFetch(url+'?'+params.toString());
+      showDumpMsg(r&&r.status==='ok'?'Done! '+pairs.length+' order(s) actioned.':'Error: '+(r&&r.message||'unknown'),r&&r.status==='ok'?'ok':'err');
+    }catch(e){showDumpMsg('Saved locally (script unreachable).','ok');}
+  } else {
+    showDumpMsg('Done! '+pairs.length+' order(s) actioned (local only).','ok');
+  }
+  renderDump();
+}
+
+// ── REPLACED ORDERS TAB (renamed from Replacement Orders) ────────────────────
 function renderReplacement(){
   var el=document.getElementById('rep-body');
   if(!el) return;
-
-  // Build the full list: sheet data + locally actioned orders not yet synced
-  var sheetIds=new Set(movedToAirOrders.map(function(o){return o.original_order_id;}));
+  var sheetIds=new Set(replacedOrders.map(function(o){return o.original_order_id;}));
   var localRows=Object.entries(dumpActioned)
-    .filter(function(p){return p[1].action==='MOVED_TO_AIR'&&p[1].ts;})
+    .filter(function(p){return p[1].action==='REPLACED'&&p[1].ts;})
     .filter(function(p){return !sheetIds.has(p[0]);})
     .map(function(pair){
       var id=pair[0],info=pair[1];
-      var src=orderDump.find(function(x){return x.order_id===id;})||{};
+      var o=orderDump.find(function(x){return x.order_id===id;})||{};
       return{original_order_id:id,replacement_order_id:info.repl,
-             city:src.city||'',partner_name:src.partner_name||'',
+             city:o.city||'',partner_name:o.partner_name||'',
              actioned_on:info.ts||'',actioned_by:info.by||'',
-             eta:'',new_status:'',new_aging:''};
+             mode:info.mode||'',eta:'',new_status:'',new_aging:''};
     });
-  var all=movedToAirOrders.concat(localRows);
-
+  var all=replacedOrders.concat(localRows);
   if(!all.length){
     el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px">'
       +'<div style="font-size:36px;margin-bottom:12px">&#x1F4E6;</div>'
-      +'<div style="font-size:14px;color:var(--text);margin-bottom:8px;font-weight:600">No replacement orders yet</div>'
-      +'<div style="font-size:12px;color:var(--muted)">Orders moved to Air from the High Ageing Dump tab will appear here.</div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-top:4px">SQL team fills ETA, Status and Aging in MOVED_TO_AIR_ORDERS nightly.</div>'
+      +'<div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px">No replaced orders yet</div>'
+      +'<div style="font-size:12px;color:var(--muted)">Orders cancelled and replaced from the High Ageing Dump tab will appear here.</div>'
       +'</div>';
     return;
   }
-
-  // Split open vs closed
   function isTerminal(s){var v=String(s||'').trim().toLowerCase();return v==='delivered'||v==='cancelled'||v==='closed';}
-  var open  =all.filter(function(o){
-    var s=String(o.new_status||'').trim().toLowerCase();
-    return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!=='');
-  });
+  var open=all.filter(function(o){var s=String(o.new_status||'').trim().toLowerCase();return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!=='');});
   var closed=all.filter(function(o){return isTerminal(o.new_status);});
-
+  function modeBadge(m){
+    var v=(m||'').toUpperCase();
+    if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>';
+    if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>';
+    return '<span style="font-family:monospace;font-size:9px;color:var(--muted)">&#x2014;</span>';
+  }
   function statusCell(o,isOpen){
     var s=String(o.new_status||'').trim();
     if(isOpen){
@@ -1914,58 +2123,39 @@ function renderReplacement(){
     var n=parseFloat(a);
     return rag(n>=5?'red':n>=3?'amber':'green',n+'d');
   }
-
-  var thHtml='<thead><tr style="border-bottom:1px solid var(--border2)">'
-    +'<th>Original Order</th><th>Replacement Order</th><th>City</th>'
-    +'<th>Partner</th><th>Actioned On</th><th>By</th>'
-    +'<th>ETA</th><th>Status</th><th>Aging</th>'
-    +'</tr></thead>';
-
+  var thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Partner</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Attempts</th><th>Status</th><th>Aging</th></tr>';
   function mkRow(o,isOpen){
     return '<tr class="data-row">'
       +'<td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td>'
       +'<td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'&#x2014;')+'</td>'
+      +'<td>'+modeBadge(o.mode)+'</td>'
       +'<td>'+o.city+'</td>'
       +'<td style="font-size:11px">'+o.partner_name+'</td>'
-      +'<td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'&#x2014;')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+fmtTs(o.actioned_on||'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px;text-align:center">'+(cpAttempts(o.original_order_id)!==null?cpAttempts(o.original_order_id):'&#x2014;')+'</td>'
       +'<td>'+statusCell(o,isOpen)+'</td>'
       +'<td>'+agingCell(o)+'</td>'
       +'</tr>';
   }
-
-  var html='';
-
-  // Open section
-  html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
-  html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">';
-  html+='&#x1F4E6; Open Replacement Orders ('+open.length+') &#x2014; SQL updates ETA / Status / Aging nightly</div>';
+  var html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
+  html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">&#x1F4E6; Open Replaced Orders ('+open.length+') &#x2014; SQL updates ETA / Status / Aging nightly</div>';
   if(open.length){
-    html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
-    html+=thHtml+'<tbody>';
-    open.forEach(function(o){html+=mkRow(o,true);});
-    html+='</tbody></table>';
+    html+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+open.map(function(o){return mkRow(o,true);}).join('')+'</tbody></table>';
   } else {
-    html+='<div style="font-size:12px;color:var(--muted)">No open replacement orders.</div>';
+    html+='<div style="font-size:12px;color:var(--muted)">No open replaced orders.</div>';
   }
   html+='</div>';
-
-  // Closed section
   if(closed.length){
     html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto">';
-    html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">';
-    html+='&#x2705; Closed &#x2014; Delivered / Cancelled / Closed ('+closed.length+')</div>';
-    html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
-    html+=thHtml+'<tbody>';
-    closed.forEach(function(o){html+=mkRow(o,false);});
-    html+='</tbody></table></div>';
+    html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">&#x2705; Closed &#x2014; Delivered / Cancelled / Closed ('+closed.length+')</div>';
+    html+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+closed.map(function(o){return mkRow(o,false);}).join('')+'</tbody></table></div>';
   }
-
   el.innerHTML=html;
 }
 
-// ── PARTNER & PINCODE ─────────────────────────────────────────────────────────
+// ── PARTNER & PINCODE with open_orders_pipeline + dominant_partner_1/2 ────────
 function renderPartnerPincode(){
   var el=document.getElementById('pp-body');
   var cityMap=new Map();
@@ -1977,19 +2167,20 @@ function renderPartnerPincode(){
   var fn=isAll?pincodeData:pincodeData.filter(function(p){return nc(p.city).toLowerCase()===nc(ppCityFilter).toLowerCase();});
   function tatR(v){return +v>4?'red':+v>=3?'amber':'green';}
   function slaR(v){return +v>12?'red':+v>=5?'amber':'green';}
-  function ltR(v) {return +v>8?'red':+v>=3?'amber':'green';}
-  function cnR(v) {return +v>6?'red':+v>=3?'amber':'green';}
-  function agR(v) {return +v>20?'red':+v>=5?'amber':'green';}
-  // Sort: aging_gt5d_count DESC then orders_assigned DESC
+  function ltR(v){return +v>8?'red':+v>=3?'amber':'green';}
+  function cnR(v){return +v>6?'red':+v>=3?'amber':'green';}
+  function agR(v){return +v>20?'red':+v>=5?'amber':'green';}
   function sortFn(a,b){return ((+b.aging_gt5d_count||0)-(+a.aging_gt5d_count||0))||((+b.orders_assigned||0)-(+a.orders_assigned||0));}
   var sp=[].concat(fp).sort(sortFn);
   var sn=[].concat(fn).sort(sortFn);
   var cc=isAll?'<th>City</th>':'';
   var pRows=sp.map(function(p){
+    var pipeline=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'&#x2014;';
     return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')
       +'<td style="font-weight:600">'+(p.partner_name||'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+((p.orders_delivered||0).toLocaleString('en-IN'))+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+pipeline+'</td>'
       +'<td>'+rag(tatR(p.avg_tat),(+p.avg_tat).toFixed(1)+'d')+'</td>'
       +'<td>'+rag(slaR(p.sla_breach_pct),pct(p.sla_breach_pct))+'</td>'
       +'<td>'+rag(ltR(p.long_tail_pct),pct(p.long_tail_pct))+'</td>'
@@ -1998,15 +2189,18 @@ function renderPartnerPincode(){
       +'</tr>';
   }).join('');
   var nRows=sn.map(function(p){
+    var pipeline=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'&#x2014;';
+    var dp=[p.dominant_partner_1||p.dominant_partner||'',p.dominant_partner_2||''].filter(Boolean).join(' / ')||'&#x2014;';
     return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')
       +'<td style="font-family:monospace;font-size:11px;font-weight:600">'+(p.pincode||'&#x2014;')+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+pipeline+'</td>'
       +'<td>'+rag(tatR(p.avg_tat),(+p.avg_tat).toFixed(1)+'d')+'</td>'
       +'<td>'+rag(slaR(p.sla_breach_pct),pct(p.sla_breach_pct))+'</td>'
       +'<td>'+rag(ltR(p.long_tail_pct),pct(p.long_tail_pct))+'</td>'
       +'<td>'+rag(cnR(p.cancellation_pct),pct(p.cancellation_pct))+'</td>'
       +'<td>'+rag(agR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+(p.dominant_partner||'&#x2014;')+'</td>'
+      +'<td style="font-size:11px;color:var(--muted)">'+dp+'</td>'
       +'</tr>';
   }).join('');
   el.innerHTML='<div class="dump-bar">'
@@ -2014,23 +2208,12 @@ function renderPartnerPincode(){
     +'<span class="dump-info">'+fp.length+' partner rows &middot; '+fn.length+' pincode rows &middot; sorted by 5+d aging &#x2193;</span>'
     +'</div>'
     +'<div class="pp-section"><div class="pp-lbl">Partner Performance'+(isAll?'':" &#x2014; "+ppCityFilter)+'</div>'
-    +(sp.length?'<table><thead><tr>'+cc+'<th>Partner</th><th>Assigned</th><th>Delivered</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th></tr></thead><tbody>'+pRows+'</tbody></table>'
-      :'<div style="font-size:12px;color:var(--muted);font-family:monospace">No partner data. Run setup_v2.gs and brief SQL team.</div>')+'</div>'
+    +(sp.length?'<table><thead><tr>'+cc+'<th>Partner</th><th>Assigned</th><th>Delivered</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th></tr></thead><tbody>'+pRows+'</tbody></table>'
+      :'<div style="font-size:12px;color:var(--muted);font-family:monospace">No partner data.</div>')+'</div>'
     +'<div class="pp-section"><div class="pp-lbl">Pincode Health'+(isAll?'':" &#x2014; "+ppCityFilter)+'</div>'
-    +(sn.length?'<table><thead><tr>'+cc+'<th>Pincode</th><th>Assigned</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th><th>Dominant Partner</th></tr></thead><tbody>'+nRows+'</tbody></table>'
-      :'<div style="font-size:12px;color:var(--muted);font-family:monospace">No pincode data. Run setup_v2.gs and brief SQL team.</div>')+'</div>';
+    +(sn.length?'<table><thead><tr>'+cc+'<th>Pincode</th><th>Assigned</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th><th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table>'
+      :'<div style="font-size:12px;color:var(--muted);font-family:monospace">No pincode data.</div>')+'</div>';
 }
-
-// ── RESET ADHERENCE BUTTON — inject into config panel on load ─────────────────
-window.addEventListener('load',function(){
-  var cfgActions=document.querySelector('.cfg-actions');
-  if(cfgActions){
-    var btn=document.createElement('button');
-    btn.className='btn btn-ghost';btn.innerHTML='&#x21BA; Reset Adherence';
-    btn.onclick=resetAdherenceLocal;
-    cfgActions.appendChild(btn);
-  }
-});
 
 </script>
 </body>
