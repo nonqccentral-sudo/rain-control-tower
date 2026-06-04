@@ -555,7 +555,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv'; // ← CITY_METRICS published CSV URL
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv'; // ← BD_AIR_FORECAST published CSV URL
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv'; // ← BD_AIR_MTD published CSV URL
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUXQq0k3JBL8mNc09u65pqdxsWEXZbwgN7CY3D3DJ_MFBH1J0kR-rhpJVCmbANDMldrg/exec'; // ← Apps Script web app URL
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygh-9UTo70xzSyAxc1T-6blQTRcZMzLNXXhKxTbKiPypPQvCs-ykWU-owTvZ-BIcLqlQ/exec'; // ← Apps Script web app URL
 const DEFAULT_PIN        = '1mg2025';
  
 
@@ -610,7 +610,7 @@ function apsFetch(url){
     const sc=document.createElement('script');
     sc.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&t='+Date.now();
     sc.onerror=()=>{delete window[cb];sc.remove();reject(new Error('Cannot reach Apps Script. Check URL + deployment settings.'));};
-    const timer=setTimeout(()=>{delete window[cb];sc.remove();reject(new Error('Apps Script timed out (10s)'));},10000);
+    const timer=setTimeout(()=>{delete window[cb];sc.remove();reject(new Error('Apps Script timed out (30s)'));},30000);
     window[cb]=data=>{clearTimeout(timer);delete window[cb];sc.remove();resolve(data);};
     document.body.appendChild(sc);
   });
@@ -719,6 +719,7 @@ function loadSample(){
 // We NEVER fall back to CSV when script is connected (CSV is cached by Google CDN).
 // We NEVER overwrite cityData unless the new response has valid rows.
 async function syncState(){
+  if(!currentUser){console.log('syncState skipped — not logged in');return;}
   const btn=document.getElementById('sync-btn');
   btn.classList.add('syncing');btn.textContent='⟳ Syncing...';
   const url=scriptURL();
@@ -1323,13 +1324,14 @@ window.addEventListener('load',()=>{
   if(loadSession()){
     document.getElementById('login-screen').style.display='none';
     setUserBadge();
+    startCountdown();
     if(su||cu||fu||mu) loadAll(); else showErr('No Apps Script URL configured. Add your Apps Script URL in Config.');
   } else {
     document.getElementById('login-screen').style.display='flex';
     // Pre-fill script URL check for login hint
     if(!su) document.getElementById('login-err').textContent='Note: Apps Script URL not set yet — add it in Config after login.';
   }
-  startCountdown();
+  // startCountdown is called after login/session restore, not on page load
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1883,6 +1885,7 @@ async function doLogin(){
       saveSession(currentUser);
       document.getElementById('login-screen').style.display='none';
       setUserBadge();
+      startCountdown();
       // Lock config for ops role
       if(currentUser.role==='ops'){
         var cfgPanel=document.getElementById('cfg-panel');
