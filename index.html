@@ -693,19 +693,17 @@ async function loadAll(){
   const fu=document.getElementById('url-fc').value.trim();
   const mu=document.getElementById('url-mtd').value.trim();
 
-  // If Apps Script is connected — use getSheetData for ALL data loads
-  // This is the only way to guarantee live data on page load, not cached CSV
   if(su){
-    await syncState(); // syncState handles everything: sheet data + active state
-    return;
+    await syncState();
+  } else if(cu||fu||mu){
+    if(cu) await loadCity();
+    if(fu) await loadFc();
+    if(mu) await loadMtd();
+  } else {
+    showErr('No data source configured. Add your Apps Script URL in Config.');
   }
-
-  // No Apps Script — fall back to CSV (may be cached by Google CDN)
-  if(cu) await loadCity();
-  if(fu) await loadFc();
-  if(mu) await loadMtd();
-  if(!cu&&!fu&&!mu) showErr('No data source configured. Add your Apps Script URL in Config.');
-  resetCountdown();
+  // Start the auto-sync countdown only after initial load completes
+  startCountdown();
 }
 
 function loadSample(){
@@ -718,8 +716,11 @@ function loadSample(){
 // If Apps Script is connected and getSheetData fails → keep last known data.
 // We NEVER fall back to CSV when script is connected (CSV is cached by Google CDN).
 // We NEVER overwrite cityData unless the new response has valid rows.
+let _syncRunning=false;
 async function syncState(){
   if(!currentUser){console.log('syncState skipped — not logged in');return;}
+  if(_syncRunning){console.log('syncState skipped — already running');return;}
+  _syncRunning=true;
   const btn=document.getElementById('sync-btn');
   btn.classList.add('syncing');btn.textContent='⟳ Syncing...';
   const url=scriptURL();
@@ -755,12 +756,14 @@ async function syncState(){
       setSyncNote('⚠ '+msg+' — last known data shown');
       console.warn('syncState error:',e.message);
       btn.classList.remove('syncing');btn.textContent='⟳ Sync';
+      _syncRunning=false;
       return; // keep existing data on screen unchanged
     }
   } else {
     // No script URL → CSV only (warn: may be cached)
     await reloadFromCSV();
     setSyncNote('⚠ No Apps Script — CSV data may be cached');
+    _syncRunning=false;
     btn.classList.remove('syncing');btn.textContent='⟳ Sync';
     render();
     return;
@@ -796,6 +799,7 @@ async function syncState(){
   const t=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
   setSyncNote('✓ Synced at '+t+(cityData.length?' · '+cityData.length+' cities':''));
   resetCountdown();
+  _syncRunning=false;
   btn.classList.remove('syncing');btn.textContent='⟳ Sync';
 }
 
@@ -1324,7 +1328,6 @@ window.addEventListener('load',()=>{
   if(loadSession()){
     document.getElementById('login-screen').style.display='none';
     setUserBadge();
-    startCountdown();
     if(su||cu||fu||mu) loadAll(); else showErr('No Apps Script URL configured. Add your Apps Script URL in Config.');
   } else {
     document.getElementById('login-screen').style.display='flex';
@@ -1885,7 +1888,7 @@ async function doLogin(){
       saveSession(currentUser);
       document.getElementById('login-screen').style.display='none';
       setUserBadge();
-      startCountdown();
+      // startCountdown called after loadAll completes
       // Lock config for ops role
       if(currentUser.role==='ops'){
         var cfgPanel=document.getElementById('cfg-panel');
