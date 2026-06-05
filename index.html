@@ -541,7 +541,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNGInayNLHMcoLkWcg9rYGCENQFtozkLOS6BAyusXeqYjDqL9oH_tziiGFBQkzL9a_/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwD8ffsHfJ85YCFsqBnZeebMQJPFFq4oTsr7tREUlo9pm8oIoX7QtQJaZv7No4efRLSBA/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -1451,16 +1451,24 @@ function showSave(msg){ const el=document.getElementById('save-msg'); el.textCon
 // ── ADHERENCE ─────────────────────────────────────────────────────────────────
 function maybeAppendSeenOrders(){
   if(!orderDump.length) return;
-  // Run on every sync - server deduplicates by order_id so no double-counting
   const url=scriptURL(); if(!url) return;
+  // Once-per-day guard — server also deduplicates but this avoids hammering Apps Script
+  const today=new Date().toISOString().slice(0,10);
+  const lastRun=lsg('rct_dump_seen_date');
+  if(lastRun===today) return;
   const orders=orderDump.map(o=>({order_id:o.order_id,city:o.city||'',store_type:o.store_type||'',first_seen_date:today}));
   const params=new URLSearchParams({action:'appendSeenOrders',orders:JSON.stringify(orders)});
-  apsFetch(url+'?'+params.toString()).then(r=>{ if(r&&r.status==='ok') console.log('Adherence: seen orders appended'); }).catch(e=>console.warn('appendSeenOrders:',e.message));
+  apsFetch(url+'?'+params.toString()).then(r=>{
+    if(r&&r.status==='ok'){
+      ls('rct_dump_seen_date',today);
+      console.log('Adherence: '+r.added+' new orders appended to DUMP_SEEN_ORDERS');
+    }
+  }).catch(e=>console.warn('appendSeenOrders:',e.message));
 }
 function resetAdherenceLocal(){
   const url=scriptURL(); if(!url){ showErr('Connect Apps Script first.'); return; }
   if(!confirm('Reset adherence counter from today?')) return;
-  apsFetch(url+'?action=resetAdherence').then(r=>{ if(r&&r.status==='ok'){ adherence={denominator:0,numerator:0,reset_date:r.reset_date}; ls('rct_dump_write_date',''); renderKPIs(); showSave('Adherence reset from '+r.reset_date); } }).catch(e=>showErr('Reset failed: '+e.message));
+  apsFetch(url+'?action=resetAdherence').then(r=>{ if(r&&r.status==='ok'){ adherence={denominator:0,numerator:0,reset_date:r.reset_date}; ls('rct_dump_seen_date',''); renderKPIs(); showSave('Adherence reset from '+r.reset_date); } }).catch(e=>showErr('Reset failed: '+e.message));
 }
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
