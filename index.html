@@ -832,8 +832,9 @@ function compute(rows,mult){
     const dbt=r.days_below_trigger;
     let deactRdy=false;
     if(active) deactRdy=(dbt!==undefined&&dbt!==null&&dbt!=='')?parseFloat(dbt)>=2:r.pipeline_days<trig;
-    const postDeactRag=r.pipeline_days>(bau+0.5)?'amber':'green';
-    const pRag=r.pipeline_days>trig?'red':r.pipeline_days>bau+0.5?'amber':'green';
+    const postDeactRag=r.pipeline_days>(trig*0.7)?'amber':'green';
+    // pRag: red=above trigger, amber=above 70% of trigger (approaching), green=below
+    const pRag=r.pipeline_days>trig?'red':r.pipeline_days>(trig*0.7)?'amber':'green';
     // Normalise pct fields: Google Sheets may return 0.006 instead of 0.6%
     const ltp=(+r.long_tail_pct||0)>1?(+r.long_tail_pct):((+r.long_tail_pct||0)*100);
     const sbp=(+r.sla_breach_pct||0)>1?(+r.sla_breach_pct):((+r.sla_breach_pct||0)*100);
@@ -879,8 +880,8 @@ function calcForecast(rows,mult){
   let mtdTotal=0,predTotal=0;
   const breakdown=rows.map(m=>{
     const mtdO=m.mtdOrders||0, mtdC=mtdO*dc; mtdTotal+=mtdC;
-    const wTrig=m.pipeline_days>(m.bau+m.tatAdv)*mult;
-    const incl=m.active||wTrig;
+    // Only include Active cities and Critical (red) cities in forecast — not Watch
+    const incl=m.active||(m.pRag==='red');
     const fcOPD=(fcData.find(f=>nc(f.city)===nc(m.city))||{}).expected_bd_air_orders||0;
     const fcO=incl?fcOPD*rd:0, fcC=fcO*dc; predTotal+=fcC;
     return {city:m.city,inflow:m.inflow,mtdO,mtdC,fcOPD,fcO,fcC,incl,active:m.active,pRag:m.pRag};
@@ -1328,7 +1329,10 @@ function renderReplacement(){
   html+=open.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+open.map(o=>mkRow(o,true)).join('')+'</tbody></table>':'<div style="font-size:12px;color:var(--muted)">No open replaced orders.</div>';
   html+='</div>';
   if(closed.length){ html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto"><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">✅ Closed — Delivered / Cancelled / Closed ('+closed.length+')</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+closed.map(o=>mkRow(o,false)).join('')+'</tbody></table></div>'; }
-  el.innerHTML=html;
+  try{ el.innerHTML=html; }catch(e){
+    console.error('renderReplacement ERROR:',e.message,e.stack);
+    el.innerHTML='<div style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">Render error: '+e.message+'</div>';
+  }
 }
 
 // ── PARTNER & PINCODE ─────────────────────────────────────────────────────────
