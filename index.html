@@ -215,7 +215,7 @@ td{padding:9px 9px;vertical-align:middle;}
 .ns-city-meta{font-family:'DM Mono';font-size:10px;color:var(--muted);}
 .dd-inline-row td{padding:0!important;border-bottom:2px solid var(--border2);}
 .dd-inline-wrap{background:var(--bg3);padding:16px 20px;}
-.dump-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.dump-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100;background:var(--bg2);padding:8px 12px;border-radius:8px;border:1px solid var(--border);}
 .dump-sel{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:12px;padding:6px 10px;border-radius:5px;cursor:pointer;}
 .dump-sel:focus{outline:none;border-color:var(--blue);}
 .dump-info{font-family:'DM Mono';font-size:11px;color:var(--muted);}
@@ -494,7 +494,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     <table>
       <thead><tr>
         <th>City</th><th>Pipeline Days</th><th>Trigger At</th>
-        <th>Open Pipeline</th><th>Long Tail %</th><th>SLA Breach %</th><th>I/O Ratio</th>
+        <th>Open Pipeline</th><th>Long Tail %</th><th>SLA Breach %</th><th>Aging →</th>
         <th>MTD Air Orders</th><th>Air</th>
         <th>Proposed Action</th><th>Action</th>
       </tr></thead>
@@ -541,7 +541,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzvI2urUMkfEUwm72ZfN7UrB-t9yWtZek3G8bZZgam4RrSyATdgmX8dUe4TCNabL9zu9Q/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-cpgQSIVFzqAeve1z3kweXsNEWcPAKCM1Y-sI-GP06qFTc4mwOB_KzDzT7lV6oJyuFg/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -1022,7 +1022,7 @@ function renderOverview(){
             <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
             <td>${rag(m.lRag,pct(m.long_tail_pct))}</td>
             <td>${rag(m.sRag,pct(m.sla_breach_pct))}</td>
-            <td>${rag(m.ioRag,m.io.toFixed(2))}</td>
+            <td>${agingBar(m)}</td>
             <td style="font-family:'DM Mono';font-size:11px;color:${m.mtdOrders>0?'var(--purple)':'var(--muted)'}">${mtdLoaded?(m.mtdOrders>0?m.mtdOrders.toLocaleString('en-IN'):'—'):'—'}</td>
             <td>${m.active?rag('blue','ON'):'<span style="color:var(--muted);font-size:11px">— OFF</span>'}</td>
             <td style="font-size:11px;font-weight:600;color:${m.actionCol}">${m.action}</td>
@@ -1191,8 +1191,8 @@ function renderDump(){
   el.innerHTML='<div id="dump-msg" class="dump-msg" style="display:none"></div>'
     +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export Unactioned FC CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, replacement_order_id, mode (AIR/SURFACE required), remarks</span></div></div>'
     +'<div class="dump-bar"><select class="dump-sel" onchange="dumpCityFilter=this.value;renderDump()">'+cityOpts+'</select><select class="dump-sel" style="min-width:75px" onchange="dumpStoreFilter=this.value;renderDump()">'+storeOpts+'</select><span class="dump-info" id="dump-info-span">FC: <b>'+fcCount+'</b> · MP: <b>'+mpCount+'</b> · '+unactioned.length+' unactioned · '+pending.length+' pending</span><div class="dump-btns"><button class="btn-air" onclick="markSelectedForAir()">✈ Cancel &amp; Replace</button><button class="btn-close-action" onclick="markSelectedClosed()">✕ Mark as Closed</button><button class="btn-submit" onclick="submitDumpActions()">✓ Submit</button></div></div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Status</th></tr></thead><tbody id="dump-tbody">'+uRows+'</tbody></table></div>'
-    +(pending.length||airActioned.length||closedRows.length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Replacement ID / Mode</th><th>By</th></tr></thead><tbody>'+pRows+aRows+cRows+'</tbody></table></div>':'');
+    +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Status</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
+    +(airActioned.length||closedRows.length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Replacement ID / Mode</th><th>By</th></tr></thead><tbody>'+pRows+aRows+cRows+'</tbody></table></div>':'');
 }
 function showDumpMsg(msg,type){ const el=document.getElementById('dump-msg'); if(!el) return; el.textContent=msg; el.className='dump-msg'+(type?' '+type:''); el.style.display=msg?'block':'none'; }
 function showUploadMsg(msg,type){ const el=document.getElementById('upload-msg'); if(!el) return; el.textContent=msg; el.className='dump-msg'+(type?' '+type:''); el.style.display=msg?'block':'none'; }
@@ -1207,22 +1207,10 @@ function markSelectedForAir(){
   checked.forEach(id=>{ if(!dumpActioned[id]&&!dumpPending[id]){ dumpPending[id]={repl:'',mode:'AIR',err:false}; added++; } });
   if(!added){ showDumpMsg('Selected orders are already actioned.','err'); return; }
   showDumpMsg('','');
+  renderDump(); // Re-render: pending rows appear at top of table
   window.scrollTo({top:0,behavior:'smooth'});
-  // Inject pending rows without re-rendering whole dump
-  const existing=document.getElementById('pending-tbody'); if(existing) existing.remove();
-  const pairs=Object.entries(dumpPending);
-  let html='<tr style="background:var(--bbg);border-top:2px solid var(--blue)"><td colspan="11" style="padding:8px 12px"><div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px"><span style="color:var(--blue);font-weight:600">✈ PENDING ('+pairs.length+')</span><span style="color:var(--muted)">Set all:</span><button onclick="setAllMode(\'AIR\')" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Air</button><button onclick="setAllMode(\'SURFACE\')" style="background:var(--gbg);border:1px solid var(--green);color:var(--green);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Surface</button></div></td></tr>';
-  pairs.forEach(pair=>{
-    const id=pair[0],p=pair[1];
-    const o=orderDump.find(x=>x.order_id===id)||{};
-    html+='<tr class="r-pending" id="prow-'+id+'"><td></td><td style="font-family:monospace;font-size:11px">'+id+'</td><td>'+(o.city||'')+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td><td>'+(o.partner_name||'')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.promised_delivery_date||'')+'</td><td>'+rag((o.aging_days||0)>=8?'red':(o.aging_days||0)>=6?'amber':'green',(o.aging_days||0)+'d')+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+(cpAttempts(id)!==null?String(cpAttempts(id)):'—')+'</td>'
-      +'<td><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--blue);cursor:pointer;margin-right:8px"><input type="radio" name="mode-'+id+'" value="AIR" checked onchange="dumpPending[\''+id+'\'].mode=\'AIR\'">Air</label><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--green);cursor:pointer"><input type="radio" name="mode-'+id+'" value="SURFACE" onchange="dumpPending[\''+id+'\'].mode=\'SURFACE\'">Surface</label></td>'
-      +'<td><div style="display:flex;align-items:center;gap:6px"><input class="repl-inp" id="repl-'+id+'" data-oid="'+id+'" placeholder="Replacement Order ID" value="" oninput="onReplInput(this)"><button onclick="undoPending(\''+id+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">↩</button></div></td></tr>';
-  });
-  const frag=document.createElement('tbody'); frag.id='pending-tbody'; frag.innerHTML=html;
-  const main=document.getElementById('dump-tbody'); if(main&&main.parentNode) main.parentNode.insertBefore(frag,main.nextSibling);
-  updateDumpInfo();
 }
+
 function markSelectedClosed(){
   const checked=[...document.querySelectorAll('.order-chk:checked')].map(c=>c.dataset.id);
   if(!checked.length){ showDumpMsg('Select at least one order first.','err'); return; }
