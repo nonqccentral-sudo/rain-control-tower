@@ -1017,15 +1017,15 @@ function renderOverview(){
           const rowCls=`data-row ${dr?'r-deact-'+m.postDeactRag:'r-'+m.sec} ${selCity===m.city?'sel':''}`;
           const deactBtnCls=dr?(m.postDeactRag==='amber'?'act-deact-amber':'act-rdy'):'act-off';
           const btnHtml=m.active
-            ?`<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">Deactivate</button>`
+            ?`<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Deactivate</button>`
             :m.pRag==='red'
-            ?`<button class="act-btn act-on" onclick="event.stopPropagation();doActiv('${m.city}',${m.pipeline_days.toFixed(1)},${m.trig.toFixed(2)})">Activate Air</button>`:'';
+            ?`<button class="act-btn act-on" onclick="event.stopPropagation();doActiv('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Activate Air</button>`:'';
           const gt5=m.aging_gt5d||0;
           const gt5badge=gt5>0?`<span onclick="event.stopPropagation();goToDump('${m.city}')" style="font-family:'DM Mono';font-size:9px;color:var(--red);cursor:pointer;text-decoration:underline;display:block">⚠${gt5} 5+d</span>`:'';
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
             <td style="font-weight:600;color:var(--text)">${m.city}${gt5badge}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
-            <td>${rag(m.pRag,m.pipeline_days.toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
-            <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">&gt;${m.trig.toFixed(1)}d</td>
+            <td>${rag(m.pRag,(+m.pipeline_days||0).toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
+            <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">&gt;${(+m.trig||0).toFixed(1)}d</td>
             <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
             <td>${rag(m.lRag,pct(m.long_tail_pct))}</td>
             <td>${rag(m.sRag,pct(m.sla_breach_pct))}</td>
