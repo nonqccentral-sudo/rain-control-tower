@@ -287,14 +287,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     </div>
     <div class="login-err" id="login-err"></div>
     <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
-    <div id="login-url-section" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;text-align:left;display:none">
-      <div style="font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Apps Script URL</div>
-      <div style="display:flex;gap:6px">
-        <input id="login-script-url" type="text" placeholder="https://script.google.com/macros/s/..." style="flex:1;background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:11px;padding:7px 9px;border-radius:5px;"/>
-        <button onclick="saveLoginUrl()" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:'DM Mono';font-size:11px;padding:7px 12px;border-radius:5px;cursor:pointer;white-space:nowrap">Save</button>
-      </div>
-    </div>
-    <div class="login-footer">Authorised team members only. &nbsp;<span style="cursor:pointer;text-decoration:underline" onclick="toggleLoginUrl()">Admin setup &#x2197;</span></div>
+    <div class="login-footer">Access is restricted to authorised team members only.</div>
   </div>
 </div>
 
@@ -649,7 +642,6 @@ function actionedBy(){ return currentUser ? currentUser.display_name : 'Unknown'
 async function doLogin(){
   const email=(document.getElementById('login-email').value||'').trim().toLowerCase();
   const pass =(document.getElementById('login-pass').value||'').trim();
-  const errEl=document.getElementById('login-err');
   const btn  =document.getElementById('login-btn');
   errEl.style.color='var(--red)';
   if(!email||!pass){ errEl.textContent='Email and password are required.'; return; }
@@ -679,21 +671,6 @@ async function doLogin(){
     errEl.textContent='Cannot reach Apps Script. Check URL and deployment settings.';
     btn.disabled=false; btn.textContent='Sign In';
   }
-}
-function toggleLoginUrl(){
-  const s=document.getElementById('login-url-section');
-  if(s){ s.style.display=s.style.display==='none'?'block':'none'; }
-  const inp=document.getElementById('login-script-url');
-  if(inp) inp.value=scriptURL()||'';
-}
-function saveLoginUrl(){
-  const inp=document.getElementById('login-script-url');
-  if(!inp||!inp.value.trim()){ alert('Paste your Apps Script URL first.'); return; }
-  ls('rct_script_url', inp.value.trim());
-  document.getElementById('url-script').value=inp.value.trim();
-  const errEl=document.getElementById('login-err');
-  if(errEl){ errEl.style.color='var(--green)'; errEl.textContent='URL saved — try signing in now.'; }
-  document.getElementById('login-url-section').style.display='none';
 }
 
 // ── JSONP ─────────────────────────────────────────────────────────────────────
@@ -845,7 +822,9 @@ function compute(rows,mult){
   return rows.map(r=>{
     const bau   =r.bau_pipeline||0;
     const tatAdv=(r.surface_tat||0)-(r.air_tat||0);
-    const trig  =(bau+tatAdv)*mult;
+    // If bau=0 (not yet populated by SQL), use pipeline_days as a sensible default
+    const trigBase=bau>0?(bau+tatAdv):(r.pipeline_days||0);
+    const trig  =trigBase*mult;
     const active=activeCities.has(r.city);
     const io    =r.outflow>0?r.inflow/r.outflow:0;
     const totAge=(r.aging_1d||0)+(r.aging_2d||0)+(r.aging_3d||0)+(r.aging_4d||0)+(r.aging_5d||0)+(r.aging_gt5d||0);
@@ -1225,7 +1204,7 @@ function renderDump(){
   el.innerHTML='<div id="dump-msg" class="dump-msg" style="display:none"></div>'
     +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export Unactioned FC CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, replacement_order_id, mode (AIR/SURFACE required), remarks</span></div></div>'
     +'<div class="dump-bar"><select class="dump-sel" onchange="dumpCityFilter=this.value;renderDump()">'+cityOpts+'</select><select class="dump-sel" style="min-width:75px" onchange="dumpStoreFilter=this.value;renderDump()">'+storeOpts+'</select><span class="dump-info" id="dump-info-span">FC: <b>'+fcCount+'</b> · MP: <b>'+mpCount+'</b> · '+unactioned.length+' unactioned · '+pending.length+' pending</span><div class="dump-btns"><button class="btn-air" onclick="markSelectedForAir()">✈ Cancel &amp; Replace</button><button class="btn-close-action" onclick="markSelectedClosed()">✕ Mark as Closed</button><button class="btn-submit" onclick="submitDumpActions()">✓ Submit</button></div></div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Status</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Attempts (CP)</th><th>Status</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
     +(airActioned.length||closedRows.length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Replacement ID / Mode</th><th>By</th></tr></thead><tbody>'+pRows+aRows+cRows+'</tbody></table></div>':'');
 }
 function showDumpMsg(msg,type){ const el=document.getElementById('dump-msg'); if(!el) return; el.textContent=msg; el.className='dump-msg'+(type?' '+type:''); el.style.display=msg?'block':'none'; }
@@ -1342,7 +1321,7 @@ function renderReplacement(){
   function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
   function statusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
   function agingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
-  const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Partner</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Attempts</th><th>Status</th><th>Aging</th></tr>';
+  const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Partner</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Attempts (CP)</th><th>Status</th><th>Aging</th></tr>';
   function mkRow(o,isOpen){ const att=cpAttempts(o.original_order_id); return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-size:11px">'+o.partner_name+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+(att!==null?String(att):'—')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
   let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
   html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">📦 Open Replaced Orders ('+open.length+') — SQL updates ETA / Status / Aging nightly</div>';
