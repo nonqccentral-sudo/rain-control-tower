@@ -642,6 +642,7 @@ function actionedBy(){ return currentUser ? currentUser.display_name : 'Unknown'
 async function doLogin(){
   const email=(document.getElementById('login-email').value||'').trim().toLowerCase();
   const pass =(document.getElementById('login-pass').value||'').trim();
+  const errEl=document.getElementById('login-err');
   const btn  =document.getElementById('login-btn');
   errEl.style.color='var(--red)';
   if(!email||!pass){ errEl.textContent='Email and password are required.'; return; }
