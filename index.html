@@ -541,7 +541,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz45boMDxJ66nQBTi417u4HPKjyRtWt8R1TmHDXuaHcYo2HxhhrfTAxcvCvf7vlEulwDw/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygh-9UTo70xzSyAxc1T-6blQTRcZMzLNXXhKxTbKiPypPQvCs-ykWU-owTvZ-BIcLqlQ/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -558,7 +558,7 @@ let currentUser=null;
 let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[];
 let dumpCityFilter='Pan-India', dumpStoreFilter='All';
 let dumpPending={}, dumpActioned={};
-let ppCityFilter='All';
+let ppCityFilter='All', ppPartnerOpen=true, ppPincodeOpen=true;
 let adherence={denominator:0, numerator:0, reset_date:null};
 let syncRunning=false;
 
@@ -566,7 +566,7 @@ let syncRunning=false;
 const nc  = s => String(s||'').trim().replace(/\b\w/g, c => c.toUpperCase());
 const inr = v => '₹'+Math.round(v).toLocaleString('en-IN');
 const lakh= v => '₹'+(v/100000).toFixed(1)+'L';
-const pct = v => v.toFixed(1)+'%';
+const pct = v => (isNaN(+v)?'—':(+v).toFixed(1)+'%');
 const rag = (s,v) => `<span class="rag rag-${s}"><span class="rdot"></span>${v}</span>`;
 const tdesc=m => m<1?'← Aggressive':'→ Conservative';
 
@@ -864,7 +864,12 @@ function compute(rows,mult){
     return {...r,bau,tatAdv,trig,active,io,totAge,openPipeline,deactRdy,postDeactRag,pRag,lRag,sRag,ioRag,sec,action,actionCol,mtdOrders,mtdCost};
   });
 }
-function filtered(rows){ const min=getOPD(); return min>0?rows.filter(r=>(r.inflow||0)>=min&&(r.inflow||0)>0):rows; }
+function filtered(rows){
+  // Exclude rows without pipeline_days (second-table rows from sheet)
+  const valid=rows.filter(r=>r.pipeline_days!==undefined&&r.pipeline_days!==''&&r.pipeline_days!==null);
+  const min=getOPD();
+  return min>0?valid.filter(r=>(r.inflow||0)>=min):valid;
+}
 function sorted(rows){
   const o={active:0,red:1,amber:2,green:3};
   return [...rows].sort((a,b)=>{
@@ -1163,7 +1168,7 @@ function renderDump(){
   const fcCount=cityFiltered.filter(o=>(o.store_type||'FC').toUpperCase()==='FC').length;
   const mpCount=cityFiltered.filter(o=>(o.store_type||'').toUpperCase()==='MP').length;
   const closedIds=new Set(Object.keys(dumpActioned).filter(id=>dumpActioned[id].action==='CLOSED'));
-  const unactioned=storeFiltered.filter(o=>!dumpPending[o.order_id]&&!dumpActioned[o.order_id]&&!closedIds.has(o.order_id));
+  const unactioned=storeFiltered.filter(o=>!dumpPending[o.order_id]&&!dumpActioned[o.order_id]&&!closedIds.has(o.order_id)).sort((a,b)=>(b.aging_days||0)-(a.aging_days||0));
   const pending   =storeFiltered.filter(o=>!!dumpPending[o.order_id]);
   const dumpLookup={}; orderDump.forEach(o=>{ dumpLookup[o.order_id]=o; });
   const airActioned=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED').filter(p=>{ const o=dumpLookup[p[0]]; if(!o) return true; const st=(o.store_type||'FC').toUpperCase(); return dumpStoreFilter==='All'||dumpStoreFilter===st; }).filter(p=>{ const o=dumpLookup[p[0]]; return !o?isPI:isPI||nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase(); }).map(p=>dumpLookup[p[0]]||{order_id:p[0],city:'',pincode:'',partner_name:'',pickup_date:'',promised_delivery_date:'',current_status:'',aging_days:0,store_type:'FC'});
@@ -1340,9 +1345,17 @@ function renderPartnerPincode(){
   const cc=isAll?'<th>City</th>':'';
   const pRows=sp.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-weight:600">'+(p.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_delivered||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),(+p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),(+p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),(isNaN(+p.cancellation_pct)?'—':(+p.cancellation_pct).toFixed(1)+'%'))+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td></tr>';}).join('');
   const nRows=sn.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';const dp=[p.dominant_partner_1||p.dominant_partner||'',p.dominant_partner_2||''].filter(Boolean).join(' / ')||'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-family:monospace;font-size:11px;font-weight:600">'+(p.pincode||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),(+p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),(+p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),(isNaN(+p.cancellation_pct)?'—':(+p.cancellation_pct).toFixed(1)+'%'))+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td><td style="font-size:11px;color:var(--muted)">'+dp+'</td></tr>';}).join('');
+  var partnerTitle='Partner Performance'+(isAll?'':' — '+ppCityFilter)+' ('+fp.length+')';
+  var pincodeTitle='Pincode Health'+(isAll?'':' — '+ppCityFilter)+' ('+fn.length+')';
   el.innerHTML='<div class="dump-bar"><select class="dump-sel" onchange="ppCityFilter=this.value;renderPartnerPincode()">'+cityOpts+'</select><span class="dump-info">'+fp.length+' partner rows · '+fn.length+' pincode rows · sorted by 5+d aging ↓</span></div>'
-    +'<div class="pp-section"><div class="pp-lbl">Partner Performance'+(isAll?'':' — '+ppCityFilter)+'</div>'+(sp.length?'<table><thead><tr>'+cc+'<th>Partner</th><th>Assigned</th><th>Delivered</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th></tr></thead><tbody>'+pRows+'</tbody></table>':'<div style="font-size:12px;color:var(--muted);font-family:monospace">No partner data. Run setup script and brief SQL team.</div>')+'</div>'
-    +'<div class="pp-section"><div class="pp-lbl">Pincode Health'+(isAll?'':' — '+ppCityFilter)+'</div>'+(sn.length?'<table><thead><tr>'+cc+'<th>Pincode</th><th>Assigned</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th><th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table>':'<div style="font-size:12px;color:var(--muted);font-family:monospace">No pincode data. Run setup script and brief SQL team.</div>')+'</div>';
+    +'<div class="pp-section">'
+      +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPartnerOpen=!ppPartnerOpen;renderPartnerPincode()">'
+        +(ppPartnerOpen?'▾':'▸')+' '+partnerTitle+'</div>'
+      +(ppPartnerOpen?(sp.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+'<th>Partner</th><th>Assigned</th><th>Delivered</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th></tr></thead><tbody>'+pRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No partner data.</div>'):'')+'</div>'
+    +'<div class="pp-section">'
+      +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPincodeOpen=!ppPincodeOpen;renderPartnerPincode()">'
+        +(ppPincodeOpen?'▾':'▸')+' '+pincodeTitle+'</div>'
+      +(ppPincodeOpen?(sn.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+'<th>Pincode</th><th>Assigned</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th><th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No pincode data.</div>'):'')+'</div>';
 }
 
 // ── CHANGE LOG ────────────────────────────────────────────────────────────────
