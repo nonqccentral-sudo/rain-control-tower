@@ -995,6 +995,16 @@ function renderNetworkSummary(){
 const secOpen={active:true,red:true,amber:true,green:true};
 function toggleSec(k){ secOpen[k]=!secOpen[k]; renderOverview(); }
 
+function agingBar(m){
+  var t=m.totAge||1;
+  var cols=['#f59e0b','#fb923c','#ef4444','#dc2626','#b91c1c','#7f1d1d'];
+  var vals=[m.aging_1d||0,m.aging_2d||0,m.aging_3d||0,m.aging_4d||0,m.aging_5d||0,m.aging_gt5d||0];
+  var bar='<div class="aging-bar">'+vals.map(function(v,i){return '<div style="width:'+((v/t)*100).toFixed(1)+'%;background:'+cols[i]+';height:9px;min-width:'+(v>0?2:0)+'px" title="'+v+'"></div>';}).join('')+'</div>';
+  var gt5=m.aging_gt5d||0;
+  var lnk=gt5>0?(' <span onclick="event.stopPropagation();goToDump(String.fromCharCode(39)+m.city+String.fromCharCode(39))" style="font-family:monospace;font-size:9px;color:var(--red);cursor:pointer">'+gt5+'</span>'):'';
+  return '<div style="display:flex;align-items:center;gap:4px">'+bar+'</div>';
+}
+
 function renderOverview(){
   try{
   const rows=sorted(filtered(compute(cityData,trigMult)));
