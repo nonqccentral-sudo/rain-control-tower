@@ -408,6 +408,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
       </div>
       <div class="cfg-actions">
         <button class="btn btn-blue" onclick="saveConfig()">💾 Save Config</button>
+        <button class="btn btn-ghost" onclick="resetAdherenceLocal()" style="border-color:var(--amber);color:var(--amber)">↺ Reset Adherence</button>
         <button class="btn btn-ghost" onclick="loadSample()">▶ Load Sample Data</button>
         <span class="save-msg" id="save-msg" style="display:none"></span>
       </div>
@@ -483,7 +484,8 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 
 <div id="t-ns" style="display:none"><div id="ns-body"></div></div>
 <div id="t-ov" style="display:none">
-  <div class="tbl-wrap">
+  <div id="ov-bau-warn" class="notice notice-amber" style="display:none">⚠ BAU pipeline data missing in CITY_METRICS sheet (bau_pipeline, surface_tat, air_tat columns). All cities showing as Normal until SQL populates these columns.</div>
+    <div class="tbl-wrap">
     <table>
       <thead><tr>
         <th>City</th><th>Pipeline Days</th><th>Trigger At</th>
@@ -534,7 +536,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwD8ffsHfJ85YCFsqBnZeebMQJPFFq4oTsr7tREUlo9pm8oIoX7QtQJaZv7No4efRLSBA/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkmZKeB9sy_-wTTzMhJhhhhvG84GWb171Zf1Oa06Fp2mWp1O-26qX1J3xiTvXa3weG9g/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -999,6 +1001,10 @@ function agingBar(m){
 function renderOverview(){
   try{
   const rows=sorted(filtered(compute(cityData,trigMult)));
+  // Show warning if BAU data is missing (all triggers = 999)
+  const allNoBau=rows.length>0&&rows.every(r=>r.trig>=999);
+  const warnEl=document.getElementById('ov-bau-warn');
+  if(warnEl) warnEl.style.display=allNoBau?'block':'none';
   const secs=[
     {key:'active',label:'Active',  icon:'✈',col:'var(--blue)', bg:'var(--s-active)',note:'deact-ready first'},
     {key:'red',   label:'Critical',icon:'🔴',col:'var(--red)',  bg:'var(--s-red)',   note:'sorted by inflow ↓'},
@@ -1027,7 +1033,7 @@ function renderOverview(){
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
             <td style="font-weight:600;color:var(--text)">${m.city}${gt5badge}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
             <td>${rag(m.pRag,(+m.pipeline_days||0).toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
-            <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">&gt;${(+m.trig||0).toFixed(1)}d</td>
+            <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">${m.trig>=999?'No BAU data':'&gt;'+(+m.trig||0).toFixed(1)+'d'}</td>
             <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
             <td>${rag(m.lRag,pct(m.ltp))}</td>
             <td>${rag(m.sRag,pct(m.sbp))}</td>
@@ -1204,7 +1210,7 @@ function renderDump(){
     cRows+=closedRows.map(o=>{const info=dumpActioned[o.order_id]||{};return '<tr class="r-closed-row"><td></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td><td style="font-size:11px">'+(o.partner_name||'')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td colspan="2" style="font-family:monospace;font-size:11px;color:var(--muted)">'+(info.by||'')+'</td></tr>';}).join('');
   }
   el.innerHTML='<div id="dump-msg" class="dump-msg" style="display:none"></div>'
-    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export Unactioned FC CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, replacement_order_id, mode (AIR/SURFACE required), remarks</span></div></div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export Unactioned FC CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, replacement_order_id, mode (AIR/SURFACE/LOCAL required), remarks</span></div></div>'
     +'<div class="dump-bar"><select class="dump-sel" onchange="dumpCityFilter=this.value;renderDump()">'+cityOpts+'</select><select class="dump-sel" style="min-width:75px" onchange="dumpStoreFilter=this.value;renderDump()">'+storeOpts+'</select><span class="dump-info" id="dump-info-span">FC: <b>'+fcCount+'</b> · MP: <b>'+mpCount+'</b> · '+unactioned.length+' unactioned · '+pending.length+' pending</span><div class="dump-btns"><button class="btn-air" onclick="markSelectedForAir()">✈ Cancel &amp; Replace</button><button class="btn-close-action" onclick="markSelectedClosed()">✕ Mark as Closed</button><button class="btn-submit" onclick="submitDumpActions()">✓ Submit</button></div></div>'
     +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Attempts (CP)</th><th>Status</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
     +(airActioned.length||closedRows.length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Replacement ID / Mode</th><th>By</th></tr></thead><tbody>'+pRows+aRows+cRows+'</tbody></table></div>':'');
@@ -1313,6 +1319,7 @@ function processUploadCSV(text){
 // ── REPLACED ORDERS ───────────────────────────────────────────────────────────
 function renderReplacement(){
   const el=document.getElementById('rep-body'); if(!el) return;
+  try{
   const sheetIds=new Set(replacedOrders.map(o=>o.original_order_id));
   const localRows=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED'&&p[1].ts&&!sheetIds.has(p[0])).map(pair=>{const id=pair[0],info=pair[1];const o=orderDump.find(x=>x.order_id===id)||{};return{original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:o.partner_name||'',actioned_on:info.ts||'',actioned_by:info.by||'',mode:info.mode||'',eta:'',new_status:'',new_aging:''};});
   const all=replacedOrders.concat(localRows);
@@ -1330,9 +1337,10 @@ function renderReplacement(){
   html+=open.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+open.map(o=>mkRow(o,true)).join('')+'</tbody></table>':'<div style="font-size:12px;color:var(--muted)">No open replaced orders.</div>';
   html+='</div>';
   if(closed.length){ html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto"><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">✅ Closed — Delivered / Cancelled / Closed ('+closed.length+')</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+closed.map(o=>mkRow(o,false)).join('')+'</tbody></table></div>'; }
-  try{ el.innerHTML=html; }catch(e){
+  el.innerHTML=html;
+  }catch(e){
     console.error('renderReplacement ERROR:',e.message,e.stack);
-    el.innerHTML='<div style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">Render error: '+e.message+'</div>';
+    el.innerHTML='<div style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">⚠ Render error: '+e.message+'</div>';
   }
 }
 
@@ -1441,8 +1449,8 @@ function maybeAppendSeenOrders(){
   // Skip daily guard if adh_seen is still 0 (denominator not yet populated)
   const lastRun=lsg('rct_dump_seen_date');
   if(lastRun===today&&adherence.denominator>0) return;
-  const orders=orderDump.map(o=>({order_id:o.order_id,city:o.city||'',store_type:o.store_type||'',first_seen_date:today}));
-  const params=new URLSearchParams({action:'appendSeenOrders',orders:JSON.stringify(orders)});
+  const orders=orderDump.map(o=>o.order_id).filter(Boolean);
+  const params=new URLSearchParams({action:'appendSeenOrders',orders:JSON.stringify(orders),reset_date:lsg('rct_adh_reset_date')||''});
   apsFetch(url+'?'+params.toString()).then(r=>{
     if(r&&r.status==='ok'){
       ls('rct_dump_seen_date',today);
@@ -1453,7 +1461,15 @@ function maybeAppendSeenOrders(){
 function resetAdherenceLocal(){
   const url=scriptURL(); if(!url){ showErr('Connect Apps Script first.'); return; }
   if(!confirm('Reset adherence counter from today?')) return;
-  apsFetch(url+'?action=resetAdherence').then(r=>{ if(r&&r.status==='ok'){ adherence={denominator:0,numerator:0,reset_date:r.reset_date}; ls('rct_dump_seen_date',''); renderKPIs(); showSave('Adherence reset from '+r.reset_date); } }).catch(e=>showErr('Reset failed: '+e.message));
+  apsFetch(url+'?action=resetAdherence').then(r=>{
+    if(r&&r.status==='ok'){
+      adherence={denominator:0,numerator:0,reset_date:r.reset_date};
+      ls('rct_adh_reset_date',r.reset_date);
+      ls('rct_dump_seen_date',''); // force re-run of appendSeenOrders
+      renderKPIs();
+      showSave('Adherence reset from '+r.reset_date);
+    }
+  }).catch(e=>showErr('Reset failed: '+e.message));
 }
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
