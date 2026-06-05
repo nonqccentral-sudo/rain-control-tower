@@ -541,7 +541,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz45boMDxJ66nQBTi417u4HPKjyRtWt8R1TmHDXuaHcYo2HxhhrfTAxcvCvf7vlEulwDw/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNGInayNLHMcoLkWcg9rYGCENQFtozkLOS6BAyusXeqYjDqL9oH_tziiGFBQkzL9a_/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -582,6 +582,12 @@ function fmtDate(s){
   return m ? m[3]+'/'+m[2]+'/'+m[1] : String(s);
 }
 function fmtTs(s){ return s||'—'; }
+function cpStatus(id){
+  if(!id||!cpDump.length) return null;
+  var row=cpDump.find(function(r){return String(r.order_id||r.Order_ID||r.orderid||'').trim()===String(id).trim();});
+  if(!row) return null;
+  return row.last_attempt_status||row.Last_Attempt_Status||row.status||null;
+}
 function cpAttempts(id){
   if(!id||!cpDump.length) return null;
   const r=cpDump.find(x=>String(x.order_id||x.Order_ID||x.orderid||'').trim()===String(id).trim());
@@ -816,6 +822,7 @@ async function syncState(){
   maybeAppendSeenOrders();
   render();
   const t=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  lastSyncTime=Date.now();
   setSyncNote('✓ Synced at '+t+(cityData.length?' · '+cityData.length+' cities':''));
   resetCountdown();
   syncRunning=false;
@@ -848,8 +855,11 @@ function compute(rows,mult){
     if(active) deactRdy=(dbt!==undefined&&dbt!==null&&dbt!=='')?parseFloat(dbt)>=2:r.pipeline_days<trig;
     const postDeactRag=r.pipeline_days>(bau+0.5)?'amber':'green';
     const pRag=r.pipeline_days>trig?'red':r.pipeline_days>bau+0.5?'amber':'green';
-    const lRag=r.long_tail_pct>8?'red':r.long_tail_pct>3?'amber':'green';
-    const sRag=r.sla_breach_pct>12?'red':r.sla_breach_pct>5?'amber':'green';
+    // Normalise pct fields: Google Sheets may return 0.006 instead of 0.6%
+    const ltp=(+r.long_tail_pct||0)>1?(+r.long_tail_pct):((+r.long_tail_pct||0)*100);
+    const sbp=(+r.sla_breach_pct||0)>1?(+r.sla_breach_pct):((+r.sla_breach_pct||0)*100);
+    const lRag=ltp>8?'red':ltp>3?'amber':'green';
+    const sRag=sbp>12?'red':sbp>5?'amber':'green';
     const ioRag=io>1.3?'red':io>1.1?'amber':'green';
     const sec=active?'active':pRag;
     const mtd=mtdData.find(m=>nc(m.city)===nc(r.city))||{};
@@ -861,7 +871,7 @@ function compute(rows,mult){
     else if(pRag==='red')    { action='⚠ Activate Air';               actionCol='var(--red)'; }
     else if(pRag==='amber')  { action='~ Watch — Approaching Trigger'; actionCol='var(--amber)'; }
     else                     { action='✓ Normal Ops';                  actionCol='var(--green)'; }
-    return {...r,bau,tatAdv,trig,active,io,totAge,openPipeline,deactRdy,postDeactRag,pRag,lRag,sRag,ioRag,sec,action,actionCol,mtdOrders,mtdCost};
+    return {...r,bau,tatAdv,trig,active,io,totAge,openPipeline,deactRdy,postDeactRag,pRag,lRag,sRag,ioRag,sec,action,actionCol,mtdOrders,mtdCost,ltp,sbp};
   });
 }
 function filtered(rows){
@@ -1038,8 +1048,8 @@ function renderOverview(){
             <td>${rag(m.pRag,(+m.pipeline_days||0).toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
             <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">&gt;${(+m.trig||0).toFixed(1)}d</td>
             <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
-            <td>${rag(m.lRag,pct(m.long_tail_pct))}</td>
-            <td>${rag(m.sRag,pct(m.sla_breach_pct))}</td>
+            <td>${rag(m.lRag,pct(m.ltp))}</td>
+            <td>${rag(m.sRag,pct(m.sbp))}</td>
             <td>${agingBar(m)}</td>
             <td style="font-family:'DM Mono';font-size:11px;color:${m.mtdOrders>0?'var(--purple)':'var(--muted)'}">${mtdLoaded?(m.mtdOrders>0?m.mtdOrders.toLocaleString('en-IN'):'—'):'—'}</td>
             <td>${m.active?rag('blue','ON'):'<span style="color:var(--muted);font-size:11px">— OFF</span>'}</td>
@@ -1081,6 +1091,7 @@ function buildDDInline(m){
 }
 
 // ── TAB NAVIGATION ────────────────────────────────────────────────────────────
+var lastSyncTime=0;
 function switchTab(t,btn){
   curTab=t;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
@@ -1090,6 +1101,10 @@ function switchTab(t,btn){
     if(el) el.style.display=id===t?'block':'none';
   });
   render();
+  // Auto-sync if data is stale (>60 seconds since last sync)
+  if(currentUser&&scriptURL()&&!syncRunning&&(Date.now()-lastSyncTime>60000)){
+    syncState();
+  }
 }
 function goToDump(city){
   dumpCityFilter=city||'Pan-India';
@@ -1188,14 +1203,14 @@ function renderDump(){
   function stBadge(o){ const s=(o.store_type||'FC').toUpperCase(); return '<span class="st-badge '+(s==='MP'?'st-mp':'st-fc')+'">'+s+'</span>'; }
   function agR(d){ return rag(d>=8?'red':d>=6?'amber':'green',d+'d'); }
   function etaCell(o){ return fmtDate(o.promised_date||o.promised_delivery_date||''); }
-  function attCell(id){ const a=cpAttempts(id); return a!==null?String(a):'—'; }
+  function attCell(id){ const a=cpAttempts(id); const s=cpStatus(id); var out=a!==null?String(a):'—'; if(s) out+='<div style="font-family:monospace;font-size:9px;color:var(--muted);margin-top:1px">'+s+'</div>'; return out; }
   const cityOpts=cities.map(c=>'<option value="'+c+'"'+(nc(c).toLowerCase()===nc(dumpCityFilter).toLowerCase()?' selected':'')+'>'+c+'</option>').join('');
   const storeOpts=['All','FC','MP'].map(s=>'<option value="'+s+'"'+(s===dumpStoreFilter?' selected':'')+'>'+s+'</option>').join('');
-  const uRows=unactioned.length?unactioned.map(o=>{const mp=(o.store_type||'').toUpperCase()==='MP';return '<tr class="data-row"><td>'+(mp?'<span style="color:var(--muted);font-size:11px">—</span>':'<input type="checkbox" class="order-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px">')+'</td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'—')+'</td></tr>';}).join(''):'<tr><td colspan="10" style="padding:14px;font-family:monospace;font-size:12px;color:var(--muted);text-align:center">No unactioned orders</td></tr>';
+  const uRows=unactioned.length?unactioned.map(o=>{return '<tr class="data-row"><td><input type="checkbox" class="order-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px"></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'—')+'</td></tr>';}).join(''):'<tr><td colspan="10" style="padding:14px;font-family:monospace;font-size:12px;color:var(--muted);text-align:center">No unactioned orders</td></tr>';
   let pRows='';
   if(pending.length){
-    pRows='<tr style="background:var(--bbg);border-top:2px solid var(--blue)"><td colspan="11" style="padding:8px 12px"><div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px"><span style="color:var(--blue);font-weight:600">✈ PENDING ('+pending.length+')</span><span style="color:var(--muted)">Set all:</span><button onclick="setAllMode(\'AIR\')" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Air</button><button onclick="setAllMode(\'SURFACE\')" style="background:var(--gbg);border:1px solid var(--green);color:var(--green);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Surface</button></div></td></tr>';
-    pRows+=pending.map(o=>{const p=dumpPending[o.order_id]||{};const modeVal=p.mode||'AIR';return '<tr class="r-pending" id="prow-'+o.order_id+'"><td></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--blue);cursor:pointer;margin-right:8px"><input type="radio" name="mode-'+o.order_id+'" value="AIR" '+(modeVal==='AIR'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'AIR\'">Air</label><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--green);cursor:pointer"><input type="radio" name="mode-'+o.order_id+'" value="SURFACE" '+(modeVal==='SURFACE'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'SURFACE\'">Surface</label></td><td><div style="display:flex;align-items:center;gap:6px"><input class="repl-inp'+(p.err?' err':'')+'" id="repl-'+o.order_id+'" data-oid="'+o.order_id+'" placeholder="Replacement Order ID" value="'+(p.repl||'')+'" oninput="onReplInput(this)"><button onclick="undoPending(\''+o.order_id+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">↩</button></div></td></tr>';}).join('');
+    pRows='<tr style="background:var(--bbg);border-top:2px solid var(--blue)"><td colspan="11" style="padding:8px 12px"><div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px"><span style="color:var(--blue);font-weight:600">✈ PENDING ('+pending.length+')</span><span style="color:var(--muted)">Set all:</span><button onclick="setAllMode(\'AIR\')" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Air</button><button onclick="setAllMode(\'SURFACE\')" style="background:var(--gbg);border:1px solid var(--green);color:var(--green);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Surface</button><button onclick="setAllMode(\'LOCAL\')" style="background:var(--abg);border:1px solid var(--amber);color:var(--amber);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Local</button></div></td></tr>';
+    pRows+=pending.map(o=>{const p=dumpPending[o.order_id]||{};const modeVal=p.mode||'AIR';return '<tr class="r-pending" id="prow-'+o.order_id+'"><td></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--blue);cursor:pointer;margin-right:8px"><input type="radio" name="mode-'+o.order_id+'" value="AIR" '+(modeVal==='AIR'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'AIR\'">Air</label><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--green);cursor:pointer"><input type="radio" name="mode-'+o.order_id+'" value="SURFACE" '+(modeVal==='SURFACE'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'SURFACE\'">Surface</label><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--amber);cursor:pointer"><input type="radio" name="mode-'+o.order_id+'" value="LOCAL" '+(modeVal==='LOCAL'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'LOCAL\'">Local</label></td><td><div style="display:flex;align-items:center;gap:6px"><input class="repl-inp'+(p.err?' err':'')+'" id="repl-'+o.order_id+'" data-oid="'+o.order_id+'" placeholder="Replacement Order ID" value="'+(p.repl||'')+'" oninput="onReplInput(this)"><button onclick="undoPending(\''+o.order_id+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">↩</button></div></td></tr>';}).join('');
   }
   let aRows='';
   if(airActioned.length){
@@ -1304,7 +1319,7 @@ function processUploadCSV(text){
     const id=cols[idIdx]||''; if(!id) continue;
     const repl=replIdx>=0?(cols[replIdx]||''):'';
     const mode=(modeIdx>=0?(cols[modeIdx]||'').toUpperCase().trim():'');
-    if(mode!=='AIR'&&mode!=='SURFACE'){ showUploadMsg('Row '+(i)+': mode must be AIR or SURFACE for order '+id,'err'); return; }
+    if(mode!=='AIR'&&mode!=='SURFACE'&&mode!=='LOCAL'){ showUploadMsg('Row '+(i)+': mode must be AIR, SURFACE or LOCAL for order '+id,'err'); return; }
     parsed.push({id,repl,mode,remarks:remIdx>=0?(cols[remIdx]||''):''});
   }
   const already=parsed.filter(p=>!!dumpActioned[p.id]);
@@ -1324,7 +1339,7 @@ function renderReplacement(){
   function isTerminal(s){ const v=String(s||'').trim().toLowerCase(); return v==='delivered'||v==='cancelled'||v==='closed'; }
   const open  =all.filter(o=>{ const s=String(o.new_status||'').trim().toLowerCase(); return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!==''); });
   const closed=all.filter(o=>isTerminal(o.new_status));
-  function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; return '<span style="color:var(--muted)">—</span>'; }
+  function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
   function statusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
   function agingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
   const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Partner</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Attempts</th><th>Status</th><th>Aging</th></tr>';
@@ -1347,16 +1362,18 @@ function renderPartnerPincode(){
   const isAll=ppCityFilter==='All';
   const fp=isAll?partnerData:partnerData.filter(p=>nc(p.city).toLowerCase()===nc(ppCityFilter).toLowerCase());
   const fn=isAll?pincodeData:pincodeData.filter(p=>nc(p.city).toLowerCase()===nc(ppCityFilter).toLowerCase());
-  const tR=v=>+v>4?'red':+v>=3?'amber':'green';
-  const sR=v=>+v>12?'red':+v>=5?'amber':'green';
-  const lR=v=>+v>8?'red':+v>=3?'amber':'green';
-  const cR=v=>+v>6?'red':+v>=3?'amber':'green';
+  // Normalise: sheets may return decimal fractions (0.195 = 19.5%)
+  const normV=v=>(+v||0)>1?(+v):(+(+v||0)*100);
+  const tR=v=>(+v||0)>4?'red':(+v||0)>=3?'amber':'green';
+  const sR=v=>normV(v)>12?'red':normV(v)>=5?'amber':'green';
+  const lR=v=>normV(v)>8?'red':normV(v)>=3?'amber':'green';
+  const cR=v=>normV(v)>6?'red':normV(v)>=3?'amber':'green';
   const aR=v=>+v>20?'red':+v>=5?'amber':'green';
   const srt=(a,b)=>((+b.aging_gt5d_count||0)-(+a.aging_gt5d_count||0))||((+b.orders_assigned||0)-(+a.orders_assigned||0));
   const sp=[...fp].sort(srt); const sn=[...fn].sort(srt);
   const cc=isAll?'<th>City</th>':'';
-  const pRows=sp.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-weight:600">'+(p.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_delivered||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),(+p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),(+p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),(isNaN(+p.cancellation_pct)?'—':(+p.cancellation_pct).toFixed(1)+'%'))+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td></tr>';}).join('');
-  const nRows=sn.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';const dp=[p.dominant_partner_1||p.dominant_partner||'',p.dominant_partner_2||''].filter(Boolean).join(' / ')||'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-family:monospace;font-size:11px;font-weight:600">'+(p.pincode||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),(+p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),(+p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),(isNaN(+p.cancellation_pct)?'—':(+p.cancellation_pct).toFixed(1)+'%'))+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td><td style="font-size:11px;color:var(--muted)">'+dp+'</td></tr>';}).join('');
+  const pRows=sp.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-weight:600">'+(p.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_delivered||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),normV(p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),normV(p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),normV(p.cancellation_pct).toFixed(1)+'%')+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td></tr>';}).join('');
+  const nRows=sn.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';const dp=[p.dominant_partner_1||p.dominant_partner||'',p.dominant_partner_2||''].filter(Boolean).join(' / ')||'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-family:monospace;font-size:11px;font-weight:600">'+(p.pincode||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),normV(p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),normV(p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),normV(p.cancellation_pct).toFixed(1)+'%')+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td><td style="font-size:11px;color:var(--muted)">'+dp+'</td></tr>';}).join('');
   var partnerTitle='Partner Performance'+(isAll?'':' — '+ppCityFilter)+' ('+fp.length+')';
   var pincodeTitle='Pincode Health'+(isAll?'':' — '+ppCityFilter)+' ('+fn.length+')';
   el.innerHTML='<div class="dump-bar"><select class="dump-sel" onchange="ppCityFilter=this.value;renderPartnerPincode()">'+cityOpts+'</select><span class="dump-info">'+fp.length+' partner rows · '+fn.length+' pincode rows · sorted by 5+d aging ↓</span></div>'
