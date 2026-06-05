@@ -996,6 +996,7 @@ const secOpen={active:true,red:true,amber:true,green:true};
 function toggleSec(k){ secOpen[k]=!secOpen[k]; renderOverview(); }
 
 function renderOverview(){
+  try{
   const rows=sorted(filtered(compute(cityData,trigMult)));
   const secs=[
     {key:'active',label:'Active',  icon:'✈',col:'var(--blue)', bg:'var(--s-active)',note:'deact-ready first'},
@@ -1041,6 +1042,7 @@ function renderOverview(){
     }
   });
   document.getElementById('city-tbody').innerHTML=html;
+  }catch(e){console.error('renderOverview ERROR:',e.message,e.stack);document.getElementById('city-tbody').innerHTML='<tr><td colspan="11" style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">Render error: '+e.message+'</td></tr>';}
 }
 function toggleDD(city){
   selCity=selCity===city?null:city;
