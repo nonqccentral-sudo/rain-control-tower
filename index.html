@@ -576,8 +576,8 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLHUYJD0e3RB7hyLdfJbxwldZ4aomXDnCO5dSDujwvVlW2ln51RQP88dD54hVVVMbmvg/exec';
-const DEFAULT_PIN        = '1mg2026';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxo1h7BJl8ie9mPNo9J_iEeeobSlf4WkktliC1PPQsh30pdFXX_GWnx9upOFRadf9FW/exec';
+const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let cityData=[], fcData=[], mtdData=[];
@@ -871,6 +871,7 @@ async function syncState(){
   try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
   try{ const mx=await apsFetch(url+'?action=getMetrics'); if(mx&&mx.status!=='error'&&Array.isArray(mx.rows)) metricsData=mx.rows; }catch(e){}
+  try{ const calls=await apsFetch(url+'?action=getCallLog'); if(calls&&calls.status!=='error'&&Array.isArray(calls.rows)){calls.rows.forEach(r=>{if(r.order_id&&!callLog[r.order_id])callLog[r.order_id]={done:true,remark:r.remark||'',ts:r.ts||'',by:r.by||''};});}  }catch(e){}
   try{ const cp=await apsFetch(url+'?action=getCpDump'); if(cp&&cp.status!=='error'&&Array.isArray(cp.orders)) cpDump=cp.orders; }catch(e){}
   try{ const ah=await apsFetch(url+'?action=getAdherenceStats'); if(ah&&ah.status!=='error') adherence={denominator:ah.denominator||0,numerator:ah.numerator||0,reset_date:ah.reset_date||null}; }catch(e){}
   maybeAppendSeenOrders();
@@ -898,7 +899,7 @@ function compute(rows,mult){
   const dc=getDC();
   return rows.map(r=>{
     const bau   =r.bau_pipeline||0;
-    const tatAdv=(r.surface_tat||0)-(r.air_tat||0);
+    const tatAdv=Math.max(0,(r.surface_tat||0)-(r.air_tat||0)); // Can't be negative
     // If bau=0 AND tatAdv=0, no trigger baseline — set trig=999 so city stays Normal
     const trigBase=(bau+tatAdv)>0?(bau+tatAdv):999;
     const trig  =trigBase*mult;
@@ -1186,8 +1187,8 @@ function renderNetworkSummary(){
     const gt5=r.aging_gt5d||0;
     return '<div class="ns-city-card" style="border-color:'+col+'" onclick="goToCityDD(\''+r.city+'\')"><div class="ns-city-name" style="color:'+col+'">'+r.city+'</div><div class="ns-city-meta">'+r.pipeline_days.toFixed(1)+'d · '+status+'</div><div class="ns-city-meta" style="margin-top:3px">'+r.inflow.toLocaleString('en-IN')+'/day'+(gt5>0?' · <span style="color:var(--red)">⚠'+gt5+' 5+d</span>':'')+'</div></div>';
   }).join('');
-  renderMetricsTable();
   el.innerHTML='<div class="ns-wrap"><div id="ns-metrics"></div><div class="ns-card"><div class="ns-lbl">📡 Network Summary — D-1</div><div class="ns-body">'+parts.join(' ')+'</div></div><div><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">All Cities — click to open drilldown</div><div class="ns-city-grid">'+cityGrid+'</div></div></div>';
+  setTimeout(renderMetricsTable, 0);
 }
 
 // ── CITY OVERVIEW ─────────────────────────────────────────────────────────────
@@ -1406,7 +1407,8 @@ function renderSim(){
 function callCell(orderId){
   var cl=callLog[orderId];
   if(cl&&cl.done){
-    return '<td><span class="btn-call done" title="'+escHtml(cl.remark||'')+'">✓ Called</span></td>';
+    return '<td><span class="btn-call done">✓ Called</span>'
+      +(cl.remark?'<div style="font-family:monospace;font-size:10px;color:var(--teal);margin-top:2px;max-width:160px;word-break:break-word">'+escHtml(cl.remark)+'</div>':'')+'</td>';
   }
   return '<td>'
     +'<button class="btn-call" data-oid="'+orderId+'" onclick="showCallInput(this)">📞 Calling Done</button>'
@@ -1484,7 +1486,7 @@ function renderDump(){
     cRows+=closedRows.map(o=>{const info=dumpActioned[o.order_id]||{};return '<tr class="r-closed-row"><td></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td><td style="font-size:11px">'+(o.partner_name||'')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td colspan="2" style="font-family:monospace;font-size:11px;color:var(--muted)">'+(info.by||'')+'</td></tr>';}).join('');
   }
   el.innerHTML='<div id="dump-msg" class="dump-msg" style="display:none"></div>'
-    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export Unactioned FC CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, replacement_order_id, mode (AIR/SURFACE/LOCAL required), remarks</span></div></div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, status (Replaced/Closed/Delivered/Cancelled), replacement_order_id, mode (AIR/SURFACE/LOCAL), calling_done (Yes/No), calling_remark — leave blank for no change</span></div></div>'
     +'<div class="dump-bar"><select class="dump-sel" onchange="dumpCityFilter=this.value;renderDump()">'+cityOpts+'</select><select class="dump-sel" style="min-width:75px" onchange="dumpStoreFilter=this.value;renderDump()">'+storeOpts+'</select><span class="dump-info" id="dump-info-span">FC: <b>'+fcCount+'</b> · MP: <b>'+mpCount+'</b> · '+unactioned.length+' unactioned · '+pending.length+' pending</span><div class="dump-btns"><button class="btn-air" onclick="markSelectedForAir()">✈ Cancel &amp; Replace</button><button class="btn-close-action" onclick="markSelectedClosed()">✕ Mark as Closed</button><button class="btn-submit" onclick="submitDumpActions()">✓ Submit</button></div></div>'
     +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th>'+thSort('Order ID','order_id',dumpSort,'setDumpSort')+thSort('City','city',dumpSort,'setDumpSort')+thSort('Pincode','pincode',dumpSort,'setDumpSort')+thSort('Partner','partner_name',dumpSort,'setDumpSort')+thSort('Pickup Date','pickup_date',dumpSort,'setDumpSort')+thSort('ETA','promised_delivery_date',dumpSort,'setDumpSort')+thSort('Aging','aging_days',dumpSort,'setDumpSort')+'<th>Attempts (CP)</th><th>Status</th><th>Calling</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
     +(airActioned.length||closedRows.length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Replacement ID / Mode</th><th>By</th></tr></thead><tbody>'+pRows+aRows+cRows+'</tbody></table></div>':'');
@@ -1559,34 +1561,114 @@ async function finaliseDumpSubmit(pairs){
   renderDump();
 }
 function exportDumpCSV(){
+  // Export ALL unactioned orders (FC + MP) for the current city filter
   const closedSet=new Set(Object.keys(dumpActioned).filter(id=>dumpActioned[id].action==='CLOSED'));
-  const rows=(dumpCityFilter==='Pan-India'?orderDump:orderDump.filter(o=>nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase())).filter(o=>(o.store_type||'FC').toUpperCase()==='FC'&&!dumpActioned[o.order_id]&&!closedSet.has(o.order_id));
-  if(!rows.length){ showDumpMsg('No unactioned FC orders.','err'); return; }
-  const hdr='order_id,city,pincode,partner_name,pickup_date,eta,current_status,aging_days,store_type,delivery_attempts,replacement_order_id,mode,remarks';
-  const lines=rows.map(o=>{ const a=cpAttempts(o.order_id); return [o.order_id,o.city,o.pincode||'',o.partner_name||'',o.pickup_date||'',(o.promised_delivery_date||''),o.current_status||'',o.aging_days,'FC',a!==null?a:'','','',''].join(','); });
-  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([hdr,...lines].join('\n')); a.download='heimdall_FC_dump_'+now().slice(0,10)+'.csv'; a.click();
+  const rows=(dumpCityFilter==='Pan-India'?orderDump:orderDump.filter(o=>nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase()))
+    .filter(o=>!dumpActioned[o.order_id]&&!closedSet.has(o.order_id));
+  if(!rows.length){ showDumpMsg('No unactioned orders to export.','err'); return; }
+  // Instructions row
+  const instructions=[
+    '# HEIMDALL BULK ACTION CSV — Instructions:',
+    '# status: leave blank (no action) | Closed | Delivered | Cancelled | Replaced',
+    '# replacement_order_id: REQUIRED only if status=Replaced',
+    '# mode: AIR / SURFACE / LOCAL — REQUIRED if status=Replaced',
+    '# calling_done: Yes / No',
+    '# calling_remark: REQUIRED if calling_done=Yes',
+    '# Leave any column blank to make no change to that field',
+    '#',
+  ].join('\n');
+  const hdr='order_id,city,pincode,partner_name,pickup_date,eta,current_status,aging_days,store_type,delivery_attempts,latest_cp_remark,replacement_order_id,mode,status,calling_done,calling_remark';
+  const lines=rows.map(o=>{
+    const att=cpAttempts(o.order_id);
+    const cpRem=cpStatus(o.order_id)||'';
+    const cl=callLog[o.order_id];
+    const callingDone=cl&&cl.done?'Yes':'';
+    const callingRem=cl&&cl.remark?cl.remark:'';
+    return [
+      o.order_id, o.city, o.pincode||'', o.partner_name||'',
+      o.pickup_date||'', o.promised_delivery_date||'',
+      o.current_status||'', o.aging_days||'', o.store_type||'FC',
+      att!==null?att:'', cpRem,
+      '','','','', // replacement_order_id, mode, status, calling_done
+      callingDone, callingRem
+    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(instructions+'\n'+hdr+'\n'+lines.join('\n'));
+  a.download='heimdall_dump_'+now().slice(0,10)+'.csv';
+  a.click();
 }
 function handleCSVUpload(evt){ const file=evt.target.files[0]; if(!file) return; evt.target.value=''; const reader=new FileReader(); reader.onload=e=>{ try{ processUploadCSV(e.target.result); }catch(ex){ showUploadMsg('Parse error: '+ex.message,'err'); } }; reader.readAsText(file); }
-function processUploadCSV(text){
-  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
-  if(lines.length<2){ showUploadMsg('CSV is empty.','err'); return; }
-  const hdrs=lines[0].toLowerCase().split(',').map(h=>h.trim().replace(/"/g,''));
-  const idIdx=hdrs.indexOf('order_id'), replIdx=hdrs.indexOf('replacement_order_id'), modeIdx=hdrs.indexOf('mode'), remIdx=hdrs.indexOf('remarks');
-  if(idIdx<0){ showUploadMsg('CSV must have column: order_id','err'); return; }
-  if(modeIdx<0){ showUploadMsg('CSV must have column: mode (AIR or SURFACE)','err'); return; }
-  const parsed=[];
-  for(let i=1;i<lines.length;i++){
-    const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
-    const id=cols[idIdx]||''; if(!id) continue;
-    const repl=replIdx>=0?(cols[replIdx]||''):'';
-    const mode=(modeIdx>=0?(cols[modeIdx]||'').toUpperCase().trim():'');
-    if(mode!=='AIR'&&mode!=='SURFACE'&&mode!=='LOCAL'){ showUploadMsg('Row '+(i)+': mode must be AIR, SURFACE or LOCAL for order '+id,'err'); return; }
-    parsed.push({id,repl,mode,remarks:remIdx>=0?(cols[remIdx]||''):''});
+function parseCSVLine(line){
+  // Handle quoted CSV fields properly
+  const result=[]; let cur='', inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(ch===','&&!inQ){result.push(cur.trim());cur='';}
+    else cur+=ch;
   }
-  const already=parsed.filter(p=>!!dumpActioned[p.id]);
-  if(already.length){ showUploadMsg('Already actioned: '+already.map(p=>p.id).join(', '),'err'); return; }
-  parsed.forEach(p=>{ dumpPending[p.id]=p.repl.toLowerCase()==='closed'?{repl:'closed',mode:'',err:false}:{repl:p.repl,mode:p.mode,err:false,remarks:p.remarks||''}; });
-  showUploadMsg(parsed.length+' orders loaded. Click Submit to finalise.','ok');
+  result.push(cur.trim());
+  return result;
+}
+
+function processUploadCSV(text){
+  // Skip instruction lines starting with #
+  const allLines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
+  if(allLines.length<2){ showUploadMsg('CSV is empty.','err'); return; }
+  const hdrs=parseCSVLine(allLines[0]).map(h=>h.toLowerCase().replace(/"/g,'').trim());
+  const col=k=>hdrs.indexOf(k);
+  const idIdx=col('order_id');
+  if(idIdx<0){ showUploadMsg('CSV must have column: order_id','err'); return; }
+  const replIdx=col('replacement_order_id'), modeIdx=col('mode'), statusIdx=col('status');
+  const callingIdx=col('calling_done'), callingRemIdx=col('calling_remark');
+
+  const toAction=[], toCalling=[];
+  for(let i=1;i<allLines.length;i++){
+    const cols=parseCSVLine(allLines[i]);
+    const id=(cols[idIdx]||'').replace(/"/g,'').trim(); if(!id) continue;
+    const status=statusIdx>=0?(cols[statusIdx]||'').trim():'';
+    const repl=replIdx>=0?(cols[replIdx]||'').trim():'';
+    const mode=modeIdx>=0?(cols[modeIdx]||'').toUpperCase().trim():'';
+    const callingDone=callingIdx>=0?(cols[callingIdx]||'').trim().toLowerCase():'';
+    const callingRem=callingRemIdx>=0?(cols[callingRemIdx]||'').trim():'';
+
+    // Validate
+    const statusLower=status.toLowerCase();
+    const isReplaced=statusLower==='replaced';
+    const isClosed=['closed','delivered','cancelled'].includes(statusLower);
+    if(status&&!isReplaced&&!isClosed){ showUploadMsg('Row '+(i)+': status must be Replaced/Closed/Delivered/Cancelled or blank. Got: '+status,'err'); return; }
+    if(isReplaced&&!repl){ showUploadMsg('Row '+(i)+': replacement_order_id required when status=Replaced','err'); return; }
+    if(isReplaced&&mode&&!['AIR','SURFACE','LOCAL'].includes(mode)){ showUploadMsg('Row '+(i)+': mode must be AIR/SURFACE/LOCAL','err'); return; }
+    if(callingDone==='yes'&&!callingRem){ showUploadMsg('Row '+(i)+': calling_remark required when calling_done=Yes','err'); return; }
+
+    // Queue actions
+    if(status&&!dumpActioned[id]){
+      if(isReplaced) toAction.push({id,action:'REPLACED',repl,mode:mode||'AIR'});
+      else if(isClosed) toAction.push({id,action:'CLOSED',repl:'',mode:''});
+    }
+    if(callingDone==='yes'&&callingRem&&!callLog[id]){
+      toCalling.push({id,remark:callingRem});
+    }
+  }
+
+  if(!toAction.length&&!toCalling.length){ showUploadMsg('No actionable rows found (all blank or already actioned).','err'); return; }
+
+  // Apply actions
+  const ts=now(), who=actionedBy();
+  toAction.forEach(function(a){
+    dumpActioned[a.id]={action:a.action,repl:a.repl,mode:a.mode,by:who,ts};
+  });
+  toCalling.forEach(function(a){
+    callLog[a.id]={done:true,remark:a.remark,ts,by:who};
+    // Write call to Apps Script
+    const url=scriptURL(); if(!url) return;
+    const p=new URLSearchParams({action:'logCall',order_id:a.id,remark:a.remark,ts,by:who});
+    apsFetch(url+'?'+p.toString()).catch(e=>console.warn('logCall:',e.message));
+  });
+  saveDumpActioned();
+  if(toAction.length) finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+  showUploadMsg((toAction.length?toAction.length+' orders actioned. ':'')+(toCalling.length?toCalling.length+' calls logged.':''),'ok');
   renderDump();
 }
 
@@ -1609,7 +1691,7 @@ function renderReplacement(){
   function statusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
   function agingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
   const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Status</th><th>Aging</th></tr>';
-  function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
+  function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
   let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
   html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">📦 Open Replaced Orders ('+open.length+') — SQL updates ETA / Status / Aging nightly</div>';
   html+=open.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+open.map(o=>mkRow(o,true)).join('')+'</tbody></table>':'<div style="font-size:12px;color:var(--muted)">No open replaced orders.</div>';
