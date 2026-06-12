@@ -201,6 +201,17 @@ td{padding:9px 9px;vertical-align:middle;}
 
 /* ─── v2.2 additions ─── */
 
+.metrics-table-wrap{background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:18px;margin-bottom:14px;overflow-x:auto;}
+.metrics-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+.metrics-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.metrics-tbl th{padding:6px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap;}
+.metrics-tbl th:hover{color:var(--text);}
+.metrics-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);font-family:'DM Mono';font-size:11px;}
+.metrics-tbl tr.expandable{cursor:pointer;} .metrics-tbl tr.expandable:hover td{background:var(--bg3);}
+.metrics-tbl tr.week-row td{background:var(--bg2);font-size:10px;color:var(--muted);}
+.delta-green{color:var(--green);font-weight:600;} .delta-red{color:var(--red);font-weight:600;}
+
+
 /* CP badge pulse */
 @keyframes cp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
 .cp-badge{font-family:'DM Mono';font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber);background:var(--abg);cursor:pointer;animation:cp-pulse 1.5s infinite;white-space:nowrap;display:inline-block;margin-left:4px;}
@@ -234,6 +245,11 @@ td{padding:9px 9px;vertical-align:middle;}
 .btn-submit:hover{background:var(--bg4);border-color:var(--text);}
 .repl-inp{background:var(--input-bg);border:1px solid var(--blue);color:var(--text);font-family:'DM Mono';font-size:11px;padding:4px 8px;border-radius:4px;width:175px;}
 .repl-inp.err{border-color:var(--red);}
+.call-inp{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:11px;padding:4px 8px;border-radius:4px;width:180px;}
+.call-inp:focus{outline:none;border-color:var(--teal);}
+.btn-call{background:var(--card);border:1px solid var(--teal);color:var(--teal);font-family:'DM Mono';font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.btn-call.done{background:var(--gbg);border-color:var(--green);color:var(--green);}
+.btn-call:hover{background:var(--teal);color:#fff;}
 .repl-inp:focus{outline:none;}
 .dump-msg{border-radius:7px;padding:8px 12px;font-size:12px;font-family:'DM Mono';margin-bottom:10px;}
 .dump-msg.err{background:var(--rbg);border:1px solid var(--red);color:var(--red);}
@@ -560,8 +576,8 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxo1h7BJl8ie9mPNo9J_iEeeobSlf4WkktliC1PPQsh30pdFXX_GWnx9upOFRadf9FW/exec';
-const DEFAULT_PIN        = '1mg2025';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLHUYJD0e3RB7hyLdfJbxwldZ4aomXDnCO5dSDujwvVlW2ln51RQP88dD54hVVVMbmvg/exec';
+const DEFAULT_PIN        = '1mg2026';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let cityData=[], fcData=[], mtdData=[];
@@ -574,9 +590,9 @@ let syncCountdown=5, syncTimer=null;
 let cfgExpanded=false, cfgUnlocked=false;
 // v2.2 state
 let currentUser=null;
-let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[];
+let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[];
 let dumpCityFilter='Pan-India', dumpStoreFilter='All';
-let dumpPending={}, dumpActioned={};
+let dumpPending={}, dumpActioned={}, callLog={};
 let ppCityFilter='All', ppPartnerOpen=true, ppPincodeOpen=true;
 let adherence={denominator:0, numerator:0, reset_date:null};
 let syncRunning=false;
@@ -854,6 +870,7 @@ async function syncState(){
   try{ const od=await apsFetch(url+'?action=getOrderDump'); if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
+  try{ const mx=await apsFetch(url+'?action=getMetrics'); if(mx&&mx.status!=='error'&&Array.isArray(mx.rows)) metricsData=mx.rows; }catch(e){}
   try{ const cp=await apsFetch(url+'?action=getCpDump'); if(cp&&cp.status!=='error'&&Array.isArray(cp.orders)) cpDump=cp.orders; }catch(e){}
   try{ const ah=await apsFetch(url+'?action=getAdherenceStats'); if(ah&&ah.status!=='error') adherence={denominator:ah.denominator||0,numerator:ah.numerator||0,reset_date:ah.reset_date||null}; }catch(e){}
   maybeAppendSeenOrders();
@@ -1007,6 +1024,124 @@ function renderKPIs(){
   setText('k-month-cost-sub',(fcLoaded&&mtdLoaded)?getMonthName():(mtdLoaded?'MTD only':'—'));
 }
 
+
+// ── HEIMDALL METRICS TABLE ────────────────────────────────────────────────────
+let metricsExpanded={}; // month keys that are expanded to show weeks
+
+function toggleMetrics(mk){ metricsExpanded[mk]=!metricsExpanded[mk]; renderMetricsTable(); }
+function renderMetricsTable(){
+  var el=document.getElementById('ns-metrics');
+  if(!el) return;
+  if(!metricsData.length){
+    el.innerHTML='<div class="metrics-table-wrap"><div class="metrics-title">Heimdall Success Metrics</div>'
+      +'<div style="font-size:12px;color:var(--muted);font-family:monospace">No data. SQL team must populate HEIMDALL_METRICS tab.</div></div>';
+    return;
+  }
+  // Group by year+month
+  var byMonth={};
+  metricsData.forEach(function(r){
+    var key=r.year+'_'+String(r.month).padStart(2,'0');
+    if(!byMonth[key]) byMonth[key]={year:+r.year,month:+r.month,name:r.month_name||key,weeks:[]};
+    byMonth[key].weeks.push(r);
+  });
+  var months=Object.keys(byMonth).sort();
+
+  // Build comparison: for each month, find 2025 and 2026 equivalents
+  var pairs={};
+  months.forEach(function(k){
+    var m=byMonth[k];
+    var mKey=String(m.month).padStart(2,'0');
+    if(!pairs[mKey]) pairs[mKey]={m2025:null,m2026:null,name:null};
+    if(m.year===2025) pairs[mKey].m2025=m;
+    if(m.year===2026) pairs[mKey].m2026=m;
+    if(!pairs[mKey].name) pairs[mKey].name=m.month_name||mKey;
+  });
+
+  function aggWeeks(weeks){
+    var total=weeks.reduce(function(s,r){return s+(+r.total_closed||0);},0)||1;
+    return {
+      sla:   weeks.reduce(function(s,r){return s+(+r.sla_breach_pct||0);},0)/weeks.length,
+      lt:    weeks.reduce(function(s,r){return s+(+r.long_tail_pct||0);},0)/weeks.length,
+      tat:   weeks.reduce(function(s,r){return s+(+r.avg_tat_days||0);},0)/weeks.length,
+      lte0:  weeks.reduce(function(s,r){return s+(+r.closed_lte0d||0);},0),
+      d1_5:  weeks.reduce(function(s,r){return s+(+r.closed_1_5d||0);},0),
+      d6_8:  weeks.reduce(function(s,r){return s+(+r.closed_6_8d||0);},0),
+      d9_10: weeks.reduce(function(s,r){return s+(+r.closed_9_10d||0);},0),
+      d11_15:weeks.reduce(function(s,r){return s+(+r.closed_11_15d||0);},0),
+      d15:   weeks.reduce(function(s,r){return s+(+r.closed_gt15d||0);},0),
+      total: weeks.reduce(function(s,r){return s+(+r.total_closed||0);},0),
+    };
+  }
+
+  function delta(v25,v26,lowerIsBetter){
+    if(v25===null||v26===null) return '<td>—</td>';
+    var d=(v26-v25).toFixed(1);
+    var good=lowerIsBetter?(+d<=0):(+d>=0);
+    return '<td class="'+(good?'delta-green':'delta-red')+'">'+(+d>0?'+':'')+d+'</td>';
+  }
+
+  function fmt(v,decimals){ return v===null||isNaN(v)?'—':(+v).toFixed(decimals||1); }
+
+  var mKeys=Object.keys(pairs).sort();
+  var html='<div class="metrics-table-wrap"><div class="metrics-title">Heimdall Success Metrics — Click month to expand weeks</div>'
+    +'<table class="metrics-tbl"><thead><tr>'
+    +'<th>Month</th><th>Year</th>'
+    +'<th>SLA Breach%</th><th>Long Tail%</th><th>Avg TAT</th>'
+    +'<th>≤ETA</th><th>1–5d</th><th>6–8d</th><th>9–10d</th><th>11–15d</th><th>>15d</th><th>Total Closed</th>'
+    +'<th class="delta-green">Δ SLA%</th><th class="delta-green">Δ LT%</th><th class="delta-green">Δ TAT</th>'
+    +'</tr></thead><tbody>';
+
+  mKeys.forEach(function(mk){
+    var p=pairs[mk];
+    var a25=p.m2025?aggWeeks(p.m2025.weeks):null;
+    var a26=p.m2026?aggWeeks(p.m2026.weeks):null;
+    var expanded=metricsExpanded[mk];
+    var yearLabel=p.m2025&&p.m2026?'2025 vs 2026':p.m2025?'2025':p.m2026?'2026':'—';
+
+    // Month row (2026 data, or 2025 if no 2026)
+    var aShow=a26||a25;
+    if(aShow){
+    html+='<tr class="expandable" onclick="toggleMetrics(\"'+mk+'\")">'
+        +'<td><b>'+(p.name||mk)+'</b> '+(expanded?'▾':'▸')+'</td>'
+        +'<td style="color:var(--muted)">'+yearLabel+'</td>'
+        +'<td>'+fmt(aShow.sla)+'%</td><td>'+fmt(aShow.lt)+'%</td><td>'+fmt(aShow.tat)+'d</td>'
+        +'<td>'+aShow.lte0+'</td><td>'+aShow.d1_5+'</td><td>'+aShow.d6_8+'</td>'
+        +'<td>'+aShow.d9_10+'</td><td>'+aShow.d11_15+'</td><td>'+aShow.d15+'</td>'
+        +'<td style="font-weight:600">'+aShow.total+'</td>'
+        +delta(a25?a25.sla:null,a26?a26.sla:null,true)
+        +delta(a25?a25.lt:null,a26?a26.lt:null,true)
+        +delta(a25?a25.tat:null,a26?a26.tat:null,true)
+        +'</tr>';
+    }
+
+    // Week drill-down rows
+    if(expanded){
+      // Pair 2025 and 2026 weeks by week_number
+      var weeks25={}, weeks26={};
+      if(p.m2025) p.m2025.weeks.forEach(function(w){weeks25[w.week_number]=w;});
+      if(p.m2026) p.m2026.weeks.forEach(function(w){weeks26[w.week_number]=w;});
+      var wNums=Array.from(new Set(Object.keys(weeks25).concat(Object.keys(weeks26)))).sort();
+      wNums.forEach(function(wn){
+        var w25=weeks25[wn], w26=weeks26[wn];
+        var wShow=w26||w25;
+        var wLabel='Wk '+wn+(wShow?' ('+wShow.week_start+')':'');
+        html+='<tr class="week-row"><td style="padding-left:24px">'+wLabel+'</td>'
+          +'<td style="color:var(--muted)">'+(w25?'25':'')+(w25&&w26?'/':'')+(w26?'26':'')+'</td>'
+          +'<td>'+fmt(wShow.sla_breach_pct)+'%</td><td>'+fmt(wShow.long_tail_pct)+'%</td><td>'+fmt(wShow.avg_tat_days)+'d</td>'
+          +'<td>'+(wShow.closed_lte0d||0)+'</td><td>'+(wShow.closed_1_5d||0)+'</td><td>'+(wShow.closed_6_8d||0)+'</td>'
+          +'<td>'+(wShow.closed_9_10d||0)+'</td><td>'+(wShow.closed_11_15d||0)+'</td><td>'+(wShow.closed_gt15d||0)+'</td>'
+          +'<td>'+(wShow.total_closed||0)+'</td>'
+          +delta(w25?+w25.sla_breach_pct:null,w26?+w26.sla_breach_pct:null,true)
+          +delta(w25?+w25.long_tail_pct:null,w26?+w26.long_tail_pct:null,true)
+          +delta(w25?+w25.avg_tat_days:null,w26?+w26.avg_tat_days:null,true)
+          +'</tr>';
+      });
+    }
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
 // ── NETWORK SUMMARY ───────────────────────────────────────────────────────────
 function renderNetworkSummary(){
   const el=document.getElementById('ns-body'); if(!el) return;
@@ -1051,13 +1186,33 @@ function renderNetworkSummary(){
     const gt5=r.aging_gt5d||0;
     return '<div class="ns-city-card" style="border-color:'+col+'" onclick="goToCityDD(\''+r.city+'\')"><div class="ns-city-name" style="color:'+col+'">'+r.city+'</div><div class="ns-city-meta">'+r.pipeline_days.toFixed(1)+'d · '+status+'</div><div class="ns-city-meta" style="margin-top:3px">'+r.inflow.toLocaleString('en-IN')+'/day'+(gt5>0?' · <span style="color:var(--red)">⚠'+gt5+' 5+d</span>':'')+'</div></div>';
   }).join('');
-  el.innerHTML='<div class="ns-wrap"><div class="ns-card"><div class="ns-lbl">📡 Network Summary — D-1</div><div class="ns-body">'+parts.join(' ')+'</div></div><div><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">All Cities — click to open drilldown</div><div class="ns-city-grid">'+cityGrid+'</div></div></div>';
+  renderMetricsTable();
+  el.innerHTML='<div class="ns-wrap"><div id="ns-metrics"></div><div class="ns-card"><div class="ns-lbl">📡 Network Summary — D-1</div><div class="ns-body">'+parts.join(' ')+'</div></div><div><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">All Cities — click to open drilldown</div><div class="ns-city-grid">'+cityGrid+'</div></div></div>';
 }
 
 // ── CITY OVERVIEW ─────────────────────────────────────────────────────────────
 const secOpen={active:true,red:true,amber:true,green:true};
-let ovSort={col:'inflow',dir:-1}; // default: inflow descending
+let ovSort={col:'inflow',dir:-1};
+let dumpSort={col:'aging_days',dir:-1};    // High Ageing: oldest first
+let repSort={col:'actioned_on',dir:-1};    // Replaced: newest first
+let ppPartnerSort={col:'aging_gt5d_count',dir:-1};
+let ppPincodeSort={col:'aging_gt5d_count',dir:-1};
 function toggleSec(k){ secOpen[k]=!secOpen[k]; renderOverview(); }
+
+function sortRows(rows, col, dir){
+  return [...rows].sort(function(a,b){
+    var av=a[col], bv=b[col];
+    if(av===undefined||av===null||av==='') av=dir>0?'ZZZZ':-999999;
+    if(bv===undefined||bv===null||bv==='') bv=dir>0?'ZZZZ':-999999;
+    if(typeof av==='string'&&typeof bv==='string') return dir*(av<bv?-1:av>bv?1:0);
+    return dir*((+bv)-(+av));
+  });
+}
+
+function thSort(label,col,sortObj,fn){
+  var arrow=sortObj.col===col?(sortObj.dir>0?' ↑':' ↓'):'';
+  return '<th data-col="'+col+'" data-fn="'+fn+'" class="sortable-th" style="cursor:pointer;user-select:none">'+label+arrow+'</th>';
+}
 function setOvSort(col){
   if(ovSort.col===col) ovSort.dir*=-1;
   else ovSort={col,dir:-1};
@@ -1246,11 +1401,49 @@ function renderSim(){
     <table class="sens-tbl"><thead>${sensHeader}</thead><tbody>${sensRows}${sensTotal}</tbody></table></div>`;
 }
 
+
+// ── CALLING DONE ──────────────────────────────────────────────────────────────
+function callCell(orderId){
+  var cl=callLog[orderId];
+  if(cl&&cl.done){
+    return '<td><span class="btn-call done" title="'+escHtml(cl.remark||'')+'">✓ Called</span></td>';
+  }
+  return '<td>'
+    +'<button class="btn-call" data-oid="'+orderId+'" onclick="showCallInput(this)">📞 Calling Done</button>'
+    +'<div class="call-inp-wrap" style="display:none;margin-top:4px">'
+    +'<input class="call-inp" placeholder="Call remark..." />'
+    +'<button data-oid="'+orderId+'" onclick="saveCall(this)" style="margin-left:4px;background:var(--teal);border:none;color:#fff;font-family:monospace;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer">Save</button>'
+    +'</div></td>';
+}
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showCallInput(btn){
+  var td=btn.closest('td');
+  var d=td?td.querySelector('.call-inp-wrap'):null;
+  if(d){ d.style.display=d.style.display==='none'?'block':'none'; }
+}
+function saveCall(btn){
+  var orderId=btn.getAttribute('data-oid');
+  var inp=btn.previousElementSibling;
+  var remark=(inp?inp.value.trim():'');
+  if(!remark){ alert('Please enter a call remark.'); return; }
+  callLog[orderId]={done:true,remark,ts:now(),by:actionedBy()};
+  // Write to Apps Script CALL_LOG
+  var url=scriptURL(); if(!url){ renderDump(); return; }
+  var p=new URLSearchParams({action:'logCall',order_id:orderId,remark,ts:callLog[orderId].ts,by:callLog[orderId].by});
+  apsFetch(url+'?'+p.toString()).then(function(r){
+    console.log('Call logged:',r&&r.status);
+  }).catch(function(e){ console.warn('logCall:',e.message); });
+  renderDump();
+}
 // ── HIGH AGEING DUMP ──────────────────────────────────────────────────────────
 function effectiveDumpCount(){
   // Orders in dump minus those already actioned (replaced or closed)
   const actionedIds=new Set(Object.keys(dumpActioned));
   return orderDump.filter(o=>!actionedIds.has(o.order_id)).length;
+}
+function setDumpSort(col){
+  if(dumpSort.col===col) dumpSort.dir*=-1; else dumpSort={col,dir:-1};
+  renderDump();
 }
 function renderDump(){
   const el=document.getElementById('dump-body'); if(!el) return;
@@ -1263,7 +1456,7 @@ function renderDump(){
   const fcCount=cityFiltered.filter(o=>(o.store_type||'FC').toUpperCase()==='FC').length;
   const mpCount=cityFiltered.filter(o=>(o.store_type||'').toUpperCase()==='MP').length;
   const closedIds=new Set(Object.keys(dumpActioned).filter(id=>dumpActioned[id].action==='CLOSED'));
-  const unactioned=storeFiltered.filter(o=>!dumpPending[o.order_id]&&!dumpActioned[o.order_id]&&!closedIds.has(o.order_id)).sort((a,b)=>(b.aging_days||0)-(a.aging_days||0));
+  const unactioned=sortRows(storeFiltered.filter(o=>!dumpPending[o.order_id]&&!dumpActioned[o.order_id]&&!closedIds.has(o.order_id)),dumpSort.col,dumpSort.dir);
   const pending   =storeFiltered.filter(o=>!!dumpPending[o.order_id]);
   const dumpLookup={}; orderDump.forEach(o=>{ dumpLookup[o.order_id]=o; });
   const airActioned=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED').filter(p=>{ const o=dumpLookup[p[0]]; if(!o) return true; const st=(o.store_type||'FC').toUpperCase(); return dumpStoreFilter==='All'||dumpStoreFilter===st; }).filter(p=>{ const o=dumpLookup[p[0]]; return !o?isPI:isPI||nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase(); }).map(p=>dumpLookup[p[0]]||{order_id:p[0],city:'',pincode:'',partner_name:'',pickup_date:'',promised_delivery_date:'',current_status:'',aging_days:0,store_type:'FC'});
@@ -1274,7 +1467,7 @@ function renderDump(){
   function attCell(id){ const a=cpAttempts(id); const s=cpStatus(id); var out=a!==null?String(a):'—'; if(s) out+='<div style="font-family:monospace;font-size:9px;color:var(--muted);margin-top:1px">'+s+'</div>'; return out; }
   const cityOpts=cities.map(c=>'<option value="'+c+'"'+(nc(c).toLowerCase()===nc(dumpCityFilter).toLowerCase()?' selected':'')+'>'+c+'</option>').join('');
   const storeOpts=['All','FC','MP'].map(s=>'<option value="'+s+'"'+(s===dumpStoreFilter?' selected':'')+'>'+s+'</option>').join('');
-  const uRows=unactioned.length?unactioned.map(o=>{return '<tr class="data-row"><td><input type="checkbox" class="order-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px"></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'—')+'</td></tr>';}).join(''):'<tr><td colspan="10" style="padding:14px;font-family:monospace;font-size:12px;color:var(--muted);text-align:center">No unactioned orders</td></tr>';
+  const uRows=unactioned.length?unactioned.map(o=>{return '<tr class="data-row"><td><input type="checkbox" class="order-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px"></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'—')+'</td>'+callCell(o.order_id)+'</tr>';}).join(''):'<tr><td colspan="10" style="padding:14px;font-family:monospace;font-size:12px;color:var(--muted);text-align:center">No unactioned orders</td></tr>';
   let pRows='';
   if(pending.length){
     pRows='<tr style="background:var(--bbg);border-top:2px solid var(--blue)"><td colspan="11" style="padding:8px 12px"><div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px"><span style="color:var(--blue);font-weight:600">✈ PENDING ('+pending.length+')</span><span style="color:var(--muted)">Set all:</span><button onclick="setAllMode(\'AIR\')" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Air</button><button onclick="setAllMode(\'SURFACE\')" style="background:var(--gbg);border:1px solid var(--green);color:var(--green);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Surface</button><button onclick="setAllMode(\'LOCAL\')" style="background:var(--abg);border:1px solid var(--amber);color:var(--amber);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Local</button></div></td></tr>';
@@ -1293,7 +1486,7 @@ function renderDump(){
   el.innerHTML='<div id="dump-msg" class="dump-msg" style="display:none"></div>'
     +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export Unactioned FC CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, replacement_order_id, mode (AIR/SURFACE/LOCAL required), remarks</span></div></div>'
     +'<div class="dump-bar"><select class="dump-sel" onchange="dumpCityFilter=this.value;renderDump()">'+cityOpts+'</select><select class="dump-sel" style="min-width:75px" onchange="dumpStoreFilter=this.value;renderDump()">'+storeOpts+'</select><span class="dump-info" id="dump-info-span">FC: <b>'+fcCount+'</b> · MP: <b>'+mpCount+'</b> · '+unactioned.length+' unactioned · '+pending.length+' pending</span><div class="dump-btns"><button class="btn-air" onclick="markSelectedForAir()">✈ Cancel &amp; Replace</button><button class="btn-close-action" onclick="markSelectedClosed()">✕ Mark as Closed</button><button class="btn-submit" onclick="submitDumpActions()">✓ Submit</button></div></div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup Date</th><th>ETA</th><th>Aging</th><th>Attempts (CP)</th><th>Status</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th>'+thSort('Order ID','order_id',dumpSort,'setDumpSort')+thSort('City','city',dumpSort,'setDumpSort')+thSort('Pincode','pincode',dumpSort,'setDumpSort')+thSort('Partner','partner_name',dumpSort,'setDumpSort')+thSort('Pickup Date','pickup_date',dumpSort,'setDumpSort')+thSort('ETA','promised_delivery_date',dumpSort,'setDumpSort')+thSort('Aging','aging_days',dumpSort,'setDumpSort')+'<th>Attempts (CP)</th><th>Status</th><th>Calling</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
     +(airActioned.length||closedRows.length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Replacement ID / Mode</th><th>By</th></tr></thead><tbody>'+pRows+aRows+cRows+'</tbody></table></div>':'');
 }
 function showDumpMsg(msg,type){ const el=document.getElementById('dump-msg'); if(!el) return; el.textContent=msg; el.className='dump-msg'+(type?' '+type:''); el.style.display=msg?'block':'none'; }
@@ -1398,6 +1591,10 @@ function processUploadCSV(text){
 }
 
 // ── REPLACED ORDERS ───────────────────────────────────────────────────────────
+function setRepSort(col){
+  if(repSort.col===col) repSort.dir*=-1; else repSort={col,dir:-1};
+  renderReplacement();
+}
 function renderReplacement(){
   const el=document.getElementById('rep-body'); if(!el) return;
   try{
@@ -1406,12 +1603,12 @@ function renderReplacement(){
   const all=replacedOrders.concat(localRows);
   if(!all.length){ el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px"><div style="font-size:36px;margin-bottom:12px">📦</div><div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px">No replaced orders yet</div><div style="font-size:12px;color:var(--muted)">Cancel & Replace orders from the High Ageing Dump tab will appear here.</div></div>'; return; }
   function isTerminal(s){ const v=String(s||'').trim().toLowerCase(); return v==='delivered'||v==='cancelled'||v==='closed'; }
-  const open  =all.filter(o=>{ const s=String(o.new_status||'').trim().toLowerCase(); return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!==''); });
-  const closed=all.filter(o=>isTerminal(o.new_status));
+  const open  =sortRows(all.filter(o=>{ const s=String(o.new_status||'').trim().toLowerCase(); return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!==''); }),repSort.col,repSort.dir);
+  const closed=sortRows(all.filter(o=>isTerminal(o.new_status)),repSort.col,repSort.dir);
   function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
   function statusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
   function agingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
-  const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Attempts (CP)</th><th>Status</th><th>Aging</th></tr>';
+  const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Status</th><th>Aging</th></tr>';
   function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
   let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
   html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">📦 Open Replaced Orders ('+open.length+') — SQL updates ETA / Status / Aging nightly</div>';
@@ -1426,6 +1623,11 @@ function renderReplacement(){
 }
 
 // ── PARTNER & PINCODE ─────────────────────────────────────────────────────────
+function setPPSort(col,isPin){
+  if(isPin){ if(ppPincodeSort.col===col) ppPincodeSort.dir*=-1; else ppPincodeSort={col,dir:-1}; }
+  else { if(ppPartnerSort.col===col) ppPartnerSort.dir*=-1; else ppPartnerSort={col,dir:-1}; }
+  renderPartnerPincode();
+}
 function renderPartnerPincode(){
   const el=document.getElementById('pp-body'); if(!el) return;
   const cityMap=new Map();
@@ -1442,8 +1644,8 @@ function renderPartnerPincode(){
   const lR=v=>normV(v)>8?'red':normV(v)>=3?'amber':'green';
   const cR=v=>normV(v)>6?'red':normV(v)>=3?'amber':'green';
   const aR=v=>+v>20?'red':+v>=5?'amber':'green';
-  const srt=(a,b)=>((+b.aging_gt5d_count||0)-(+a.aging_gt5d_count||0))||((+b.orders_assigned||0)-(+a.orders_assigned||0));
-  const sp=[...fp].sort(srt); const sn=[...fn].sort(srt);
+  const sp=sortRows(fp,ppPartnerSort.col,ppPartnerSort.dir);
+  const sn=sortRows(fn,ppPincodeSort.col,ppPincodeSort.dir);
   const cc=isAll?'<th>City</th>':'';
   const pRows=sp.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-weight:600">'+(p.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_delivered||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),normV(p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),normV(p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),normV(p.cancellation_pct).toFixed(1)+'%')+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td></tr>';}).join('');
   const nRows=sn.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';const dp=[p.dominant_partner_1||p.dominant_partner||'',p.dominant_partner_2||''].filter(Boolean).join(' / ')||'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-family:monospace;font-size:11px;font-weight:600">'+(p.pincode||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),normV(p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),normV(p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),normV(p.cancellation_pct).toFixed(1)+'%')+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td><td style="font-size:11px;color:var(--muted)">'+dp+'</td></tr>';}).join('');
@@ -1453,11 +1655,11 @@ function renderPartnerPincode(){
     +'<div class="pp-section">'
       +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPartnerOpen=!ppPartnerOpen;renderPartnerPincode()">'
         +(ppPartnerOpen?'▾':'▸')+' '+partnerTitle+'</div>'
-      +(ppPartnerOpen?(sp.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+'<th>Partner</th><th>Assigned</th><th>Delivered</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th></tr></thead><tbody>'+pRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No partner data.</div>'):'')+'</div>'
+      +(ppPartnerOpen?(sp.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Partner','partner_name',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Assigned','orders_assigned',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Delivered','orders_delivered',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Open Pipeline','open_orders_pipeline',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Avg TAT','avg_tat',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('SLA Breach%','sla_breach_pct',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Long Tail%','long_tail_pct',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Cancel%','cancellation_pct',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('5+d Aging','aging_gt5d_count',ppPartnerSort,'(col)=>setPPSort(col,false)')+'</tr></thead><tbody>'+pRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No partner data.</div>'):'')+'</div>'
     +'<div class="pp-section">'
       +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPincodeOpen=!ppPincodeOpen;renderPartnerPincode()">'
         +(ppPincodeOpen?'▾':'▸')+' '+pincodeTitle+'</div>'
-      +(ppPincodeOpen?(sn.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+'<th>Pincode</th><th>Assigned</th><th>Open Pipeline</th><th>Avg TAT</th><th>SLA Breach%</th><th>Long Tail%</th><th>Cancel%</th><th>5+d Aging</th><th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No pincode data.</div>'):'')+'</div>';
+      +(ppPincodeOpen?(sn.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Pincode','pincode',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Assigned','orders_assigned',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Open Pipeline','open_orders_pipeline',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Avg TAT','avg_tat',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('SLA Breach%','sla_breach_pct',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Long Tail%','long_tail_pct',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Cancel%','cancellation_pct',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('5+d Aging','aging_gt5d_count',ppPincodeSort,'(col)=>setPPSort(col,true)')+'<th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No pincode data.</div>'):'')+'</div>';
 }
 
 // ── CHANGE LOG ────────────────────────────────────────────────────────────────
@@ -1582,6 +1784,15 @@ function setSyncNote(t){ document.getElementById('sync-note').textContent=t; }
 function updateFooter(){ document.getElementById('footer-r').textContent=[cityData.length?'CITY:'+cityData.length:'',fcLoaded?'FORECAST:✓':'',mtdLoaded?'MTD:✓':'',orderDump.length?'DUMP:'+orderDump.length:'',scriptURL()?'SCRIPT:✓':''].filter(Boolean).join(' · '); }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('click', function(e){
+  var th=e.target.closest('.sortable-th');
+  if(!th) return;
+  var col=th.getAttribute('data-col');
+  var fn=th.getAttribute('data-fn');
+  if(col&&fn){
+    try{ eval(fn+'("'+col+'")'); }catch(ex){ console.warn('sort err',ex); }
+  }
+});
 window.addEventListener('load', () => {
   // Theme
   const theme=lsg('rct_theme')||'dark';
