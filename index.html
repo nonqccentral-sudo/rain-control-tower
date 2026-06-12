@@ -200,6 +200,12 @@ td{padding:9px 9px;vertical-align:middle;}
 
 
 /* ─── v2.2 additions ─── */
+
+/* CP badge pulse */
+@keyframes cp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
+.cp-badge{font-family:'DM Mono';font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber);background:var(--abg);cursor:pointer;animation:cp-pulse 1.5s infinite;white-space:nowrap;display:inline-block;margin-left:4px;}
+.cp-badge.done{border-color:var(--green);color:var(--green);background:var(--gbg);animation:none;}
+
 .kpi-strip{grid-template-columns:repeat(8,1fr)!important;}
 @media(max-width:1400px){.kpi-strip{grid-template-columns:repeat(4,1fr)!important;}}
 .kpi.clickable{cursor:pointer;}
@@ -259,6 +265,24 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 </style>
 </head>
 <body>
+
+
+<!-- CP CONFIRMATION MODAL -->
+<div id="cp-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:28px 32px;width:360px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:10px">✈</div>
+    <div style="font-family:'Syne';font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Activate BD Air</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:6px">City: <strong id="cp-modal-city" style="color:var(--text)"></strong></div>
+    <div style="font-size:13px;color:var(--amber);background:var(--abg);border:1px solid var(--amber);border-radius:6px;padding:10px;margin:14px 0;">
+      ⚠ Have you updated the routing rules on <strong>Clickpost</strong> for this city?<br/>
+      <span style="font-size:11px;color:var(--muted)">BD Air will only work if Clickpost is configured.</span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="cpModalCancel()" style="flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--muted);font-family:'DM Mono';font-size:12px;padding:10px;border-radius:6px;cursor:pointer;">Cancel</button>
+      <button onclick="cpModalConfirm()" style="flex:1;background:var(--blue);border:none;color:#fff;font-family:'DM Mono';font-size:12px;padding:10px;border-radius:6px;cursor:pointer;font-weight:600;">Yes, CP Updated — Activate</button>
+    </div>
+  </div>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen" style="display:none">
@@ -488,9 +512,9 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>City</th><th>Pipeline Days</th><th>Trigger At</th>
-        <th>Open Pipeline</th><th>Long Tail %</th><th>SLA Breach %</th><th>Aging →</th>
-        <th>MTD Air Orders</th><th>Air</th>
+        <th onclick="setOvSort('city')" style="cursor:pointer;user-select:none">City</th><th onclick="setOvSort('pipeline_days')" style="cursor:pointer;user-select:none">Pipeline Days</th><th>Trigger At</th>
+        <th onclick="setOvSort('openPipeline')" style="cursor:pointer;user-select:none">Open Pipeline</th><th onclick="setOvSort('ltp')" style="cursor:pointer;user-select:none">Long Tail %</th><th onclick="setOvSort('sbp')" style="cursor:pointer;user-select:none">SLA Breach %</th><th onclick="setOvSort('totAge')" style="cursor:pointer;user-select:none">Aging →</th>
+        <th onclick="setOvSort('mtdOrders')" style="cursor:pointer;user-select:none">MTD Air Orders</th><th>Air</th>
         <th>Proposed Action</th><th>Action</th>
       </tr></thead>
       <tbody id="city-tbody"></tbody>
@@ -536,7 +560,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkmZKeB9sy_-wTTzMhJhhhhvG84GWb171Zf1Oa06Fp2mWp1O-26qX1J3xiTvXa3weG9g/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxo1h7BJl8ie9mPNo9J_iEeeobSlf4WkktliC1PPQsh30pdFXX_GWnx9upOFRadf9FW/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -639,6 +663,39 @@ function logoutUser(){
   setUserBadge();
 }
 function actionedBy(){ return currentUser ? currentUser.display_name : 'Unknown'; }
+
+
+// ── CP (CLICKPOST) CONFIRMATION ───────────────────────────────────────────────
+let cpPendingCity=null, cpPendingPipe=null, cpPendingTrig=null;
+const cpConfirmed=new Set(); // cities where CP has been confirmed this session
+
+function showCpModal(city, pipe, trig){
+  cpPendingCity=city; cpPendingPipe=pipe; cpPendingTrig=trig;
+  document.getElementById('cp-modal-city').textContent=city;
+  document.getElementById('cp-modal').style.display='flex';
+}
+function cpModalCancel(){
+  document.getElementById('cp-modal').style.display='none';
+  cpPendingCity=null;
+}
+function cpModalConfirm(){
+  document.getElementById('cp-modal').style.display='none';
+  if(!cpPendingCity) return;
+  doActiv(cpPendingCity, cpPendingPipe, cpPendingTrig);
+  // Log CP confirmation
+  const e={ts:now(),action:'CP UPDATED',city:cpPendingCity,pipeline:cpPendingPipe,trigger:cpPendingTrig,
+    details:'Clickpost routing confirmed updated for '+cpPendingCity+' by '+actionedBy()};
+  addLog(e); writeLog(e);
+  cpPendingCity=null;
+}
+function markCpDone(city){
+  cpConfirmed.add(city);
+  // Log CP done
+  const e={ts:now(),action:'CP CONFIRMED',city,pipeline:'',trigger:'',
+    details:'Clickpost confirmed updated for '+city+' by '+actionedBy()};
+  addLog(e); writeLog(e);
+  render();
+}
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 async function doLogin(){
@@ -866,9 +923,16 @@ function filtered(rows){
 function sorted(rows){
   const o={active:0,red:1,amber:2,green:3};
   return [...rows].sort((a,b)=>{
+    // First sort by section
     const d=o[a.sec]-o[b.sec]; if(d!==0) return d;
+    // Within active: deact-ready first
     if(a.sec==='active'){ if(a.deactRdy&&!b.deactRdy) return -1; if(b.deactRdy&&!a.deactRdy) return 1; }
-    return b.inflow-a.inflow;
+    // Within section: apply user sort
+    const col=ovSort.col, dir=ovSort.dir;
+    const av=col==='city'?a.city:(+a[col]||0);
+    const bv=col==='city'?b.city:(+b[col]||0);
+    if(col==='city') return dir*(av<bv?-1:av>bv?1:0);
+    return dir*(bv-av);
   });
 }
 
@@ -894,6 +958,7 @@ function calcForecast(rows,mult){
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){
+  try{
   setDataDate(); updateFooter(); renderKPIs();
   if(curTab==='ns')   renderNetworkSummary();
   if(curTab==='ov')   renderOverview();
@@ -903,6 +968,11 @@ function render(){
   if(curTab==='pp')   renderPartnerPincode();
   if(curTab==='log')  renderLog();
   if(curTab==='logic')renderLogic();
+  }catch(e){
+    console.error('render() ERROR:',e.message,e.stack);
+    const eb=document.getElementById('err-bar');
+    if(eb){eb.textContent='⚠ Render error: '+e.message+' — check console for details';eb.style.display='block';}
+  }
 }
 
 function renderKPIs(){
@@ -922,7 +992,7 @@ function renderKPIs(){
   setText('k-rdy',rdyDeact.length); setText('k-rdy-sub',rdyDeact.length?rdyDeact.map(r=>r.city).join(', '):'None ready');
   setText('k-red',red.length); setText('k-red-sub',red.length?red.slice(0,3).map(r=>r.city).join(', ')+(red.length>3?'…':''):'—');
   setText('k-amb',amb.length); setText('k-amb-sub',amb.length?amb.slice(0,3).map(r=>r.city).join(', ')+(amb.length>3?'…':''):'—');
-  const p5=orderDump.length>0?orderDump.length:cityData.reduce((s,r)=>s+(r.aging_gt5d||0),0);
+  const p5=orderDump.length>0?effectiveDumpCount():cityData.reduce((s,r)=>s+(r.aging_gt5d||0),0);
   setText('k-aging5',p5||'—'); setText('k-aging5-sub',p5>0?'pan-india · click to view':'no 5+ day orders');
   const adhD=adherence.denominator||0, adhN=Math.min(adherence.numerator||0,adhD);
   const adhPct=adhD>0?Math.round(adhN/adhD*100):null;
@@ -949,7 +1019,7 @@ function renderNetworkSummary(){
   const critical=rows.filter(r=>r.pRag==='red'&&!r.active);
   const watch   =rows.filter(r=>r.pRag==='amber'&&!r.active);
   const rdyDeact=active.filter(r=>r.deactRdy);
-  const p5=orderDump.length>0?orderDump.length:cityData.reduce((s,r)=>s+(r.aging_gt5d||0),0);
+  const p5=orderDump.length>0?effectiveDumpCount():cityData.reduce((s,r)=>s+(r.aging_gt5d||0),0);
   const totMtdO=mtdLoaded?mtdData.reduce((s,m)=>s+(m.mtd_bd_air_orders||0),0):0;
   const {predTotal}=calcForecast(rows,trigMult);
   const adhD=adherence.denominator||0, adhN=Math.min(adherence.numerator||0,adhD);
@@ -986,7 +1056,13 @@ function renderNetworkSummary(){
 
 // ── CITY OVERVIEW ─────────────────────────────────────────────────────────────
 const secOpen={active:true,red:true,amber:true,green:true};
+let ovSort={col:'inflow',dir:-1}; // default: inflow descending
 function toggleSec(k){ secOpen[k]=!secOpen[k]; renderOverview(); }
+function setOvSort(col){
+  if(ovSort.col===col) ovSort.dir*=-1;
+  else ovSort={col,dir:-1};
+  renderOverview();
+}
 
 function agingBar(m){
   var t=m.totAge||1;
@@ -1027,7 +1103,7 @@ function renderOverview(){
           const btnHtml=m.active
             ?`<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Deactivate</button>`
             :m.pRag==='red'
-            ?`<button class="act-btn act-on" onclick="event.stopPropagation();doActiv('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Activate Air</button>`:'';
+            ?`<button class="act-btn act-on" onclick="event.stopPropagation();showCpModal('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Activate Air</button>`:'';
           const gt5=m.aging_gt5d||0;
           const gt5badge=gt5>0?`<span onclick="event.stopPropagation();goToDump('${m.city}')" style="font-family:'DM Mono';font-size:9px;color:var(--red);cursor:pointer;text-decoration:underline;display:block">⚠${gt5} 5+d</span>`:'';
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
@@ -1039,7 +1115,7 @@ function renderOverview(){
             <td>${rag(m.sRag,pct(m.sbp))}</td>
             <td>${agingBar(m)}</td>
             <td style="font-family:'DM Mono';font-size:11px;color:${m.mtdOrders>0?'var(--purple)':'var(--muted)'}">${mtdLoaded?(m.mtdOrders>0?m.mtdOrders.toLocaleString('en-IN'):'—'):'—'}</td>
-            <td>${m.active?rag('blue','ON'):'<span style="color:var(--muted);font-size:11px">— OFF</span>'}</td>
+            <td>${m.active?(rag('blue','ON')+(cpConfirmed.has(m.city)?'<span class="cp-badge done" title="Clickpost updated">✓ CP</span>':'<span class="cp-badge" onclick="event.stopPropagation();markCpDone(\''+m.city+'\')">CP Updated?</span>')):'<span style="color:var(--muted);font-size:11px">— OFF</span>'}</td>
             <td style="font-size:11px;font-weight:600;color:${m.actionCol}">${m.action}</td>
             <td>${btnHtml}</td>
           </tr>`;
@@ -1171,6 +1247,11 @@ function renderSim(){
 }
 
 // ── HIGH AGEING DUMP ──────────────────────────────────────────────────────────
+function effectiveDumpCount(){
+  // Orders in dump minus those already actioned (replaced or closed)
+  const actionedIds=new Set(Object.keys(dumpActioned));
+  return orderDump.filter(o=>!actionedIds.has(o.order_id)).length;
+}
 function renderDump(){
   const el=document.getElementById('dump-body'); if(!el) return;
   const cityMap=new Map();
@@ -1330,8 +1411,8 @@ function renderReplacement(){
   function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
   function statusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
   function agingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
-  const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Partner</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Attempts (CP)</th><th>Status</th><th>Aging</th></tr>';
-  function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-size:11px">'+o.partner_name+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
+  const thd='<tr><th>Original Order</th><th>Replacement Order</th><th>Mode</th><th>City</th><th>Actioned On</th><th>By</th><th>ETA</th><th>Attempts (CP)</th><th>Status</th><th>Aging</th></tr>';
+  function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
   let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
   html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">📦 Open Replaced Orders ('+open.length+') — SQL updates ETA / Status / Aging nightly</div>';
   html+=open.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+open.map(o=>mkRow(o,true)).join('')+'</tbody></table>':'<div style="font-size:12px;color:var(--muted)">No open replaced orders.</div>';
@@ -1442,21 +1523,20 @@ function showSave(msg){ const el=document.getElementById('save-msg'); el.textCon
 
 // ── ADHERENCE ─────────────────────────────────────────────────────────────────
 function maybeAppendSeenOrders(){
-  if(!orderDump.length) return;
   const url=scriptURL(); if(!url) return;
-  // Once-per-day guard — server also deduplicates but this avoids hammering Apps Script
+  // Once-per-day guard
   const today=new Date().toISOString().slice(0,10);
-  // Skip daily guard if adh_seen is still 0 (denominator not yet populated)
   const lastRun=lsg('rct_dump_seen_date');
   if(lastRun===today&&adherence.denominator>0) return;
-  const orders=orderDump.map(o=>o.order_id).filter(Boolean);
-  const params=new URLSearchParams({action:'appendSeenOrders',orders:JSON.stringify(orders),reset_date:lsg('rct_adh_reset_date')||''});
-  apsFetch(url+'?'+params.toString()).then(r=>{
+  // Apps Script reads ORDER_DUMP directly — no large payload sent over URL
+  apsFetch(url+'?action=syncSeenOrders').then(r=>{
     if(r&&r.status==='ok'){
       ls('rct_dump_seen_date',today);
-      console.log('Adherence: '+r.added+' new orders appended to DUMP_SEEN_ORDERS');
+      adherence.denominator=r.total||adherence.denominator;
+      renderKPIs();
+      console.log('Adherence: '+r.added+' new orders synced to DUMP_SEEN_ORDERS');
     }
-  }).catch(e=>console.warn('appendSeenOrders:',e.message));
+  }).catch(e=>console.warn('syncSeenOrders:',e.message));
 }
 function resetAdherenceLocal(){
   const url=scriptURL(); if(!url){ showErr('Connect Apps Script first.'); return; }
