@@ -576,7 +576,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyEXiSBiUMb9Ds3D3L-YecenmE2zgvGlP6OcPPU4Z4qfFn9BIXwjEIh9OvEACgx9fkMdA/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymC2MWQBcGNhfR_zSolxHujt1UXJxzweqjusXJfIzeG0nPQTj7g4Cp_IO1yR-CYFRUbQ/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -590,7 +590,7 @@ let syncCountdown=5, syncTimer=null;
 let cfgExpanded=false, cfgUnlocked=false;
 // v2.2 state
 let currentUser=null;
-let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[];
+let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[], storePresence={};
 let dumpCityFilter='Pan-India', dumpStoreFilter='All';
 let dumpPending={}, dumpActioned={}, callLog={};
 let ppCityFilter='All', ppPartnerOpen=true, ppPincodeOpen=true;
@@ -870,6 +870,7 @@ async function syncState(){
   try{ const od=await apsFetch(url+'?action=getOrderDump'); if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
+  try{ const sp=await apsFetch(url+'?action=getStorePresence'); if(sp&&sp.status!=='error'&&sp.data){ storePresence=sp.data; } }catch(e){}
   try{ const mx=await apsFetch(url+'?action=getMetrics'); if(mx&&mx.status!=='error'&&Array.isArray(mx.rows)) metricsData=mx.rows; }catch(e){}
   try{ const calls=await apsFetch(url+'?action=getCallLog'); if(calls&&calls.status!=='error'&&Array.isArray(calls.rows)){calls.rows.forEach(r=>{if(r.order_id&&!callLog[r.order_id])callLog[r.order_id]={done:true,remark:r.remark||'',ts:r.ts||'',by:r.by||''};});}  }catch(e){}
   try{ const cp=await apsFetch(url+'?action=getCpDump'); if(cp&&cp.status!=='error'&&Array.isArray(cp.orders)) cpDump=cp.orders; }catch(e){}
@@ -1033,7 +1034,6 @@ function renderKPIs(){
 let metricsExpanded={}; // month keys that are expanded to show weeks
 
 function toggleMetrics(mk){
-  // Only one month open at a time
   if(metricsExpanded[mk]) metricsExpanded={};
   else{ metricsExpanded={}; metricsExpanded[mk]=true; }
   renderMetricsTable();
@@ -1047,33 +1047,32 @@ function renderMetricsTable(){
     return;
   }
 
-  // Build tree: year → month → weeks
-  var tree={};
-  metricsData.forEach(function(r){
-    var yr=String(r.year||'');
-    var mo=String(r.month||'').padStart(2,'0');
-    var yKey=yr;
-    var mKey=yr+'_'+mo;
-    if(!tree[yKey]) tree[yKey]={year:yr,months:{}};
-    if(!tree[yKey].months[mKey]) tree[yKey].months[mKey]={month:+r.month,name:r.month_name||mo,year:yr,weeks:[]};
-    tree[yKey].months[mKey].weeks.push(r);
-  });
-
   var metricCols=['sla_breach_pct','long_tail_pct','avg_tat_days',
-    'closed_lte0d','closed_1_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d',
-    'total_closed','total_orders'];
-  var metricLabels=['SLA Breach%','Long Tail%','Avg TAT',
-    '≤ETA','1-5d','6-8d','9-10d','11-15d','>15d','Total Closed','Total Orders'];
-  // Lower is better for these
+    'closed_lte0d','closed_1_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d','total_closed'];
+  var metricLabels=['SLA Breach%','Long Tail%','Avg TAT','≤ETA','1–5d','6–8d','9–10d','11–15d','>15d','Total Closed'];
   var lowerBetter={sla_breach_pct:true,long_tail_pct:true,avg_tat_days:true,
     closed_6_8d:true,closed_9_10d:true,closed_11_15d:true,closed_gt15d:true};
+
+  // Group by year+month
+  var byYearMonth={};
+  metricsData.forEach(function(r){
+    var key=String(r.year)+'_'+String(r.month||'').padStart(2,'0');
+    if(!byYearMonth[key]) byYearMonth[key]={year:+r.year,month:+r.month,name:r.month_name||key,weeks:[]};
+    byYearMonth[key].weeks.push(r);
+  });
+
+  // Find current year (max) and previous year
+  var years=[...new Set(metricsData.map(r=>+r.year))].sort();
+  var currYear=years[years.length-1];
+  var prevYear=years.length>1?years[years.length-2]:null;
 
   function aggWeeks(weeks){
     var agg={};
     metricCols.forEach(function(col){
       var isPct=col.endsWith('_pct');
-      if(isPct) agg[col]=weeks.reduce(function(s,r){return s+(+r[col]||0);},0)/Math.max(weeks.length,1);
-      else agg[col]=weeks.reduce(function(s,r){return s+(+r[col]||0);},0);
+      agg[col]=isPct
+        ?weeks.reduce(function(s,r){return s+(+r[col]||0);},0)/Math.max(weeks.length,1)
+        :weeks.reduce(function(s,r){return s+(+r[col]||0);},0);
     });
     return agg;
   }
@@ -1085,69 +1084,57 @@ function renderMetricsTable(){
     return Math.round(+v).toLocaleString('en-IN');
   }
 
-  function deltaCell(col,v25,v26){
-    if(v25===null||v25===undefined||v26===null||v26===undefined) return '<td style="color:var(--muted)">—</td>';
-    var raw=+v26-+v25;
+  function deltaStr(col,vCurr,vPrev){
+    if(vPrev===null||vPrev===undefined) return '';
+    var raw=+vCurr-+vPrev;
     var good=lowerBetter[col]?(raw<=0):(raw>=0);
-    var disp=col.endsWith('_pct')?(raw*100).toFixed(1)+'%':col==='avg_tat_days'?raw.toFixed(1)+'d':Math.round(raw).toLocaleString('en-IN');
-    return '<td class="'+(good?'delta-green':'delta-red')+'">'+(raw>0?'+':'')+disp+'</td>';
+    var disp=col.endsWith('_pct')?(Math.abs(raw)*100).toFixed(1)+'%'
+             :col==='avg_tat_days'?Math.abs(raw).toFixed(1)+'d'
+             :Math.round(Math.abs(raw)).toLocaleString('en-IN');
+    var sign=raw>0?'+':raw<0?'−':'';
+    return '<span style="font-family:monospace;font-size:10px;margin-left:4px;color:'+(good?'var(--green)':'var(--red)')+'">('+(raw===0?'=':(sign+disp))+')</span>';
   }
 
-  var years=Object.keys(tree).sort();
-  var allYearsSorted=years;
-
-  // Build comparison pairs (2025 vs 2026 or consecutive years)
-  var y1=allYearsSorted[0], y2=allYearsSorted[1]||null;
+  // Get current-year months sorted
+  var currMonths=Object.keys(byYearMonth).filter(function(k){return byYearMonth[k].year===currYear;}).sort();
 
   var html='<div class="metrics-table-wrap">';
-  html+='<div class="metrics-title">Heimdall Success Metrics'+(y2?' — '+y1+' vs '+y2:'')+'</div>';
-
-  // Fixed header
-  html+='<table class="metrics-tbl"><thead>';
-  html+='<tr style="border-bottom:2px solid var(--border2)">';
-  html+='<th style="min-width:100px">Period</th>';
+  html+='<div class="metrics-title">Heimdall Success Metrics — '+currYear+(prevYear?' vs '+prevYear:'')+'</div>';
+  html+='<table class="metrics-tbl"><thead><tr style="border-bottom:2px solid var(--border2)">';
+  html+='<th style="min-width:90px">Month</th>';
   metricLabels.forEach(function(l){ html+='<th>'+l+'</th>'; });
-  if(y2) metricLabels.forEach(function(l){ html+='<th style="color:var(--amber)">Δ '+l+'</th>'; });
   html+='</tr></thead><tbody>';
 
-  // Get all unique month keys across both years
-  var allMonthKeys=new Set();
-  years.forEach(function(yr){ Object.keys(tree[yr].months).forEach(function(mk){ allMonthKeys.add(mk.split('_')[1]); }); });
-  var monthNums=[...allMonthKeys].sort();
+  currMonths.forEach(function(mk){
+    var mData=byYearMonth[mk];
+    var aCurr=aggWeeks(mData.weeks);
+    // Find matching prev year month
+    var prevMk=prevYear?String(prevYear)+'_'+String(mData.month).padStart(2,'0'):null;
+    var aPrev=prevMk&&byYearMonth[prevMk]?aggWeeks(byYearMonth[prevMk].weeks):null;
+    var isOpen=!!metricsExpanded[mk];
 
-  monthNums.forEach(function(mo){
-    var mk1=y1+'_'+mo, mk2=y2?y2+'_'+mo:null;
-    var m1=tree[y1]&&tree[y1].months[mk1];
-    var m2=mk2&&tree[y2]&&tree[y2].months[mk2];
-    var mShow=m2||m1;
-    if(!mShow) return;
-    var a1=m1?aggWeeks(m1.weeks):null;
-    var a2=m2?aggWeeks(m2.weeks):null;
-    var aShow=a2||a1;
-    var expandKey=mo;
-    var isOpen=!!metricsExpanded[expandKey];
-    var yearLabel=m1&&m2?(y1+' / '+y2):m1?y1:y2;
-
-    // Month summary row
-    html+='<tr class="expandable" data-mk="'+expandKey+'" onclick="toggleMetrics(this.dataset.mk)" style="background:var(--bg3);font-weight:600">';
-    html+='<td>'+mShow.name+' '+(isOpen?'▾':'▸')+'<span style="font-family:monospace;font-size:9px;color:var(--muted);margin-left:6px">'+yearLabel+'</span></td>';
-    metricCols.forEach(function(col){ html+='<td>'+fmtVal(col,aShow[col])+'</td>'; });
-    if(y2) metricCols.forEach(function(col){ html+=deltaCell(col,a1?a1[col]:null,a2?a2[col]:null); });
+    // Month row
+    html+='<tr class="expandable" data-mk="'+mk+'" onclick="toggleMetrics(this.dataset.mk)" style="background:var(--bg3);font-weight:600">';
+    html+='<td>'+mData.name+' '+(isOpen?'▾':'▸')+'</td>';
+    metricCols.forEach(function(col){
+      html+='<td>'+fmtVal(col,aCurr[col])+(aPrev?deltaStr(col,aCurr[col],aPrev[col]):'')+'</td>';
+    });
     html+='</tr>';
 
-    // Week drill-down (only if this month is expanded)
+    // Week drill-down
     if(isOpen){
-      var weeks1={}, weeks2={};
-      if(m1) m1.weeks.forEach(function(w){ weeks1[w.week_number]=w; });
-      if(m2) m2.weeks.forEach(function(w){ weeks2[w.week_number]=w; });
-      var wNums=[...new Set([...Object.keys(weeks1),...Object.keys(weeks2)])].sort(function(a,b){return+a-+b;});
-      wNums.forEach(function(wn,wi){
-        var w1=weeks1[wn], w2=weeks2[wn];
-        var wShow=w2||w1;
+      var prevWeeks={};
+      if(aPrev&&prevMk&&byYearMonth[prevMk]){
+        byYearMonth[prevMk].weeks.forEach(function(w){prevWeeks[w.week_number]=w;});
+      }
+      mData.weeks.forEach(function(w,wi){
+        var pw=prevWeeks[w.week_number];
         html+='<tr class="week-row">';
-        html+='<td style="padding-left:24px">W'+(wi+1)+' <span style="color:var(--muted);font-size:9px">'+(wShow.week_start||'')+'</span></td>';
-        metricCols.forEach(function(col){ html+='<td>'+fmtVal(col,wShow[col])+'</td>'; });
-        if(y2) metricCols.forEach(function(col){ html+=deltaCell(col,w1?w1[col]:null,w2?w2[col]:null); });
+        html+='<td style="padding-left:20px">W'+(wi+1)
+          +' <span style="color:var(--muted);font-size:9px">'+fmtDate(w.week_start||'')+'</span></td>';
+        metricCols.forEach(function(col){
+          html+='<td>'+fmtVal(col,w[col])+(pw?deltaStr(col,w[col],pw[col]):'')+'</td>';
+        });
         html+='</tr>';
       });
     }
@@ -1235,6 +1222,14 @@ function setOvSort(col){
   renderOverview();
 }
 
+function storeTag(city){
+  var p=storePresence[nc(city)];
+  if(!p) return '';
+  var tags='';
+  if(p.marketplace==='Yes') tags+='<span style="font-family:\'DM Mono\';font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--purple);color:var(--purple);margin-left:3px">MP</span>';
+  if(p.retail==='Yes') tags+='<span style="font-family:\'DM Mono\';font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--teal);color:var(--teal);margin-left:3px">RT</span>';
+  return tags;
+}
 function agingBar(m){
   var t=m.totAge||1;
   var cols=['#f59e0b','#fb923c','#ef4444','#dc2626','#b91c1c','#7f1d1d'];
@@ -1278,7 +1273,7 @@ function renderOverview(){
           const gt5=m.aging_gt5d||0;
           const gt5badge=gt5>0?`<span onclick="event.stopPropagation();goToDump('${m.city}')" style="font-family:'DM Mono';font-size:9px;color:var(--red);cursor:pointer;text-decoration:underline;display:block">⚠${gt5} 5+d</span>`:'';
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
-            <td style="font-weight:600;color:var(--text)">${m.city}${gt5badge}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
+            <td style="font-weight:600;color:var(--text)">${m.city}${gt5badge}${storeTag(m.city)}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
             <td>${rag(m.pRag,(+m.pipeline_days||0).toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
             <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">${m.trig>=999?'No BAU data':'&gt;'+(+m.trig||0).toFixed(1)+'d'}</td>
             <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
@@ -1722,6 +1717,8 @@ function renderReplacement(){
 }
 
 // ── PARTNER & PINCODE ─────────────────────────────────────────────────────────
+function setPPPartner(col){ setPPSort(col,false); }
+function setPPPincode(col){ setPPSort(col,true); }
 function setPPSort(col,isPin){
   if(isPin){ if(ppPincodeSort.col===col) ppPincodeSort.dir*=-1; else ppPincodeSort={col,dir:-1}; }
   else { if(ppPartnerSort.col===col) ppPartnerSort.dir*=-1; else ppPartnerSort={col,dir:-1}; }
@@ -1754,11 +1751,11 @@ function renderPartnerPincode(){
     +'<div class="pp-section">'
       +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPartnerOpen=!ppPartnerOpen;renderPartnerPincode()">'
         +(ppPartnerOpen?'▾':'▸')+' '+partnerTitle+'</div>'
-      +(ppPartnerOpen?(sp.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Partner','partner_name',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Assigned','orders_assigned',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Delivered','orders_delivered',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Open Pipeline','open_orders_pipeline',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Avg TAT','avg_tat',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('SLA Breach%','sla_breach_pct',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Long Tail%','long_tail_pct',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('Cancel%','cancellation_pct',ppPartnerSort,'(col)=>setPPSort(col,false)')+thSort('5+d Aging','aging_gt5d_count',ppPartnerSort,'(col)=>setPPSort(col,false)')+'</tr></thead><tbody>'+pRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No partner data.</div>'):'')+'</div>'
+      +(ppPartnerOpen?(sp.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Partner','partner_name',ppPartnerSort,'setPPPartner')+thSort('Assigned','orders_assigned',ppPartnerSort,'setPPPartner')+thSort('Delivered','orders_delivered',ppPartnerSort,'setPPPartner')+thSort('Open Pipeline','open_orders_pipeline',ppPartnerSort,'setPPPartner')+thSort('Avg TAT','avg_tat',ppPartnerSort,'setPPPartner')+thSort('SLA Breach%','sla_breach_pct',ppPartnerSort,'setPPPartner')+thSort('Long Tail%','long_tail_pct',ppPartnerSort,'setPPPartner')+thSort('Cancel%','cancellation_pct',ppPartnerSort,'setPPPartner')+thSort('5+d Aging','aging_gt5d_count',ppPartnerSort,'setPPPartner')+'</tr></thead><tbody>'+pRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No partner data.</div>'):'')+'</div>'
     +'<div class="pp-section">'
       +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPincodeOpen=!ppPincodeOpen;renderPartnerPincode()">'
         +(ppPincodeOpen?'▾':'▸')+' '+pincodeTitle+'</div>'
-      +(ppPincodeOpen?(sn.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Pincode','pincode',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Assigned','orders_assigned',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Open Pipeline','open_orders_pipeline',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Avg TAT','avg_tat',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('SLA Breach%','sla_breach_pct',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Long Tail%','long_tail_pct',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('Cancel%','cancellation_pct',ppPincodeSort,'(col)=>setPPSort(col,true)')+thSort('5+d Aging','aging_gt5d_count',ppPincodeSort,'(col)=>setPPSort(col,true)')+'<th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No pincode data.</div>'):'')+'</div>';
+      +(ppPincodeOpen?(sn.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Pincode','pincode',ppPincodeSort,'setPPPincode')+thSort('Assigned','orders_assigned',ppPincodeSort,'setPPPincode')+thSort('Open Pipeline','open_orders_pipeline',ppPincodeSort,'setPPPincode')+thSort('Avg TAT','avg_tat',ppPincodeSort,'setPPPincode')+thSort('SLA Breach%','sla_breach_pct',ppPincodeSort,'setPPPincode')+thSort('Long Tail%','long_tail_pct',ppPincodeSort,'setPPPincode')+thSort('Cancel%','cancellation_pct',ppPincodeSort,'setPPPincode')+thSort('5+d Aging','aging_gt5d_count',ppPincodeSort,'setPPPincode')+'<th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No pincode data.</div>'):'')+'</div>';
 }
 
 // ── CHANGE LOG ────────────────────────────────────────────────────────────────
