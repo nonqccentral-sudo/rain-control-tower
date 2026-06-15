@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Heimdall v2.2 — Tata 1mg</title>
+<title>Heimdall v2.3 — Tata 1mg</title>
 <meta name="version" content="2.2.1"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='24' fill='%230a1828'/%3E%3Cpath d='M8 34 Q24 10 40 34' stroke='%236366f1' stroke-width='1.5' fill='none' opacity='.5'/%3E%3Cpath d='M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z' fill='%233b82f6' opacity='.9'/%3E%3Cpath d='M12 23 L6 19 L10 25' fill='%232dd4bf' opacity='.85'/%3E%3Cpath d='M36 23 L42 19 L38 25' fill='%232dd4bf' opacity='.85'/%3E%3Crect x='18' y='21' width='12' height='5' rx='1' fill='%23060e1c'/%3E%3Crect x='19' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Crect x='25' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Cpath d='M16 27 L14 40 L24 36 L34 40 L32 27 Z' fill='%231e3a5f' opacity='.85'/%3E%3Cpath d='M8 33 Q12 29 16 31 L14 35 Q10 35 8 33Z' fill='%23f59e0b' opacity='.8'/%3E%3Ccircle cx='21' cy='23' r='1.2' fill='%23fff'/%3E%3Ccircle cx='27' cy='23' r='1.2' fill='%23fff'/%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -367,7 +367,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     </svg>
     <div>
       <div class="hdr-tag"><span>Tata 1mg · 3PL Network</span><div class="live-dot"></div></div>
-      <h1>Heimdall <span style="font-weight:300;opacity:.45">v2.2</span></h1>
+      <h1>Heimdall <span style="font-weight:300;opacity:.45">v2.3</span></h1>
     </div>
   </div>
   <div class="hdr-right">
@@ -565,7 +565,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 </div>
 
 <div class="footer">
-  <span>HEIMDALL v2.2 · TATA 1MG · RAIN CONTROL TOWER · D-1 DATA</span>
+  <span>HEIMDALL v2.3 · TATA 1MG · RAIN CONTROL TOWER · D-1 DATA</span>
   <span id="footer-r">—</span>
 </div>
 </div>
@@ -1052,7 +1052,7 @@ function renderMetricsTable(){
     'closed_0_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d'];
   var metricLabels=['SLA Breach%','Long Tail%','Avg TAT','0–5d','6–8d','9–10d','11–15d','>15d'];
   var lowerBetter={sla_breach_pct:true,long_tail_pct:true,avg_tat_days:true,
-    closed_0_5d:false,closed_6_8d:true,closed_9_10d:true,closed_11_15d:true,closed_gt15d:true};
+    closed_0_5d:true,closed_6_8d:true,closed_9_10d:true,closed_11_15d:true,closed_gt15d:true};
 
   // Group by year+month
   var byYearMonth={};
@@ -1069,11 +1069,12 @@ function renderMetricsTable(){
 
   function aggWeeks(weeks){
     var agg={};
+    var n=Math.max(weeks.length,1);
     metricCols.forEach(function(col){
-      var isPct=col.endsWith('_pct');
-      agg[col]=isPct
-        ?weeks.reduce(function(s,r){return s+(+r[col]||0);},0)/Math.max(weeks.length,1)
-        :weeks.reduce(function(s,r){return s+(+r[col]||0);},0);
+      var sum=weeks.reduce(function(s,r){return s+(+r[col]||0);},0);
+      // Average for rate/quality metrics; sum for volume counts
+      var isAvg=col.endsWith('_pct')||col==='avg_tat_days'||col==='total_orders';
+      agg[col]=isAvg?sum/n:sum;
     });
     return agg;
   }
@@ -1572,12 +1573,12 @@ async function finaliseDumpSubmit(pairs){
     const id=pair[0],info=pair[1];
     if(info.action==='REPLACED'&&!replacedOrders.find(x=>x.original_order_id===id)){
       const o=orderDump.find(x=>x.order_id===id)||{};
-      replacedOrders.push({original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:o.partner_name||'',actioned_on:ts,actioned_by:who,mode:info.mode||'AIR',eta:'',new_status:'',new_aging:''});
+      replacedOrders.push({original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:'',actioned_on:ts,actioned_by:who,mode:info.mode||'AIR',eta:'',new_status:'',new_aging:''});
     }
   });
   const url=scriptURL();
   if(url){
-    const orders=pairs.map(pair=>{ const id=pair[0],info=pair[1]; const o=orderDump.find(x=>x.order_id===id)||{}; return {order_id:id,city:o.city||'',partner_name:o.partner_name||'',store_type:o.store_type||'',aging_days:o.aging_days||0,action:info.action,replacement_order_id:info.repl||'',mode:info.mode||'',actioned_by:who}; });
+    const orders=pairs.map(pair=>{ const id=pair[0],info=pair[1]; const o=orderDump.find(x=>x.order_id===id)||{}; return {order_id:id,city:o.city||'',partner_name:'',store_type:o.store_type||'',aging_days:o.aging_days||0,action:info.action,replacement_order_id:info.repl||'',mode:info.mode||'',actioned_by:who}; });
     const p=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(orders),actioned_by:who});
     try{ const r=await apsFetch(url+'?'+p.toString()); showDumpMsg(r&&r.status==='ok'?'Done! '+pairs.length+' order(s) actioned.':'Error: '+(r&&r.message||'unknown'),r&&r.status==='ok'?'ok':'err'); }
     catch(e){ showDumpMsg('Saved locally (script unreachable).','ok'); }
@@ -1713,7 +1714,7 @@ function renderReplacement(){
   const el=document.getElementById('rep-body'); if(!el) return;
   try{
   const sheetIds=new Set(replacedOrders.map(o=>o.original_order_id));
-  const localRows=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED'&&p[1].ts&&!sheetIds.has(p[0])).map(pair=>{const id=pair[0],info=pair[1];const o=orderDump.find(x=>x.order_id===id)||{};return{original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:o.partner_name||'',actioned_on:info.ts||'',actioned_by:info.by||'',mode:info.mode||'',eta:'',new_status:'',new_aging:''};});
+  const localRows=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED'&&p[1].ts&&!sheetIds.has(p[0])).map(pair=>{const id=pair[0],info=pair[1];const o=orderDump.find(x=>x.order_id===id)||{};return{original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:'',actioned_on:info.ts||'',actioned_by:info.by||'',mode:info.mode||'',eta:'',new_status:'',new_aging:''};});
   const all=replacedOrders.concat(localRows);
   if(!all.length){ el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px"><div style="font-size:36px;margin-bottom:12px">📦</div><div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px">No replaced orders yet</div><div style="font-size:12px;color:var(--muted)">Cancel & Replace orders from the High Ageing Dump tab will appear here.</div></div>'; return; }
   const open  =sortRows(all.filter(o=>{ const s=String(o.new_status||'').trim().toLowerCase(); return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!==''); }),repSort.col,repSort.dir);
