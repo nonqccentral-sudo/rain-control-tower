@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Heimdall v2.2 — Tata 1mg</title>
+<meta name="version" content="2.2.1"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='24' fill='%230a1828'/%3E%3Cpath d='M8 34 Q24 10 40 34' stroke='%236366f1' stroke-width='1.5' fill='none' opacity='.5'/%3E%3Cpath d='M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z' fill='%233b82f6' opacity='.9'/%3E%3Cpath d='M12 23 L6 19 L10 25' fill='%232dd4bf' opacity='.85'/%3E%3Cpath d='M36 23 L42 19 L38 25' fill='%232dd4bf' opacity='.85'/%3E%3Crect x='18' y='21' width='12' height='5' rx='1' fill='%23060e1c'/%3E%3Crect x='19' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Crect x='25' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Cpath d='M16 27 L14 40 L24 36 L34 40 L32 27 Z' fill='%231e3a5f' opacity='.85'/%3E%3Cpath d='M8 33 Q12 29 16 31 L14 35 Q10 35 8 33Z' fill='%23f59e0b' opacity='.8'/%3E%3Ccircle cx='21' cy='23' r='1.2' fill='%23fff'/%3E%3Ccircle cx='27' cy='23' r='1.2' fill='%23fff'/%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -1089,7 +1090,9 @@ function renderMetricsTable(){
   function deltaStr(col,vCurr,vPrev,rowCurr,rowPrev){
     if(vPrev===null||vPrev===undefined||vCurr===null||vCurr===undefined) return '';
     var raw=+vCurr-+vPrev;
-    var good=lowerBetter[col]?(raw<=0):(raw>=0);
+    // Explicit lookup: undefined treated as 'lower is better' by default for safety
+    var lb=lowerBetter[col];
+    var good=(lb===false)?(raw>=0):(raw<=0);
     var sign=raw>0?'+':raw<0?'−':'';
     var disp;
     if(col.endsWith('_pct')){
@@ -1695,6 +1698,8 @@ function processUploadCSV(text){
 
 // ── REPLACED ORDERS ───────────────────────────────────────────────────────────
 // ── REPLACED ORDERS HELPERS (module-level to avoid strict-mode block scoping) ──
+function statusCell(o,isOpen){ return repStatusCell(o,isOpen); }
+function agingCell(o){ return repAgingCell(o); }
 function repIsTerminal(s){ const v=String(s||'').trim().toLowerCase(); return v==='delivered'||v==='cancelled'||v==='closed'; }
 function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
 function repStatusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
@@ -1714,7 +1719,7 @@ function renderReplacement(){
   const open  =sortRows(all.filter(o=>{ const s=String(o.new_status||'').trim().toLowerCase(); return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!==''); }),repSort.col,repSort.dir);
   const closed=sortRows(all.filter(o=>repIsTerminal(o.new_status)),repSort.col,repSort.dir);
   const thd='<tr>'+thSort('Original Order','original_order_id',repSort,'setRepSort')+thSort('Replacement Order','replacement_order_id',repSort,'setRepSort')+'<th>Mode</th>'+thSort('City','city',repSort,'setRepSort')+thSort('Partner','partner_name',repSort,'setRepSort')+thSort('Actioned On','actioned_on',repSort,'setRepSort')+'<th>By</th>'+thSort('ETA','eta',repSort,'setRepSort')+'<th>Status</th>'+thSort('Aging','new_aging',repSort,'setRepSort')+'</tr>';
-  function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
+  function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+repStatusCell(o,isOpen)+'</td><td>'+repAgingCell(o)+'</td></tr>'; }
   let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
   html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">📦 Open Replaced Orders ('+open.length+') — SQL updates ETA / Status / Aging nightly</div>';
   html+=open.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+open.map(o=>mkRow(o,true)).join('')+'</tbody></table>':'<div style="font-size:12px;color:var(--muted)">No open replaced orders.</div>';
