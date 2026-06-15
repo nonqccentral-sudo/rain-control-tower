@@ -574,9 +574,9 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 'use strict';
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const DEFAULT_CITY_URL   = '';
-const DEFAULT_FC_URL     = '';
-const DEFAULT_MTD_URL    = '';
+const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
+const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
+const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgiHvHvg5PQk3qP--lk-VadLctUmXimt-ic3TtqDYQUr9Xkn3qRWo41DSeeyirKAm5YA/exec';
 const DEFAULT_PIN        = '1mg2025';
 
@@ -1113,17 +1113,20 @@ function renderMetricsTable(){
   // Get current-year months sorted
   var today=new Date();
   // Filter weeks to completed only (week_end < today)
-  function isComplete(w){
+  function isComplete(w,year){
+    // For previous years — all weeks are complete
+    if(+year<currYear) return true;
     var we=w.week_end||w.week_start||'';
-    if(!we) return true; // assume complete if no date
-    var d=new Date(String(we).split('/').reverse().join('-')||we);
-    return d<today;
+    if(!we) return true;
+    // Parse ISO date (yyyy-mm-dd) or dd/mm/yyyy
+    var str=String(we);
+    var d=str.match(/^\d{4}-/)? new Date(str) : new Date(str.split('/').reverse().join('-'));
+    return d<=today;
   }
   var currMonths=Object.keys(byYearMonth).filter(function(k){
     var m=byYearMonth[k];
     if(m.year!==currYear) return false;
-    // Only include month if it has at least one completed week
-    return m.weeks.some(isComplete);
+    return m.weeks.some(function(w){return isComplete(w,currYear);});
   }).sort();
 
   var html='<div class="metrics-table-wrap">';
@@ -1136,7 +1139,7 @@ function renderMetricsTable(){
   currMonths.forEach(function(mk){
     var mData=byYearMonth[mk];
     mData.weeks.sort(function(a,b){return String(a.week_start||'').localeCompare(String(b.week_start||''));});
-    var completedWeeks=mData.weeks.filter(isComplete);
+    var completedWeeks=mData.weeks.filter(function(w){return isComplete(w,mData.year);});
     if(!completedWeeks.length) return;
     var aCurr=aggWeeks(completedWeeks);
     // Find matching prev year month
@@ -1600,6 +1603,7 @@ async function finaliseDumpSubmit(pairs){
     catch(e){ showDumpMsg('Saved locally (script unreachable).','ok'); }
   } else { showDumpMsg('Done (local only).','ok'); }
   renderDump();
+  if(curTab==='rep') renderReplacement();
 }
 function exportDumpCSV(){
   // Export ALL unactioned orders (FC + MP) for the current city filter
@@ -1708,7 +1712,10 @@ function processUploadCSV(text){
     apsFetch(url+'?'+p.toString()).catch(e=>console.warn('logCall:',e.message));
   });
   saveDumpActioned();
-  if(toAction.length) finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+  if(toAction.length){
+    finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+    if(toAction.some(a=>a.action==='REPLACED')) setTimeout(function(){ renderReplacement(); },500);
+  }
   showUploadMsg((toAction.length?toAction.length+' orders actioned. ':'')+(toCalling.length?toCalling.length+' calls logged.':''),'ok');
   renderDump();
 }
