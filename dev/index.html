@@ -1144,7 +1144,15 @@ function renderMetricsTable(){
     var aCurr=aggWeeks(completedWeeks);
     // Find matching prev year month
     var prevMk=prevYear?String(prevYear)+'_'+String(mData.month).padStart(2,'0'):null;
-    var aPrev=prevMk&&byYearMonth[prevMk]?aggWeeks(byYearMonth[prevMk].weeks):null;
+    // Only compare equivalent completed weeks — match by week index (W1 vs W1, W2 vs W2)
+    // to avoid comparing 2 weeks of 2026 vs 4 weeks of 2025
+    var aPrev=null;
+    if(prevMk&&byYearMonth[prevMk]){
+      var prevAllWeeks=byYearMonth[prevMk].weeks.slice().sort(function(a,b){return String(a.week_start||'').localeCompare(String(b.week_start||''));});
+      // Take only as many prev weeks as there are completed current weeks
+      var prevMatchedWeeks=prevAllWeeks.slice(0,completedWeeks.length);
+      if(prevMatchedWeeks.length) aPrev=aggWeeks(prevMatchedWeeks);
+    }
     var isOpen=!!metricsExpanded[mk];
 
     // Month row
