@@ -899,9 +899,12 @@ function compute(rows,mult){
   const dc=getDC();
   return rows.map(r=>{
     const bau   =r.bau_pipeline||0;
-    const tatAdv=Math.max(0,(r.surface_tat||0)-(r.air_tat||0)); // Can't be negative
-    // If bau=0 AND tatAdv=0, no trigger baseline — set trig=999 so city stays Normal
-    const trigBase=(bau+tatAdv)>0?(bau+tatAdv):999;
+    // TAT advantage: if air_tat missing → assume 1d advantage; if delta negative → use 1d
+    const surfTat=r.surface_tat||0;
+    const airTat =r.air_tat||0;
+    const tatAdv =!airTat ? 1 : Math.max(1, surfTat - airTat);
+    // Trigger base: BAU + tatAdv. If BAU also missing, use 999 (no data)
+    const trigBase=bau>0 ? (bau+tatAdv) : 999;
     const trig  =trigBase*mult;
     const active=activeCities.has(r.city);
     const io    =r.outflow>0?r.inflow/r.outflow:0;
@@ -1029,7 +1032,12 @@ function renderKPIs(){
 // ── HEIMDALL METRICS TABLE ────────────────────────────────────────────────────
 let metricsExpanded={}; // month keys that are expanded to show weeks
 
-function toggleMetrics(mk){ metricsExpanded[mk]=!metricsExpanded[mk]; renderMetricsTable(); }
+function toggleMetrics(mk){
+  // Only one month open at a time
+  if(metricsExpanded[mk]) metricsExpanded={};
+  else{ metricsExpanded={}; metricsExpanded[mk]=true; }
+  renderMetricsTable();
+}
 function renderMetricsTable(){
   var el=document.getElementById('ns-metrics');
   if(!el) return;
@@ -1038,110 +1046,117 @@ function renderMetricsTable(){
       +'<div style="font-size:12px;color:var(--muted);font-family:monospace">No data. SQL team must populate HEIMDALL_METRICS tab.</div></div>';
     return;
   }
-  // Group by year+month
-  var byMonth={};
-  metricsData.forEach(function(r){
-    var key=r.year+'_'+String(r.month).padStart(2,'0');
-    if(!byMonth[key]) byMonth[key]={year:+r.year,month:+r.month,name:r.month_name||key,weeks:[]};
-    byMonth[key].weeks.push(r);
-  });
-  var months=Object.keys(byMonth).sort();
 
-  // Build comparison: for each month, find 2025 and 2026 equivalents
-  var pairs={};
-  months.forEach(function(k){
-    var m=byMonth[k];
-    var mKey=String(m.month).padStart(2,'0');
-    if(!pairs[mKey]) pairs[mKey]={m2025:null,m2026:null,name:null};
-    if(m.year===2025) pairs[mKey].m2025=m;
-    if(m.year===2026) pairs[mKey].m2026=m;
-    if(!pairs[mKey].name) pairs[mKey].name=m.month_name||mKey;
+  // Build tree: year → month → weeks
+  var tree={};
+  metricsData.forEach(function(r){
+    var yr=String(r.year||'');
+    var mo=String(r.month||'').padStart(2,'0');
+    var yKey=yr;
+    var mKey=yr+'_'+mo;
+    if(!tree[yKey]) tree[yKey]={year:yr,months:{}};
+    if(!tree[yKey].months[mKey]) tree[yKey].months[mKey]={month:+r.month,name:r.month_name||mo,year:yr,weeks:[]};
+    tree[yKey].months[mKey].weeks.push(r);
   });
+
+  var metricCols=['sla_breach_pct','long_tail_pct','avg_tat_days',
+    'closed_lte0d','closed_1_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d',
+    'total_closed','total_orders'];
+  var metricLabels=['SLA Breach%','Long Tail%','Avg TAT',
+    '≤ETA','1-5d','6-8d','9-10d','11-15d','>15d','Total Closed','Total Orders'];
+  // Lower is better for these
+  var lowerBetter={sla_breach_pct:true,long_tail_pct:true,avg_tat_days:true,
+    closed_6_8d:true,closed_9_10d:true,closed_11_15d:true,closed_gt15d:true};
 
   function aggWeeks(weeks){
-    var total=weeks.reduce(function(s,r){return s+(+r.total_closed||0);},0)||1;
-    return {
-      sla:   weeks.reduce(function(s,r){return s+(+r.sla_breach_pct||0);},0)/weeks.length,
-      lt:    weeks.reduce(function(s,r){return s+(+r.long_tail_pct||0);},0)/weeks.length,
-      tat:   weeks.reduce(function(s,r){return s+(+r.avg_tat_days||0);},0)/weeks.length,
-      lte0:  weeks.reduce(function(s,r){return s+(+r.closed_lte0d||0);},0),
-      d1_5:  weeks.reduce(function(s,r){return s+(+r.closed_1_5d||0);},0),
-      d6_8:  weeks.reduce(function(s,r){return s+(+r.closed_6_8d||0);},0),
-      d9_10: weeks.reduce(function(s,r){return s+(+r.closed_9_10d||0);},0),
-      d11_15:weeks.reduce(function(s,r){return s+(+r.closed_11_15d||0);},0),
-      d15:   weeks.reduce(function(s,r){return s+(+r.closed_gt15d||0);},0),
-      total: weeks.reduce(function(s,r){return s+(+r.total_closed||0);},0),
-    };
+    var agg={};
+    metricCols.forEach(function(col){
+      var isPct=col.endsWith('_pct');
+      if(isPct) agg[col]=weeks.reduce(function(s,r){return s+(+r[col]||0);},0)/Math.max(weeks.length,1);
+      else agg[col]=weeks.reduce(function(s,r){return s+(+r[col]||0);},0);
+    });
+    return agg;
   }
 
-  function delta(v25,v26,lowerIsBetter){
-    if(v25===null||v26===null) return '<td>—</td>';
-    var d=(v26-v25).toFixed(1);
-    var good=lowerIsBetter?(+d<=0):(+d>=0);
-    return '<td class="'+(good?'delta-green':'delta-red')+'">'+(+d>0?'+':'')+d+'</td>';
+  function fmtVal(col,v){
+    if(v===null||v===undefined||isNaN(+v)) return '—';
+    if(col.endsWith('_pct')) return ((+v)*100).toFixed(1)+'%';
+    if(col==='avg_tat_days') return (+v).toFixed(1)+'d';
+    return Math.round(+v).toLocaleString('en-IN');
   }
 
-  function fmt(v,decimals){ return v===null||isNaN(v)?'—':(+v).toFixed(decimals||1); }
+  function deltaCell(col,v25,v26){
+    if(v25===null||v25===undefined||v26===null||v26===undefined) return '<td style="color:var(--muted)">—</td>';
+    var raw=+v26-+v25;
+    var good=lowerBetter[col]?(raw<=0):(raw>=0);
+    var disp=col.endsWith('_pct')?(raw*100).toFixed(1)+'%':col==='avg_tat_days'?raw.toFixed(1)+'d':Math.round(raw).toLocaleString('en-IN');
+    return '<td class="'+(good?'delta-green':'delta-red')+'">'+(raw>0?'+':'')+disp+'</td>';
+  }
 
-  var mKeys=Object.keys(pairs).sort();
-  var html='<div class="metrics-table-wrap"><div class="metrics-title">Heimdall Success Metrics — Click month to expand weeks</div>'
-    +'<table class="metrics-tbl"><thead><tr>'
-    +'<th>Month</th><th>Year</th>'
-    +'<th>SLA Breach%</th><th>Long Tail%</th><th>Avg TAT</th>'
-    +'<th>≤ETA</th><th>1–5d</th><th>6–8d</th><th>9–10d</th><th>11–15d</th><th>>15d</th><th>Total Closed</th>'
-    +'<th class="delta-green">Δ SLA%</th><th class="delta-green">Δ LT%</th><th class="delta-green">Δ TAT</th>'
-    +'</tr></thead><tbody>';
+  var years=Object.keys(tree).sort();
+  var allYearsSorted=years;
 
-  mKeys.forEach(function(mk){
-    var p=pairs[mk];
-    var a25=p.m2025?aggWeeks(p.m2025.weeks):null;
-    var a26=p.m2026?aggWeeks(p.m2026.weeks):null;
-    var expanded=metricsExpanded[mk];
-    var yearLabel=p.m2025&&p.m2026?'2025 vs 2026':p.m2025?'2025':p.m2026?'2026':'—';
+  // Build comparison pairs (2025 vs 2026 or consecutive years)
+  var y1=allYearsSorted[0], y2=allYearsSorted[1]||null;
 
-    // Month row (2026 data, or 2025 if no 2026)
-    var aShow=a26||a25;
-    if(aShow){
-    html+='<tr class="expandable" onclick="toggleMetrics(\"'+mk+'\")">'
-        +'<td><b>'+(p.name||mk)+'</b> '+(expanded?'▾':'▸')+'</td>'
-        +'<td style="color:var(--muted)">'+yearLabel+'</td>'
-        +'<td>'+fmt(aShow.sla)+'%</td><td>'+fmt(aShow.lt)+'%</td><td>'+fmt(aShow.tat)+'d</td>'
-        +'<td>'+aShow.lte0+'</td><td>'+aShow.d1_5+'</td><td>'+aShow.d6_8+'</td>'
-        +'<td>'+aShow.d9_10+'</td><td>'+aShow.d11_15+'</td><td>'+aShow.d15+'</td>'
-        +'<td style="font-weight:600">'+aShow.total+'</td>'
-        +delta(a25?a25.sla:null,a26?a26.sla:null,true)
-        +delta(a25?a25.lt:null,a26?a26.lt:null,true)
-        +delta(a25?a25.tat:null,a26?a26.tat:null,true)
-        +'</tr>';
-    }
+  var html='<div class="metrics-table-wrap">';
+  html+='<div class="metrics-title">Heimdall Success Metrics'+(y2?' — '+y1+' vs '+y2:'')+'</div>';
 
-    // Week drill-down rows
-    if(expanded){
-      // Pair 2025 and 2026 weeks by week_number
-      var weeks25={}, weeks26={};
-      if(p.m2025) p.m2025.weeks.forEach(function(w){weeks25[w.week_number]=w;});
-      if(p.m2026) p.m2026.weeks.forEach(function(w){weeks26[w.week_number]=w;});
-      var wNums=Array.from(new Set(Object.keys(weeks25).concat(Object.keys(weeks26)))).sort();
-      wNums.forEach(function(wn){
-        var w25=weeks25[wn], w26=weeks26[wn];
-        var wShow=w26||w25;
-        var wLabel='Wk '+wn+(wShow?' ('+wShow.week_start+')':'');
-        html+='<tr class="week-row"><td style="padding-left:24px">'+wLabel+'</td>'
-          +'<td style="color:var(--muted)">'+(w25?'25':'')+(w25&&w26?'/':'')+(w26?'26':'')+'</td>'
-          +'<td>'+fmt(wShow.sla_breach_pct)+'%</td><td>'+fmt(wShow.long_tail_pct)+'%</td><td>'+fmt(wShow.avg_tat_days)+'d</td>'
-          +'<td>'+(wShow.closed_lte0d||0)+'</td><td>'+(wShow.closed_1_5d||0)+'</td><td>'+(wShow.closed_6_8d||0)+'</td>'
-          +'<td>'+(wShow.closed_9_10d||0)+'</td><td>'+(wShow.closed_11_15d||0)+'</td><td>'+(wShow.closed_gt15d||0)+'</td>'
-          +'<td>'+(wShow.total_closed||0)+'</td>'
-          +delta(w25?+w25.sla_breach_pct:null,w26?+w26.sla_breach_pct:null,true)
-          +delta(w25?+w25.long_tail_pct:null,w26?+w26.long_tail_pct:null,true)
-          +delta(w25?+w25.avg_tat_days:null,w26?+w26.avg_tat_days:null,true)
-          +'</tr>';
+  // Fixed header
+  html+='<table class="metrics-tbl"><thead>';
+  html+='<tr style="border-bottom:2px solid var(--border2)">';
+  html+='<th style="min-width:100px">Period</th>';
+  metricLabels.forEach(function(l){ html+='<th>'+l+'</th>'; });
+  if(y2) metricLabels.forEach(function(l){ html+='<th style="color:var(--amber)">Δ '+l+'</th>'; });
+  html+='</tr></thead><tbody>';
+
+  // Get all unique month keys across both years
+  var allMonthKeys=new Set();
+  years.forEach(function(yr){ Object.keys(tree[yr].months).forEach(function(mk){ allMonthKeys.add(mk.split('_')[1]); }); });
+  var monthNums=[...allMonthKeys].sort();
+
+  monthNums.forEach(function(mo){
+    var mk1=y1+'_'+mo, mk2=y2?y2+'_'+mo:null;
+    var m1=tree[y1]&&tree[y1].months[mk1];
+    var m2=mk2&&tree[y2]&&tree[y2].months[mk2];
+    var mShow=m2||m1;
+    if(!mShow) return;
+    var a1=m1?aggWeeks(m1.weeks):null;
+    var a2=m2?aggWeeks(m2.weeks):null;
+    var aShow=a2||a1;
+    var expandKey=mo;
+    var isOpen=!!metricsExpanded[expandKey];
+    var yearLabel=m1&&m2?(y1+' / '+y2):m1?y1:y2;
+
+    // Month summary row
+    html+='<tr class="expandable" data-mk="'+expandKey+'" onclick="toggleMetrics(this.dataset.mk)" style="background:var(--bg3);font-weight:600">';
+    html+='<td>'+mShow.name+' '+(isOpen?'▾':'▸')+'<span style="font-family:monospace;font-size:9px;color:var(--muted);margin-left:6px">'+yearLabel+'</span></td>';
+    metricCols.forEach(function(col){ html+='<td>'+fmtVal(col,aShow[col])+'</td>'; });
+    if(y2) metricCols.forEach(function(col){ html+=deltaCell(col,a1?a1[col]:null,a2?a2[col]:null); });
+    html+='</tr>';
+
+    // Week drill-down (only if this month is expanded)
+    if(isOpen){
+      var weeks1={}, weeks2={};
+      if(m1) m1.weeks.forEach(function(w){ weeks1[w.week_number]=w; });
+      if(m2) m2.weeks.forEach(function(w){ weeks2[w.week_number]=w; });
+      var wNums=[...new Set([...Object.keys(weeks1),...Object.keys(weeks2)])].sort(function(a,b){return+a-+b;});
+      wNums.forEach(function(wn,wi){
+        var w1=weeks1[wn], w2=weeks2[wn];
+        var wShow=w2||w1;
+        html+='<tr class="week-row">';
+        html+='<td style="padding-left:24px">W'+(wi+1)+' <span style="color:var(--muted);font-size:9px">'+(wShow.week_start||'')+'</span></td>';
+        metricCols.forEach(function(col){ html+='<td>'+fmtVal(col,wShow[col])+'</td>'; });
+        if(y2) metricCols.forEach(function(col){ html+=deltaCell(col,w1?w1[col]:null,w2?w2[col]:null); });
+        html+='</tr>';
       });
     }
   });
+
   html+='</tbody></table></div>';
   el.innerHTML=html;
 }
+
 
 // ── NETWORK SUMMARY ───────────────────────────────────────────────────────────
 function renderNetworkSummary(){
@@ -1673,6 +1688,12 @@ function processUploadCSV(text){
 }
 
 // ── REPLACED ORDERS ───────────────────────────────────────────────────────────
+// ── REPLACED ORDERS HELPERS (module-level to avoid strict-mode block scoping) ──
+function repIsTerminal(s){ const v=String(s||'').trim().toLowerCase(); return v==='delivered'||v==='cancelled'||v==='closed'; }
+function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
+function repStatusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
+function repAgingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
+
 function setRepSort(col){
   if(repSort.col===col) repSort.dir*=-1; else repSort={col,dir:-1};
   renderReplacement();
@@ -1684,12 +1705,8 @@ function renderReplacement(){
   const localRows=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED'&&p[1].ts&&!sheetIds.has(p[0])).map(pair=>{const id=pair[0],info=pair[1];const o=orderDump.find(x=>x.order_id===id)||{};return{original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:o.partner_name||'',actioned_on:info.ts||'',actioned_by:info.by||'',mode:info.mode||'',eta:'',new_status:'',new_aging:''};});
   const all=replacedOrders.concat(localRows);
   if(!all.length){ el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px"><div style="font-size:36px;margin-bottom:12px">📦</div><div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px">No replaced orders yet</div><div style="font-size:12px;color:var(--muted)">Cancel & Replace orders from the High Ageing Dump tab will appear here.</div></div>'; return; }
-  function isTerminal(s){ const v=String(s||'').trim().toLowerCase(); return v==='delivered'||v==='cancelled'||v==='closed'; }
   const open  =sortRows(all.filter(o=>{ const s=String(o.new_status||'').trim().toLowerCase(); return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!==''); }),repSort.col,repSort.dir);
-  const closed=sortRows(all.filter(o=>isTerminal(o.new_status)),repSort.col,repSort.dir);
-  function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
-  function statusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
-  function agingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
+  const closed=sortRows(all.filter(o=>repIsTerminal(o.new_status)),repSort.col,repSort.dir);
   const thd='<tr>'+thSort('Original Order','original_order_id',repSort,'setRepSort')+thSort('Replacement Order','replacement_order_id',repSort,'setRepSort')+'<th>Mode</th>'+thSort('City','city',repSort,'setRepSort')+thSort('Partner','partner_name',repSort,'setRepSort')+thSort('Actioned On','actioned_on',repSort,'setRepSort')+'<th>By</th>'+thSort('ETA','eta',repSort,'setRepSort')+'<th>Status</th>'+thSort('Aging','new_aging',repSort,'setRepSort')+'</tr>';
   function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+statusCell(o,isOpen)+'</td><td>'+agingCell(o)+'</td></tr>'; }
   let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
