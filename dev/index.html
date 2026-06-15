@@ -1597,11 +1597,21 @@ async function finaliseDumpSubmit(pairs){
   });
   const url=scriptURL();
   if(url){
+    // Batch in groups of 5 to avoid GET URL length limit
     const orders=pairs.map(pair=>{ const id=pair[0],info=pair[1]; const o=orderDump.find(x=>x.order_id===id)||{}; return {order_id:id,city:o.city||'',partner_name:'',store_type:o.store_type||'',aging_days:o.aging_days||0,action:info.action,replacement_order_id:info.repl||'',mode:info.mode||'',actioned_by:who}; });
-    const p=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(orders),actioned_by:who});
-    try{ const r=await apsFetch(url+'?'+p.toString()); showDumpMsg(r&&r.status==='ok'?'Done! '+pairs.length+' order(s) actioned.':'Error: '+(r&&r.message||'unknown'),r&&r.status==='ok'?'ok':'err'); }
-    catch(e){ showDumpMsg('Saved locally (script unreachable).','ok'); }
-  } else { showDumpMsg('Done (local only).','ok'); }
+    const batchSize=5;
+    let totalReplaced=0,totalClosed=0,hadError=false;
+    for(let b=0;b<orders.length;b+=batchSize){
+      const batch=orders.slice(b,b+batchSize);
+      const p=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(batch),actioned_by:who});
+      try{
+        const r=await apsFetch(url+'?'+p.toString());
+        if(r&&r.status==='ok'){ totalReplaced+=(r.replaced||0); totalClosed+=(r.closed||0); }
+        else{ hadError=true; console.error('actionOrders error:',r&&r.message); showDumpMsg('Sheet error: '+(r&&r.message||'unknown'),'err'); }
+      }catch(e){ hadError=true; console.error('actionOrders failed:',e.message); showDumpMsg('Network error — data saved locally only','err'); }
+    }
+    if(!hadError) showDumpMsg('Done! '+pairs.length+' actioned. Replaced: '+totalReplaced+', Closed: '+totalClosed,'ok');
+  } else { showDumpMsg('Done (local only — no Apps Script connected).','ok'); }
   renderDump();
   if(curTab==='rep') renderReplacement();
 }
@@ -1657,7 +1667,7 @@ function parseCSVLine(line){
   return result;
 }
 
-function processUploadCSV(text){
+async function processUploadCSV(text){
   // Skip instruction lines starting with #
   const allLines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
   if(allLines.length<2){ showUploadMsg('CSV is empty.','err'); return; }
@@ -1713,8 +1723,8 @@ function processUploadCSV(text){
   });
   saveDumpActioned();
   if(toAction.length){
-    finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
-    if(toAction.some(a=>a.action==='REPLACED')) setTimeout(function(){ renderReplacement(); },500);
+    await finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+    if(toAction.some(a=>a.action==='REPLACED')) renderReplacement();
   }
   showUploadMsg((toAction.length?toAction.length+' orders actioned. ':'')+(toCalling.length?toCalling.length+' calls logged.':''),'ok');
   renderDump();
