@@ -1048,10 +1048,10 @@ function renderMetricsTable(){
   }
 
   var metricCols=['sla_breach_pct','long_tail_pct','avg_tat_days',
-    'closed_lte0d','closed_1_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d','total_closed'];
-  var metricLabels=['SLA Breach%','Long Tail%','Avg TAT','≤ETA','1–5d','6–8d','9–10d','11–15d','>15d','Total Closed'];
+    'closed_0_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d'];
+  var metricLabels=['SLA Breach%','Long Tail%','Avg TAT','0–5d','6–8d','9–10d','11–15d','>15d'];
   var lowerBetter={sla_breach_pct:true,long_tail_pct:true,avg_tat_days:true,
-    closed_6_8d:true,closed_9_10d:true,closed_11_15d:true,closed_gt15d:true};
+    closed_0_5d:false,closed_6_8d:true,closed_9_10d:true,closed_11_15d:true,closed_gt15d:true};
 
   // Group by year+month
   var byYearMonth={};
@@ -1077,22 +1077,33 @@ function renderMetricsTable(){
     return agg;
   }
 
-  function fmtVal(col,v){
+  var bucketCols=['closed_0_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d'];
+  function fmtVal(col,v,row){
     if(v===null||v===undefined||isNaN(+v)) return '—';
     if(col.endsWith('_pct')) return ((+v)*100).toFixed(1)+'%';
     if(col==='avg_tat_days') return (+v).toFixed(1)+'d';
+    if(bucketCols.indexOf(col)>=0) return Math.round(+v).toLocaleString('en-IN');
     return Math.round(+v).toLocaleString('en-IN');
   }
 
-  function deltaStr(col,vCurr,vPrev){
-    if(vPrev===null||vPrev===undefined) return '';
+  function deltaStr(col,vCurr,vPrev,rowCurr,rowPrev){
+    if(vPrev===null||vPrev===undefined||vCurr===null||vCurr===undefined) return '';
     var raw=+vCurr-+vPrev;
     var good=lowerBetter[col]?(raw<=0):(raw>=0);
-    var disp=col.endsWith('_pct')?(Math.abs(raw)*100).toFixed(1)+'%'
-             :col==='avg_tat_days'?Math.abs(raw).toFixed(1)+'d'
-             :Math.round(Math.abs(raw)).toLocaleString('en-IN');
     var sign=raw>0?'+':raw<0?'−':'';
-    return '<span style="font-family:monospace;font-size:10px;margin-left:4px;color:'+(good?'var(--green)':'var(--red)')+'">('+(raw===0?'=':(sign+disp))+')</span>';
+    var disp;
+    if(col.endsWith('_pct')){
+      // % point delta (multiply by 100 since stored as decimal)
+      disp=sign+(Math.abs(raw)*100).toFixed(1)+'pp';
+    } else if(col==='avg_tat_days'){
+      disp=sign+Math.abs(raw).toFixed(1)+'d';
+    } else if(bucketCols.indexOf(col)>=0){
+      // Absolute count delta
+      disp=sign+Math.round(Math.abs(raw)).toLocaleString('en-IN');
+    } else {
+      disp=sign+Math.round(Math.abs(raw)).toLocaleString('en-IN');
+    }
+    return '<span style="font-family:monospace;font-size:10px;margin-left:4px;color:'+(good?'var(--green)':'var(--red)')+'">('+(raw===0?'=':disp)+')</span>';
   }
 
   // Get current-year months sorted
@@ -1117,7 +1128,7 @@ function renderMetricsTable(){
     html+='<tr class="expandable" data-mk="'+mk+'" onclick="toggleMetrics(this.dataset.mk)" style="background:var(--bg3);font-weight:600">';
     html+='<td>'+mData.name+' '+(isOpen?'▾':'▸')+'</td>';
     metricCols.forEach(function(col){
-      html+='<td>'+fmtVal(col,aCurr[col])+(aPrev?deltaStr(col,aCurr[col],aPrev[col]):'')+'</td>';
+      html+='<td>'+fmtVal(col,aCurr[col],aCurr)+(aPrev?deltaStr(col,aCurr[col],aPrev[col],aCurr,aPrev):'')+'</td>';
     });
     html+='</tr>';
 
@@ -1133,7 +1144,7 @@ function renderMetricsTable(){
         html+='<td style="padding-left:20px">W'+(wi+1)
           +' <span style="color:var(--muted);font-size:9px">'+fmtDate(w.week_start||'')+'</span></td>';
         metricCols.forEach(function(col){
-          html+='<td>'+fmtVal(col,w[col])+(pw?deltaStr(col,w[col],pw[col]):'')+'</td>';
+          html+='<td>'+fmtVal(col,w[col],w)+(pw?deltaStr(col,w[col],pw[col],w,pw):'')+'</td>';
         });
         html+='</tr>';
       });
