@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Heimdall v2.3 DEV — Tata 1mg</title>
+<title>Heimdall v2.3 — Tata 1mg</title>
 <meta name="version" content="2.2.1"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='24' fill='%230a1828'/%3E%3Cpath d='M8 34 Q24 10 40 34' stroke='%236366f1' stroke-width='1.5' fill='none' opacity='.5'/%3E%3Cpath d='M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z' fill='%233b82f6' opacity='.9'/%3E%3Cpath d='M12 23 L6 19 L10 25' fill='%232dd4bf' opacity='.85'/%3E%3Cpath d='M36 23 L42 19 L38 25' fill='%232dd4bf' opacity='.85'/%3E%3Crect x='18' y='21' width='12' height='5' rx='1' fill='%23060e1c'/%3E%3Crect x='19' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Crect x='25' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Cpath d='M16 27 L14 40 L24 36 L34 40 L32 27 Z' fill='%231e3a5f' opacity='.85'/%3E%3Cpath d='M8 33 Q12 29 16 31 L14 35 Q10 35 8 33Z' fill='%23f59e0b' opacity='.8'/%3E%3Ccircle cx='21' cy='23' r='1.2' fill='%23fff'/%3E%3Ccircle cx='27' cy='23' r='1.2' fill='%23fff'/%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -317,7 +317,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
       <circle cx="27" cy="23" r="1.2" fill="#fff"/>
     </svg>
     <div class="login-title">Heimdall</div>
-    <div class="login-sub">Tata 1mg &middot; Rain Control Tower &middot; v2.2</div>
+    <div class="login-sub">Tata 1mg &middot; Rain Control Tower &middot; v2.3</div>
     <div class="login-field">
       <label>Email</label>
       <input id="login-email" type="email" placeholder="you@1mg.com" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"/>
@@ -367,7 +367,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     </svg>
     <div>
       <div class="hdr-tag"><span>Tata 1mg · 3PL Network</span><div class="live-dot"></div></div>
-      <h1>Heimdall <span style="font-weight:300;opacity:.45">v2.3</span> <span style="font-family:'DM Mono';font-size:11px;padding:2px 8px;border-radius:3px;background:#7f1d1d;color:#fca5a5;margin-left:6px">DEV</span></h1>
+      <h1>Heimdall <span style="font-weight:300;opacity:.45">v2.3</span></h1>
     </div>
   </div>
   <div class="hdr-right">
@@ -574,11 +574,11 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 'use strict';
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
-const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
-const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgiHvHvg5PQk3qP--lk-VadLctUmXimt-ic3TtqDYQUr9Xkn3qRWo41DSeeyirKAm5YA/exec'; // ← PASTE DEV APPS SCRIPT URL HERE
-const DEFAULT_PIN        = '1mg2025-dev';
+const DEFAULT_CITY_URL   = '';
+const DEFAULT_FC_URL     = '';
+const DEFAULT_MTD_URL    = '';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgiHvHvg5PQk3qP--lk-VadLctUmXimt-ic3TtqDYQUr9Xkn3qRWo41DSeeyirKAm5YA/exec';
+const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let cityData=[], fcData=[], mtdData=[];
