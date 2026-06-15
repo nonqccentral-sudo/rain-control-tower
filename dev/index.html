@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Heimdall v2.3 DEV — Tata 1mg</title>
+<meta name="version" content="2.2.1"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='24' fill='%230a1828'/%3E%3Cpath d='M8 34 Q24 10 40 34' stroke='%236366f1' stroke-width='1.5' fill='none' opacity='.5'/%3E%3Cpath d='M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z' fill='%233b82f6' opacity='.9'/%3E%3Cpath d='M12 23 L6 19 L10 25' fill='%232dd4bf' opacity='.85'/%3E%3Cpath d='M36 23 L42 19 L38 25' fill='%232dd4bf' opacity='.85'/%3E%3Crect x='18' y='21' width='12' height='5' rx='1' fill='%23060e1c'/%3E%3Crect x='19' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Crect x='25' y='22' width='4' height='3' rx='1' fill='%233b82f6' opacity='.8'/%3E%3Cpath d='M16 27 L14 40 L24 36 L34 40 L32 27 Z' fill='%231e3a5f' opacity='.85'/%3E%3Cpath d='M8 33 Q12 29 16 31 L14 35 Q10 35 8 33Z' fill='%23f59e0b' opacity='.8'/%3E%3Ccircle cx='21' cy='23' r='1.2' fill='%23fff'/%3E%3Ccircle cx='27' cy='23' r='1.2' fill='%23fff'/%3E%3C/svg%3E"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root[data-theme="dark"]{
+  --bg:#07090d;--bg2:#0c1018;--bg3:#0e1520;--bg4:#111e2e;
+  --card:#0c1420;--card2:#091018;
+  --border:#1c2a3a;--border2:#24384a;
+  --text:#c8d8ea;--muted:#4a6278;
+  --input-bg:#060a12;--input-border:#1c2a3a;
+  --green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+  --blue:#3b82f6;--purple:#a78bfa;--teal:#2dd4bf;
+  --gbg:#071a0f;--abg:#1a1200;--rbg:#1a0808;--bbg:#07101a;
+  --s-active:#060d1a;--s-red:#150808;--s-amber:#15100000;--s-green:#07100700;
+}
+:root[data-theme="light"]{
+  --bg:#f0f4fa;--bg2:#e8eef8;--bg3:#dde5f2;--bg4:#d2dced;
+  --card:#ffffff;--card2:#f5f8fd;
+  --border:#c0cfe0;--border2:#a8bcd4;
+  --text:#1a2535;--muted:#6a7d98;
+  --input-bg:#ffffff;--input-border:#b0c4d8;
+  --green:#16a34a;--amber:#d97706;--red:#dc2626;
+  --blue:#2563eb;--purple:#7c3aed;--teal:#0d9488;
+  --gbg:#f0fdf4;--abg:#fffbeb;--rbg:#fef2f2;--bbg:#eff6ff;
+  --s-active:#eff6ff;--s-red:#fff5f5;--s-amber:#fffdf0;--s-green:#f0fff4;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:14px;}
+[data-theme="dark"] body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");}
+.wrap{position:relative;z-index:1;padding:18px 24px;max-width:1700px;margin:0 auto;}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:18px;}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.logo{width:48px;height:48px;flex-shrink:0;}
+.hdr-tag{font-family:'DM Mono';font-size:10px;color:var(--blue);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;display:flex;align-items:center;gap:8px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+h1{font-family:'Syne';font-size:27px;font-weight:800;color:var(--text);letter-spacing:-.5px;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.hdr-info{text-align:right;margin-right:4px;}
+.hdr-info .lbl{font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.hdr-info .val{font-family:'DM Mono';font-size:12px;color:var(--text);}
+.hdr-info .sub{font-family:'DM Mono';font-size:10px;color:var(--muted);}
+.btn{font-family:'DM Mono';font-size:11px;padding:6px 13px;border-radius:5px;cursor:pointer;border:1px solid;transition:all .18s;}
+.btn-blue{background:var(--bbg);border-color:var(--blue);color:var(--blue);}
+.btn-blue:hover{background:var(--blue);color:#fff;}
+.btn-green{background:var(--gbg);border-color:var(--green);color:var(--green);}
+.btn-green:hover{background:var(--green);color:#fff;}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--muted);}
+.btn-ghost:hover{color:var(--text);border-color:var(--text);}
+.btn-icon{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-size:15px;width:32px;height:32px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0;}
+.btn-icon:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+.syncing{opacity:.6;pointer-events:none;}
+.overlay{position:fixed;inset:0;background:#000c;z-index:999;display:flex;align-items:center;justify-content:center;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:28px 32px;width:300px;text-align:center;}
+.modal h3{font-family:'Syne';font-size:19px;color:var(--text);margin-bottom:6px;}
+.modal p{font-size:12px;color:var(--muted);margin-bottom:18px;}
+.pin-in{width:100%;background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:22px;padding:9px;border-radius:6px;text-align:center;letter-spacing:8px;margin-bottom:10px;}
+.pin-in:focus{outline:none;border-color:var(--blue);}
+.pin-err{color:var(--red);font-size:11px;font-family:'DM Mono';margin-top:6px;display:none;}
+.cfg-panel{background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:14px 16px;margin-bottom:16px;}
+.cfg-top{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;}
+.cfg-title{font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+.cfg-lock{font-family:'DM Mono';font-size:10px;padding:2px 8px;border-radius:3px;}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;margin-top:12px;}
+.cfg-field{display:flex;flex-direction:column;gap:4px;}
+.cfg-field label{font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.cfg-field input[type=number],.cfg-field input[type=password]{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:13px;padding:6px 9px;border-radius:4px;width:100%;}
+.cfg-field input:focus{outline:none;border-color:var(--blue);}
+.cfg-hint{font-size:11px;color:var(--muted);}
+.trigger-row{display:flex;align-items:center;gap:10px;}
+.trigger-row input[type=range]{flex:1;accent-color:var(--blue);}
+.tval{font-family:'DM Mono';font-size:13px;color:var(--blue);min-width:42px;}
+.tdesc{font-size:11px;color:var(--muted);}
+.cfg-div{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.url-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.url-lbl{font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;min-width:175px;}
+.url-in{flex:1;background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:11px;padding:5px 8px;border-radius:4px;}
+.url-in:focus{outline:none;border-color:var(--blue);}
+.tag{font-family:'DM Mono';font-size:10px;padding:2px 8px;border-radius:3px;white-space:nowrap;}
+.tok{background:var(--gbg);color:var(--green);border:1px solid var(--green);}
+.tno{background:var(--rbg);color:var(--red);border:1px solid var(--red);}
+.tsmp{background:var(--abg);color:var(--amber);border:1px solid var(--amber);}
+.cfg-actions{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+.save-msg{font-family:'DM Mono';font-size:11px;color:var(--green);}
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--card);border-radius:8px;padding:12px 14px;border:1px solid var(--border);}
+.kpi-lbl{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:5px;}
+.kpi-val{font-family:'Syne';font-size:23px;font-weight:700;line-height:1.1;}
+.kpi-unit{font-size:11px;color:var(--muted);margin-left:3px;}
+.kpi-sub{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi-cost{font-family:'DM Mono';font-size:11px;margin-top:4px;}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'DM Sans';font-size:13px;font-weight:500;padding:7px 15px;cursor:pointer;margin-bottom:-1px;transition:all .15s;}
+.tab.active{color:var(--text);border-bottom-color:var(--blue);background:var(--bg3);}
+.tab:hover:not(.active){color:var(--text);}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{border-bottom:1px solid var(--border2);}
+th{padding:6px 9px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr.data-row:hover{background:var(--bg3);cursor:pointer;}
+tbody tr.data-row.sel{background:var(--bg4);}
+td{padding:9px 9px;vertical-align:middle;}
+.sec-hdr{cursor:pointer;user-select:none;}
+.sec-hdr:hover td{filter:brightness(1.12);}
+.sec-hdr td{padding:6px 10px;border-bottom:none;border-top:2px solid var(--border);}
+.sec-inner{display:flex;align-items:center;gap:8px;}
+.sec-cnt{font-family:'DM Mono';font-size:10px;color:var(--muted);}
+.sec-note{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-left:auto;}
+.r-active td:first-child{border-left:3px solid var(--blue);}
+.r-red    td:first-child{border-left:3px solid var(--red);}
+.r-amber  td:first-child{border-left:3px solid var(--amber);}
+.r-green  td:first-child{border-left:3px solid #22c55e44;}
+.r-deact-amber{background:#2a1e0080 !important;}
+.r-deact-amber td:first-child{border-left:3px solid var(--amber) !important;}
+[data-theme="light"] .r-deact-amber{background:#fffbeb !important;}
+.r-deact-green{background:#071a0f80 !important;}
+.r-deact-green td:first-child{border-left:3px solid var(--green) !important;}
+[data-theme="light"] .r-deact-green{background:#f0fff4 !important;}
+.rag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-family:'DM Mono';font-size:11px;font-weight:600;border:1px solid;}
+.rag-green{background:var(--gbg);color:var(--green);border-color:var(--green);}
+.rag-amber{background:var(--abg);color:var(--amber);border-color:var(--amber);}
+.rag-red  {background:var(--rbg);color:var(--red);  border-color:var(--red);}
+.rag-blue {background:var(--bbg);color:var(--blue);  border-color:var(--blue);}
+.rdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.aging-bar{display:flex;height:9px;border-radius:3px;overflow:hidden;gap:1px;min-width:110px;}
+.act-btn{font-family:'DM Mono';font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;border:1px solid;white-space:nowrap;transition:all .18s;}
+.act-on{background:var(--rbg);border-color:var(--red);color:var(--red);}
+.act-on:hover{background:var(--red);color:#fff;}
+.act-off{background:var(--bbg);border-color:var(--blue);color:var(--blue);}
+.act-off:hover{background:var(--blue);color:#fff;}
+.act-rdy{background:var(--gbg);border-color:var(--green);color:var(--green);animation:glow 2s infinite;}
+.act-rdy:hover{background:var(--green);color:#fff;}
+.act-deact-amber{background:var(--abg);border-color:var(--amber);color:var(--amber);animation:glow-amber 2s infinite;}
+.act-deact-amber:hover{background:var(--amber);color:#fff;}
+@keyframes glow{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:0 0 7px var(--green)}}
+@keyframes glow-amber{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:0 0 7px var(--amber)}}
+.dd{margin-top:12px;background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:18px;}
+.dd-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.dd-title{font-family:'Syne';font-size:17px;color:var(--text);}
+.dd-x{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;}
+.dd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.dd-card{background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:13px;}
+.dd-ct{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:9px;}
+.dd-row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;}
+.dd-lbl{color:var(--muted);}
+.dd-val{font-family:'DM Mono';color:var(--text);}
+.dd-div{border:none;border-top:1px solid var(--border);margin:7px 0;}
+.bkt{margin-bottom:8px;}
+.bkt-hd{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.bkt-bg{height:4px;background:var(--border);border-radius:2px;}
+.bkt-fill{height:4px;border-radius:2px;}
+.sum-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.sum-card{background:var(--card);border-radius:8px;padding:14px;border:1px solid var(--border);}
+.sum-lbl{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
+.sum-val{font-family:'Syne';font-size:22px;font-weight:700;line-height:1.1;}
+.sum-sub{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:4px;}
+.sim-tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto;}
+.sim-tbl-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+.sens-wrap{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;}
+.sens-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;}
+.sens-tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.sens-tbl th{padding:5px 8px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);}
+.sens-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);font-family:'DM Mono';}
+.sens-tbl tr.cur td{background:var(--bg4);}
+.notice{border-radius:7px;padding:10px 14px;font-size:12px;font-family:'DM Mono';margin-bottom:12px;}
+.notice-amber{background:var(--abg);border:1px solid var(--amber);color:var(--amber);}
+.notice-red{background:var(--rbg);border:1px solid var(--red);color:var(--red);}
+.log-wrap{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;}
+.log-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+.log-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.log-tbl th{padding:6px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);}
+.log-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);font-family:'DM Mono';font-size:11px;}
+.log-act  td{background:#1a0808;color:#ef4444;font-weight:700;}
+.log-deact td{background:#071a0f;color:#22c55e;font-weight:700;}
+.log-cfg  td{background:#1a1200;color:#f59e0b;}
+.log-other td{color:var(--muted);}
+.logic-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.lcard{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.lcard-t{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:13px;}
+.step{display:flex;gap:11px;margin-bottom:15px;}
+.step-n{min-width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono';font-size:10px;font-weight:700;flex-shrink:0;}
+.step-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.step-body{font-size:11px;color:var(--muted);margin-bottom:3px;}
+.step-action{font-size:11px;font-style:italic;}
+.thresh-tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.thresh-tbl th{padding:5px 8px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);}
+.thresh-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);}
+.constr{display:flex;gap:7px;margin-bottom:6px;font-size:12px;color:var(--muted);}
+.err-bar{background:var(--rbg);border:1px solid var(--red);border-radius:7px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--red);font-family:'DM Mono';display:none;}
+.footer{margin-top:20px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:'DM Mono';font-size:10px;color:var(--muted);}
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){.dd-grid{grid-template-columns:1fr 1fr;}.logic-grid{grid-template-columns:1fr;}.sum-cards{grid-template-columns:1fr 1fr;}}
+
+
+/* ─── v2.2 additions ─── */
+
+.metrics-table-wrap{background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:18px;margin-bottom:14px;overflow-x:auto;}
+.metrics-title{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+.metrics-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.metrics-tbl th{padding:6px 10px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted);border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap;}
+.metrics-tbl th:hover{color:var(--text);}
+.metrics-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);font-family:'DM Mono';font-size:11px;}
+.metrics-tbl tr.expandable{cursor:pointer;} .metrics-tbl tr.expandable:hover td{background:var(--bg3);}
+.metrics-tbl tr.week-row td{background:var(--bg2);font-size:10px;color:var(--muted);}
+.delta-green{color:var(--green);font-weight:600;} .delta-red{color:var(--red);font-weight:600;}
+
+
+/* CP badge pulse */
+@keyframes cp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
+.cp-badge{font-family:'DM Mono';font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber);background:var(--abg);cursor:pointer;animation:cp-pulse 1.5s infinite;white-space:nowrap;display:inline-block;margin-left:4px;}
+.cp-badge.done{border-color:var(--green);color:var(--green);background:var(--gbg);animation:none;}
+
+.kpi-strip{grid-template-columns:repeat(8,1fr)!important;}
+@media(max-width:1400px){.kpi-strip{grid-template-columns:repeat(4,1fr)!important;}}
+.kpi.clickable{cursor:pointer;}
+.kpi.clickable:hover{border-color:var(--blue)!important;}
+.ns-wrap{display:flex;flex-direction:column;gap:14px;}
+.ns-card{background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:18px 22px;}
+.ns-lbl{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+.ns-body{font-size:13px;color:var(--text);line-height:1.8;}
+.ns-city-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+.ns-city-card{background:var(--card);border-radius:8px;padding:13px 15px;border:1px solid var(--border);cursor:pointer;transition:all .18s;}
+.ns-city-card:hover{transform:translateY(-2px);box-shadow:0 4px 20px #0006;}
+.ns-city-name{font-family:'DM Mono';font-size:12px;font-weight:700;margin-bottom:5px;}
+.ns-city-meta{font-family:'DM Mono';font-size:10px;color:var(--muted);}
+.dd-inline-row td{padding:0!important;border-bottom:2px solid var(--border2);}
+.dd-inline-wrap{background:var(--bg3);padding:16px 20px;}
+.dump-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100;background:var(--bg2);padding:8px 12px;border-radius:8px;border:1px solid var(--border);}
+.dump-sel{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:12px;padding:6px 10px;border-radius:5px;cursor:pointer;}
+.dump-sel:focus{outline:none;border-color:var(--blue);}
+.dump-info{font-family:'DM Mono';font-size:11px;color:var(--muted);}
+.dump-btns{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+.btn-air{background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:'DM Mono';font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;transition:all .18s;}
+.btn-air:hover{background:var(--blue);color:#fff;}
+.btn-close-action{background:var(--gbg);border:1px solid var(--green);color:var(--green);font-family:'DM Mono';font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;transition:all .18s;}
+.btn-close-action:hover{background:var(--green);color:#fff;}
+.btn-submit{background:var(--card);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono';font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;transition:all .18s;}
+.btn-submit:hover{background:var(--bg4);border-color:var(--text);}
+.repl-inp{background:var(--input-bg);border:1px solid var(--blue);color:var(--text);font-family:'DM Mono';font-size:11px;padding:4px 8px;border-radius:4px;width:175px;}
+.repl-inp.err{border-color:var(--red);}
+.call-inp{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:11px;padding:4px 8px;border-radius:4px;width:180px;}
+.call-inp:focus{outline:none;border-color:var(--teal);}
+.btn-call{background:var(--card);border:1px solid var(--teal);color:var(--teal);font-family:'DM Mono';font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.btn-call.done{background:var(--gbg);border-color:var(--green);color:var(--green);}
+.btn-call:hover{background:var(--teal);color:#fff;}
+.repl-inp:focus{outline:none;}
+.dump-msg{border-radius:7px;padding:8px 12px;font-size:12px;font-family:'DM Mono';margin-bottom:10px;}
+.dump-msg.err{background:var(--rbg);border:1px solid var(--red);color:var(--red);}
+.dump-msg.ok{background:var(--gbg);border:1px solid var(--green);color:var(--green);}
+.st-badge{font-family:'DM Mono';font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid;white-space:nowrap;}
+.st-fc{color:var(--blue);border-color:var(--blue);}
+.st-mp{color:var(--amber);border-color:var(--amber);}
+tr.r-pending td{background:var(--bbg)!important;}
+tr.r-actioned td{opacity:.6;text-decoration:line-through;}
+tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
+.pp-section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;margin-bottom:12px;}
+.pp-lbl{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+/* Login screen */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:40px 44px;width:380px;text-align:center;}
+.login-logo{width:64px;height:64px;margin:0 auto 16px;}
+.login-title{font-family:'Syne';font-size:26px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--muted);margin-bottom:28px;}
+.login-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;text-align:left;}
+.login-field label{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.login-field input{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text);font-family:'DM Mono';font-size:14px;padding:10px 12px;border-radius:6px;width:100%;}
+.login-field input:focus{outline:none;border-color:var(--blue);}
+.login-err{font-family:'DM Mono';font-size:11px;margin-bottom:10px;min-height:16px;}
+.btn-login{width:100%;background:var(--blue);border:none;color:#fff;font-family:'DM Mono';font-size:13px;padding:11px;border-radius:7px;cursor:pointer;font-weight:600;transition:opacity .18s;}
+.btn-login:hover{opacity:.85;}
+.btn-login:disabled{opacity:.5;cursor:default;}
+.login-footer{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:18px;}
+
+</style>
+</head>
+<body>
+
+
+<!-- CP CONFIRMATION MODAL -->
+<div id="cp-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:28px 32px;width:360px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:10px">✈</div>
+    <div style="font-family:'Syne';font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Activate BD Air</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:6px">City: <strong id="cp-modal-city" style="color:var(--text)"></strong></div>
+    <div style="font-size:13px;color:var(--amber);background:var(--abg);border:1px solid var(--amber);border-radius:6px;padding:10px;margin:14px 0;">
+      ⚠ Have you updated the routing rules on <strong>Clickpost</strong> for this city?<br/>
+      <span style="font-size:11px;color:var(--muted)">BD Air will only work if Clickpost is configured.</span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="cpModalCancel()" style="flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--muted);font-family:'DM Mono';font-size:12px;padding:10px;border-radius:6px;cursor:pointer;">Cancel</button>
+      <button onclick="cpModalConfirm()" style="flex:1;background:var(--blue);border:none;color:#fff;font-family:'DM Mono';font-size:12px;padding:10px;border-radius:6px;cursor:pointer;font-weight:600;">Yes, CP Updated — Activate</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none">
+  <div class="login-box">
+    <svg class="login-logo" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="24" fill="#0a1828"/>
+      <path d="M8 34 Q24 10 40 34" stroke="#6366f1" stroke-width="1.5" fill="none" opacity=".5"/>
+      <path d="M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z" fill="#3b82f6" opacity=".9"/>
+      <path d="M12 23 L6 19 L10 25" fill="#2dd4bf" opacity=".85"/>
+      <path d="M36 23 L42 19 L38 25" fill="#2dd4bf" opacity=".85"/>
+      <rect x="18" y="21" width="12" height="5" rx="1" fill="#060e1c"/>
+      <rect x="19" y="22" width="4" height="3" rx="1" fill="#3b82f6" opacity=".8"/>
+      <rect x="25" y="22" width="4" height="3" rx="1" fill="#3b82f6" opacity=".8"/>
+      <circle cx="21" cy="23" r="1.2" fill="#fff"/>
+      <circle cx="27" cy="23" r="1.2" fill="#fff"/>
+    </svg>
+    <div class="login-title">Heimdall</div>
+    <div class="login-sub">Tata 1mg &middot; Rain Control Tower &middot; v2.2</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input id="login-email" type="email" placeholder="you@1mg.com" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"/>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-footer">Access is restricted to authorised team members only.</div>
+  </div>
+</div>
+
+
+<div class="wrap">
+
+<!-- PIN MODAL -->
+<div id="pin-overlay" class="overlay" style="display:none">
+  <div class="modal">
+    <div style="font-size:32px;margin-bottom:10px">🔒</div>
+    <h3>Config Access</h3>
+    <p>Enter PIN to unlock configuration</p>
+    <input class="pin-in" id="pin-in" type="password" maxlength="12" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPin()"/>
+    <button class="btn btn-blue" style="width:100%;display:block;" onclick="checkPin()">Unlock</button>
+    <div class="pin-err" id="pin-err">Incorrect PIN</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <svg class="logo" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="24" fill="#0a1828"/>
+      <circle cx="24" cy="24" r="22" fill="none" stroke="#3b82f6" stroke-width="1" opacity=".35"/>
+      <path d="M8 34 Q24 10 40 34" stroke="#6366f1" stroke-width="1.5" fill="none" opacity=".5"/>
+      <path d="M24 9 L18 19 L12 23 L24 21 L36 23 L30 19 Z" fill="#3b82f6" opacity=".9"/>
+      <path d="M12 23 L6 19 L10 25" fill="#2dd4bf" opacity=".85"/>
+      <path d="M36 23 L42 19 L38 25" fill="#2dd4bf" opacity=".85"/>
+      <rect x="18" y="21" width="12" height="5" rx="1" fill="#060e1c"/>
+      <rect x="19" y="22" width="4" height="3" rx="1" fill="#3b82f6" opacity=".8"/>
+      <rect x="25" y="22" width="4" height="3" rx="1" fill="#3b82f6" opacity=".8"/>
+      <path d="M16 27 L14 40 L24 36 L34 40 L32 27 Z" fill="#1e3a5f" opacity=".85"/>
+      <path d="M8 33 Q12 29 16 31 L14 35 Q10 35 8 33Z" fill="#f59e0b" opacity=".8"/>
+      <circle cx="21" cy="23" r="1.2" fill="#fff"/>
+      <circle cx="27" cy="23" r="1.2" fill="#fff"/>
+    </svg>
+    <div>
+      <div class="hdr-tag"><span>Tata 1mg · 3PL Network</span><div class="live-dot"></div></div>
+      <h1>Heimdall <span style="font-weight:300;opacity:.45">v2.3</span> <span style="font-family:'DM Mono';font-size:11px;padding:2px 8px;border-radius:3px;background:#7f1d1d;color:#fca5a5;margin-left:6px">DEV</span></h1>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-info">
+      <div class="lbl">Data as of</div>
+      <div class="val" id="data-date">—</div>
+      <div class="sub" id="sync-note">—</div>
+    </div>
+    <span id="user-badge" style="font-family:'DM Mono';font-size:11px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:5px;border:1px solid var(--border2);display:none" onclick="logoutUser()" title="Sign out"></span>
+    <button class="btn-icon" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
+    <button class="btn btn-green" id="sync-btn" onclick="syncState()">⟳ Sync</button>
+  </div>
+</div>
+
+<!-- CONFIG PANEL -->
+<div class="cfg-panel">
+  <div class="cfg-top" onclick="toggleCfg()">
+    <span class="cfg-title"><span id="cfg-chev" style="margin-right:6px">▸</span>⚙ Configuration</span>
+    <span class="cfg-lock tag tno" id="cfg-lock-tag">🔒 LOCKED — click to expand</span>
+  </div>
+  <div id="cfg-body" style="display:none">
+    <div id="cfg-unlock-msg" style="margin-top:10px;text-align:center;padding:8px;font-family:'DM Mono';font-size:11px;color:var(--muted);cursor:pointer;border:1px dashed var(--border2);border-radius:6px;" onclick="openPin()">
+      🔒 Click to unlock config settings
+    </div>
+    <div id="cfg-fields" style="display:none">
+      <div class="cfg-grid">
+        <div class="cfg-field">
+          <label>ΔC — Incremental Cost / Air Order (₹)</label>
+          <input type="number" id="cfg-dc" value="35" min="0" step="1"/>
+          <span class="cfg-hint">BD Air blended − Surface CPOL. Default ₹35</span>
+        </div>
+        <div class="cfg-field">
+          <label>Minimum Inflow to Show City</label>
+          <input type="number" id="cfg-opd" value="50" min="0" step="10"/>
+          <span class="cfg-hint">Hide cities below this inflow. 0 = show all</span>
+        </div>
+        <div class="cfg-field">
+          <label>Config PIN</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="password" id="cfg-pin" value="1mg2025" maxlength="12" autocomplete="new-password" style="flex:1"/>
+            <button onclick="togglePinVis()" id="pin-eye" style="background:var(--bg3);border:1px solid var(--border2);color:var(--muted);padding:6px 9px;border-radius:4px;cursor:pointer;font-size:13px">👁</button>
+          </div>
+          <span class="cfg-hint">Change after first deploy</span>
+        </div>
+        <div class="cfg-field" style="grid-column:1/-1">
+          <label>Trigger Sensitivity Multiplier</label>
+          <div class="trigger-row">
+            <input type="range" min="0.4" max="2.0" step="0.05" value="1.0" id="cfg-trig" oninput="onTrigger()"/>
+            <span class="tval" id="tval">1.00×</span>
+            <span class="tdesc" id="tdesc">BAU threshold</span>
+          </div>
+          <span class="cfg-hint">0.4× = aggressive · 1.0× = BAU · 2.0× = conservative</span>
+        </div>
+      </div>
+      <hr class="cfg-div"/>
+      <div class="url-row">
+        <span class="url-lbl">CITY_METRICS CSV URL</span>
+        <input class="url-in" id="url-city" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=GID&single=true&output=csv"/>
+        <button class="btn btn-blue" onclick="loadCity()">Load</button>
+        <span class="tag tno" id="st-city">NOT CONNECTED</span>
+      </div>
+      <div class="url-row">
+        <span class="url-lbl">BD_AIR_FORECAST CSV URL</span>
+        <input class="url-in" id="url-fc" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=GID&single=true&output=csv"/>
+        <button class="btn btn-blue" onclick="loadFc()">Load</button>
+        <span class="tag tno" id="st-fc">NOT CONNECTED</span>
+      </div>
+      <div class="url-row">
+        <span class="url-lbl">BD_AIR_MTD CSV URL</span>
+        <input class="url-in" id="url-mtd" placeholder="https://docs.google.com/spreadsheets/d/ID/pub?gid=GID&single=true&output=csv"/>
+        <button class="btn btn-blue" onclick="loadMtd()">Load</button>
+        <span class="tag tno" id="st-mtd">NOT CONNECTED</span>
+      </div>
+      <div class="url-row">
+        <span class="url-lbl">Apps Script URL</span>
+        <input class="url-in" id="url-script" placeholder="https://script.google.com/macros/s/DEPLOYMENT_ID/exec"/>
+        <button class="btn btn-ghost" onclick="testScript()">Test</button>
+        <span class="tag tno" id="st-script">NOT CONNECTED</span>
+      </div>
+      <div class="cfg-actions">
+        <button class="btn btn-blue" onclick="saveConfig()">💾 Save Config</button>
+        <button class="btn btn-ghost" onclick="resetAdherenceLocal()" style="border-color:var(--amber);color:var(--amber)">↺ Reset Adherence</button>
+        <button class="btn btn-ghost" onclick="loadSample()">▶ Load Sample Data</button>
+        <span class="save-msg" id="save-msg" style="display:none"></span>
+      </div>
+      <div style="margin-top:8px;font-family:'DM Mono';font-size:10px;color:var(--muted)">
+        ℹ Team defaults: edit DEFAULT_* constants at top of script in index.html → re-upload to GitHub.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="err-bar" id="err-bar"></div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi" style="border-color:#3b82f644">
+    <div class="kpi-lbl">Cities Active (Air ON)</div>
+    <div><span class="kpi-val" style="color:var(--blue)" id="k-active">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-active-sub">—</div>
+  </div>
+  <div class="kpi" style="border-color:#22c55e44">
+    <div class="kpi-lbl">Ready to Deactivate</div>
+    <div><span class="kpi-val" style="color:var(--green)" id="k-rdy">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-rdy-sub">below trigger</div>
+  </div>
+  <div class="kpi" style="border-color:#ef444444">
+    <div class="kpi-lbl">Cities Critical</div>
+    <div><span class="kpi-val" style="color:var(--red)" id="k-red">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-red-sub">—</div>
+  </div>
+  <div class="kpi" style="border-color:#f59e0b44">
+    <div class="kpi-lbl">Cities Watch</div>
+    <div><span class="kpi-val" style="color:var(--amber)" id="k-amb">—</span><span class="kpi-unit">cities</span></div>
+    <div class="kpi-sub" id="k-amb-sub">—</div>
+  </div>
+  <div class="kpi clickable" style="border-color:#ef444466" onclick="goToDump('Pan-India')">
+    <div class="kpi-lbl">5+ Day Aging &#x2197;</div>
+    <div><span class="kpi-val" style="color:var(--red)" id="k-aging5">&#x2014;</span><span class="kpi-unit">orders</span></div>
+    <div class="kpi-sub" id="k-aging5-sub">pan-india</div>
+  </div>
+  <div class="kpi" style="border-color:#a78bfa44">
+    <div class="kpi-lbl">Ageing Adherence</div>
+    <div><span class="kpi-val" id="k-adh-pct" style="color:var(--green)">&#x2014;</span><span class="kpi-unit">%</span></div>
+    <div class="kpi-sub" id="k-adh-sub">actioned / seen</div>
+    <div class="kpi-sub" id="k-adh-reset" style="font-size:9px;margin-top:2px"></div>
+  </div>
+  <div class="kpi" style="border-color:#a78bfa44">
+    <div class="kpi-lbl">MTD Air Orders &amp; Cost</div>
+    <div><span class="kpi-val" style="color:var(--purple)" id="k-mtd-o">—</span></div>
+    <div class="kpi-sub" id="k-mtd-o-sub">this calendar month</div>
+    <div class="kpi-cost" style="color:var(--teal)" id="k-mtd-c">—</div>
+    <div class="kpi-sub" id="k-mtd-c-sub">incremental cost MTD</div>
+  </div>
+  <div class="kpi" style="border-color:#2dd4bf44">
+    <div class="kpi-lbl">Month Total (MTD + Predicted)</div>
+    <div><span class="kpi-val" style="color:var(--teal)" id="k-month-orders">—</span></div>
+    <div class="kpi-sub" id="k-month-orders-sub">total orders this month</div>
+    <div class="kpi-cost" style="color:var(--blue)" id="k-month-cost">—</div>
+    <div class="kpi-sub" id="k-month-cost-sub">total incremental cost</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab" onclick="switchTab('ns',this)">&#x1F310; Network Summary</button>
+  <button class="tab" onclick="switchTab('ov',this)">City Overview</button>
+  <button class="tab" onclick="switchTab('sim',this)">Cost Simulator</button>
+  <button class="tab" onclick="switchTab('dump',this)">High Ageing Dump</button>
+  <button class="tab" onclick="switchTab('rep',this)">Replaced Orders</button>
+  <button class="tab" onclick="switchTab('pp',this)">Partner &amp; Pincode</button>
+  <button class="tab" onclick="switchTab('log',this)">Change Log</button>
+  <button class="tab" onclick="switchTab('logic',this)">Decision Logic</button>
+</div>
+
+<div id="t-ns" style="display:none"><div id="ns-body"></div></div>
+<div id="t-ov" style="display:none">
+  <div id="ov-bau-warn" class="notice notice-amber" style="display:none">⚠ BAU pipeline data missing in CITY_METRICS sheet (bau_pipeline, surface_tat, air_tat columns). All cities showing as Normal until SQL populates these columns.</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="setOvSort('city')" style="cursor:pointer;user-select:none">City</th><th onclick="setOvSort('pipeline_days')" style="cursor:pointer;user-select:none">Pipeline Days</th><th>Trigger At</th>
+        <th onclick="setOvSort('openPipeline')" style="cursor:pointer;user-select:none">Open Pipeline</th><th onclick="setOvSort('ltp')" style="cursor:pointer;user-select:none">Long Tail %</th><th onclick="setOvSort('sbp')" style="cursor:pointer;user-select:none">SLA Breach %</th><th onclick="setOvSort('totAge')" style="cursor:pointer;user-select:none">Aging →</th>
+        <th onclick="setOvSort('mtdOrders')" style="cursor:pointer;user-select:none">MTD Air Orders</th><th>Air</th>
+        <th>Proposed Action</th><th>Action</th>
+      </tr></thead>
+      <tbody id="city-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<div id="t-sim" style="display:none"><div id="sim-body"></div></div>
+<div id="t-dump" style="display:none"><div id="dump-body"></div></div>
+<div id="t-rep" style="display:none"><div id="rep-body"></div></div>
+<div id="t-pp" style="display:none"><div id="pp-body"></div></div>
+<div id="t-log" style="display:none">
+  <div class="log-wrap">
+    <div class="log-title">Change Log — auto-written to CHANGE_LOG sheet when Apps Script connected</div>
+    <table class="log-tbl">
+      <thead><tr><th>Timestamp</th><th>Action</th><th>City</th><th>Pipeline</th><th>Trigger</th><th>Details</th></tr></thead>
+      <tbody id="log-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<div id="t-logic" style="display:none">
+  <div class="logic-grid">
+    <div class="lcard"><div class="lcard-t">Decision Flow — Once Daily (D-1 Data)</div><div id="logic-steps"></div></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="lcard"><div class="lcard-t">RAG Classification</div><table class="thresh-tbl" id="thresh-tbl"></table></div>
+      <div class="lcard" style="background:var(--gbg);border-color:var(--green)">
+        <div class="lcard-t" style="color:var(--green)">Model Constraints</div>
+        <div id="constrs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>HEIMDALL v2.3 · TATA 1MG · RAIN CONTROL TOWER · D-1 DATA</span>
+  <span id="footer-r">—</span>
+</div>
+</div>
+
+<script>
+'use strict';
+
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
+const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
+const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgiHvHvg5PQk3qP--lk-VadLctUmXimt-ic3TtqDYQUr9Xkn3qRWo41DSeeyirKAm5YA/exec'; // ← PASTE DEV APPS SCRIPT URL HERE
+const DEFAULT_PIN        = '1mg2025-dev';
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let cityData=[], fcData=[], mtdData=[];
+let fcLoaded=false, mtdLoaded=false;
+let activeCities=new Set();
+let changeLog=[];
+let trigMult=1.0;
+let selCity=null, curTab='ns';
+let syncCountdown=5, syncTimer=null;
+let cfgExpanded=false, cfgUnlocked=false;
+// v2.2 state
+let currentUser=null;
+let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[], storePresence={};
+let dumpCityFilter='Pan-India', dumpStoreFilter='All';
+let dumpPending={}, dumpActioned={}, callLog={};
+let ppCityFilter='All', ppPartnerOpen=true, ppPincodeOpen=true;
+let adherence={denominator:0, numerator:0, reset_date:null};
+let syncRunning=false;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const nc  = s => String(s||'').trim().replace(/\b\w/g, c => c.toUpperCase());
+const inr = v => '₹'+Math.round(v).toLocaleString('en-IN');
+const lakh= v => '₹'+(v/100000).toFixed(1)+'L';
+const pct = v => (isNaN(+v)?'—':(+v).toFixed(1)+'%');
+const rag = (s,v) => `<span class="rag rag-${s}"><span class="rdot"></span>${v}</span>`;
+const tdesc=m => m<1?'← Aggressive':'→ Conservative';
+
+function now(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function fmtDate(s){
+  if(!s||s==='—') return '—';
+  // If it's a number (e.g. 2026 from parseFloat bug), show dash
+  if(typeof s==='number') return '—';
+  const m=String(s).match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[3]+'/'+m[2]+'/'+m[1] : String(s);
+}
+function fmtTs(s){ return s||'—'; }
+function cpStatus(id){
+  if(!id||!cpDump.length) return null;
+  var row=cpDump.find(function(r){return String(r.order_id||r.Order_ID||r.orderid||'').trim()===String(id).trim();});
+  if(!row) return null;
+  return row.last_attempt_status||row.Last_Attempt_Status||row.status||null;
+}
+function cpAttempts(id){
+  if(!id||!cpDump.length) return null;
+  const r=cpDump.find(x=>String(x.order_id||x.Order_ID||x.orderid||'').trim()===String(id).trim());
+  if(!r) return null;
+  const v=r.delivery_attempts||r.Delivery_Attempts||r.number_of_delivery_attempts||r['Number of Delivery Attempts']||null;
+  return (v!==null&&v!==undefined&&v!=='') ? Number(v) : null;
+}
+
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+const ls  = (k,v) => localStorage.setItem(k,v);
+const lsg = k => localStorage.getItem(k);
+function saveActive(){ ls('rct_active', JSON.stringify([...activeCities])); }
+function loadActive(){ try{const s=lsg('rct_active');if(s)activeCities=new Set(JSON.parse(s));}catch(e){} }
+function saveLog(){ try{ls('rct_log',JSON.stringify(changeLog.slice(0,100)));}catch(e){} }
+function loadLog(){ try{const s=lsg('rct_log');if(s)changeLog=JSON.parse(s);}catch(e){} }
+function saveDumpActioned(){ try{ls('rct_dump_actioned',JSON.stringify(dumpActioned));}catch(e){} }
+function loadDumpActioned(){ try{const s=lsg('rct_dump_actioned');if(s)dumpActioned=JSON.parse(s);}catch(e){} }
+
+// ── SESSION ───────────────────────────────────────────────────────────────────
+function loadSession(){
+  try{
+    const s=lsg('rct_session');
+    if(!s) return false;
+    const sess=JSON.parse(s);
+    if(!sess||!sess.expires||Date.now()>sess.expires) return false;
+    currentUser={email:sess.email, display_name:sess.display_name, role:sess.role};
+    return true;
+  }catch(e){ return false; }
+}
+function saveSession(user){
+  try{ ls('rct_session', JSON.stringify({...user, expires:Date.now()+24*60*60*1000})); }catch(e){}
+}
+function clearSession(){
+  try{ localStorage.removeItem('rct_session'); }catch(e){}
+  currentUser=null;
+}
+function setUserBadge(){
+  const el=document.getElementById('user-badge');
+  if(!el) return;
+  if(currentUser){
+    el.textContent='Logged in as: '+currentUser.display_name+' ×';
+    el.style.display='inline-flex';
+  } else {
+    el.style.display='none';
+  }
+}
+function logoutUser(){
+  if(!confirm('Sign out of Heimdall?')) return;
+  clearSession();
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-err').textContent='';
+  setUserBadge();
+}
+function actionedBy(){ return currentUser ? currentUser.display_name : 'Unknown'; }
+
+
+// ── CP (CLICKPOST) CONFIRMATION ───────────────────────────────────────────────
+let cpPendingCity=null, cpPendingPipe=null, cpPendingTrig=null;
+const cpConfirmed=new Set(); // cities where CP has been confirmed this session
+
+function showCpModal(city, pipe, trig){
+  cpPendingCity=city; cpPendingPipe=pipe; cpPendingTrig=trig;
+  document.getElementById('cp-modal-city').textContent=city;
+  document.getElementById('cp-modal').style.display='flex';
+}
+function cpModalCancel(){
+  document.getElementById('cp-modal').style.display='none';
+  cpPendingCity=null;
+}
+function cpModalConfirm(){
+  document.getElementById('cp-modal').style.display='none';
+  if(!cpPendingCity) return;
+  doActiv(cpPendingCity, cpPendingPipe, cpPendingTrig);
+  // Log CP confirmation
+  const e={ts:now(),action:'CP UPDATED',city:cpPendingCity,pipeline:cpPendingPipe,trigger:cpPendingTrig,
+    details:'Clickpost routing confirmed updated for '+cpPendingCity+' by '+actionedBy()};
+  addLog(e); writeLog(e);
+  cpPendingCity=null;
+}
+function markCpDone(city){
+  cpConfirmed.add(city);
+  // Log CP done
+  const e={ts:now(),action:'CP CONFIRMED',city,pipeline:'',trigger:'',
+    details:'Clickpost confirmed updated for '+city+' by '+actionedBy()};
+  addLog(e); writeLog(e);
+  render();
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function doLogin(){
+  const email=(document.getElementById('login-email').value||'').trim().toLowerCase();
+  const pass =(document.getElementById('login-pass').value||'').trim();
+  const errEl=document.getElementById('login-err');
+  const btn  =document.getElementById('login-btn');
+  errEl.style.color='var(--red)';
+  if(!email||!pass){ errEl.textContent='Email and password are required.'; return; }
+  const url=scriptURL();
+  if(!url){ errEl.textContent='No Apps Script URL configured. Use Admin Setup below.'; return; }
+  btn.disabled=true; btn.textContent='Signing in…'; errEl.textContent='';
+  try{
+    const params=new URLSearchParams({action:'login', email, password:pass});
+    const res=await apsFetch(url+'?'+params.toString());
+    if(res&&res.status==='ok'&&res.display_name){
+      currentUser={email, display_name:res.display_name, role:res.role||'ops'};
+      saveSession(currentUser);
+      document.getElementById('login-screen').style.display='none';
+      setUserBadge();
+      // Ops role: hide config panel
+      if(currentUser.role==='ops'){
+        const cfgPanel=document.querySelector('.cfg-panel');
+        if(cfgPanel) cfgPanel.style.display='none';
+      }
+      // Load data then start countdown
+      await loadAll();
+    } else {
+      errEl.textContent=(res&&res.message)||'Invalid email or password.';
+      btn.disabled=false; btn.textContent='Sign In';
+    }
+  }catch(e){
+    errEl.textContent='Cannot reach Apps Script. Check URL and deployment settings.';
+    btn.disabled=false; btn.textContent='Sign In';
+  }
+}
+
+// ── JSONP ─────────────────────────────────────────────────────────────────────
+function apsFetch(url){
+  return new Promise((resolve,reject)=>{
+    const cb='hcb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    const sc=document.createElement('script');
+    sc.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&t='+Date.now();
+    sc.onerror=()=>{ delete window[cb]; sc.remove(); reject(new Error('Cannot reach Apps Script.')); };
+    const timer=setTimeout(()=>{ delete window[cb]; sc.remove(); reject(new Error('Apps Script timed out (30s)')); },30000);
+    window[cb]=data=>{ clearTimeout(timer); delete window[cb]; sc.remove(); resolve(data); };
+    document.body.appendChild(sc);
+  });
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const getDC  = ()=>{ const v=parseFloat(document.getElementById('cfg-dc').value); return(isNaN(v)||v<=0)?35:v; };
+const getOPD = ()=>{ const v=parseFloat(document.getElementById('cfg-opd').value); return isNaN(v)?0:v; };
+const getPin = ()=>document.getElementById('cfg-pin').value||DEFAULT_PIN;
+function scriptURL(){ return document.getElementById('url-script').value.trim(); }
+
+// ── LOADERS ───────────────────────────────────────────────────────────────────
+async function loadAll(){
+  const su=scriptURL();
+  if(su){
+    await syncState();
+  } else {
+    const cu=document.getElementById('url-city').value.trim();
+    const fu=document.getElementById('url-fc').value.trim();
+    const mu=document.getElementById('url-mtd').value.trim();
+    if(cu||fu||mu){
+      if(cu) await loadCity();
+      if(fu) await loadFc();
+      if(mu) await loadMtd();
+    } else {
+      showErr('No Apps Script URL configured.');
+    }
+  }
+  startCountdown();
+}
+
+async function fetchCSV(url){
+  const r=await fetch(url+(url.includes('?')?'&':'?')+'_t='+Date.now(),{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.text();
+}
+function parseCSV(text,mustCols){
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const hi=lines.findIndex(l=>mustCols.every(c=>l.toLowerCase().includes(c)));
+  if(hi<0) throw new Error('Header not found: '+mustCols.join(','));
+  const hdrs=lines[hi].split(',').map(h=>h.trim().toLowerCase().replace(/['"]/g,'').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,''));
+  const rows=[];
+  for(let i=hi+1;i<lines.length;i++){
+    const l=lines[i]; if(!l||l.startsWith(',')) break;
+    const vs=l.split(','); if(vs.length<2) break;
+    const city=vs[0].trim().replace(/['"]/g,'');
+    if(!city||city.length>60) continue;
+    const obj={};
+    hdrs.forEach((h,idx)=>{ const v=(vs[idx]||'').trim().replace(/['"₹%,]/g,''); obj[h]=(v!==''&&!isNaN(v))?parseFloat(v):v; });
+    rows.push(obj);
+  }
+  return rows;
+}
+async function loadCity(){
+  const url=document.getElementById('url-city').value.trim(); if(!url) return;
+  try{ cityData=parseCSV(await fetchCSV(url),['city','pipeline']); setTag('st-city','✓ '+cityData.length,'tok'); render(); }catch(e){ setTag('st-city','ERROR','tno'); }
+}
+async function loadFc(){
+  const url=document.getElementById('url-fc').value.trim(); if(!url) return;
+  try{ fcData=parseCSV(await fetchCSV(url),['city','expected']); fcLoaded=true; setTag('st-fc','✓ '+fcData.length,'tok'); render(); }catch(e){ setTag('st-fc','ERROR','tno'); }
+}
+async function loadMtd(){
+  const url=document.getElementById('url-mtd').value.trim(); if(!url) return;
+  try{ mtdData=parseCSV(await fetchCSV(url),['city','mtd']); mtdLoaded=true; setTag('st-mtd','✓ '+mtdData.length,'tok'); render(); }catch(e){ setTag('st-mtd','ERROR','tno'); }
+}
+
+// ── SYNC STATE ────────────────────────────────────────────────────────────────
+async function syncState(){
+  if(!currentUser) return;
+  if(syncRunning) return;
+  syncRunning=true;
+  const btn=document.getElementById('sync-btn');
+  btn.classList.add('syncing'); btn.textContent='⟳ Syncing…';
+  const url=scriptURL();
+  if(!url){ syncRunning=false; btn.classList.remove('syncing'); btn.textContent='⟳ Sync'; return; }
+  // Step 1: sheet data
+  try{
+    const sd=await apsFetch(url+'?action=getSheetData');
+    if(!sd||sd.status==='error') throw new Error(sd&&sd.message||'Error');
+    if(Array.isArray(sd.cityMetrics)&&sd.cityMetrics.length>0){
+      cityData=sd.cityMetrics.map(r=>({...r,city:nc(r.city||'')}));
+      setTag('st-city','✓ '+cityData.length+' cities','tok');
+    }
+    if(Array.isArray(sd.forecast)&&sd.forecast.length>0){ fcData=sd.forecast; fcLoaded=true; setTag('st-fc','✓ '+fcData.length,'tok'); }
+    if(Array.isArray(sd.mtd)&&sd.mtd.length>0){ mtdData=sd.mtd.map(r=>({...r,city:nc(r.city||'')})); mtdLoaded=true; setTag('st-mtd','✓ '+mtdData.length,'tok'); }
+    if(Array.isArray(sd.partner)) partnerData=sd.partner.map(r=>({...r,city:nc(r.city||'')}));
+    if(Array.isArray(sd.pincode)) pincodeData=sd.pincode.map(r=>({...r,city:nc(r.city||'')}));
+  }catch(e){
+    setSyncNote('⚠ Sync failed: '+e.message.slice(0,50));
+    syncRunning=false; btn.classList.remove('syncing'); btn.textContent='⟳ Sync';
+    return;
+  }
+  // Step 2: active state
+  try{
+    const ad=await apsFetch(url+'?action=getActiveState');
+    if(ad&&ad.status!=='error'){
+      if(Array.isArray(ad.activeCities)){
+        const known=new Set(cityData.map(c=>c.city));
+        activeCities=new Set(ad.activeCities.filter(c=>known.has(c)));
+        saveActive();
+      }
+      if(Array.isArray(ad.recentLog)){
+        const seen=new Set(changeLog.map(e=>e.ts+'|'+e.action+'|'+e.city));
+        let added=0;
+        ad.recentLog.forEach(e=>{ const k=e.ts+'|'+e.action+'|'+e.city; if(!seen.has(k)){changeLog.push(e);seen.add(k);added++;} });
+        if(added>0){ changeLog.sort((a,b)=>new Date(b.ts)-new Date(a.ts)); changeLog=changeLog.slice(0,200); saveLog(); }
+      }
+    }
+  }catch(e){ console.warn('activeState:',e.message); }
+  // Steps 3-7: dump data (non-blocking)
+  try{ const od=await apsFetch(url+'?action=getOrderDump'); if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
+  try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
+  try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
+  try{ const sp=await apsFetch(url+'?action=getStorePresence'); if(sp&&sp.status!=='error'&&sp.data){ storePresence=sp.data; } }catch(e){}
+  try{ const mx=await apsFetch(url+'?action=getMetrics'); if(mx&&mx.status!=='error'&&Array.isArray(mx.rows)) metricsData=mx.rows; }catch(e){}
+  try{ const calls=await apsFetch(url+'?action=getCallLog'); if(calls&&calls.status!=='error'&&Array.isArray(calls.rows)){calls.rows.forEach(r=>{if(r.order_id&&!callLog[r.order_id])callLog[r.order_id]={done:true,remark:r.remark||'',ts:r.ts||'',by:r.by||''};});}  }catch(e){}
+  try{ const cp=await apsFetch(url+'?action=getCpDump'); if(cp&&cp.status!=='error'&&Array.isArray(cp.orders)) cpDump=cp.orders; }catch(e){}
+  try{ const ah=await apsFetch(url+'?action=getAdherenceStats'); if(ah&&ah.status!=='error') adherence={denominator:ah.denominator||0,numerator:ah.numerator||0,reset_date:ah.reset_date||null}; }catch(e){}
+  maybeAppendSeenOrders();
+  render();
+  const t=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  lastSyncTime=Date.now();
+  setSyncNote('✓ Synced at '+t+(cityData.length?' · '+cityData.length+' cities':''));
+  resetCountdown();
+  syncRunning=false;
+  btn.classList.remove('syncing'); btn.textContent='⟳ Sync';
+}
+
+async function testScript(){
+  const url=scriptURL(); if(!url){ showErr('Paste Apps Script URL first.'); return; }
+  setTag('st-script','TESTING…','tsmp');
+  try{
+    const data=await apsFetch(url+'?action=ping');
+    if(data&&data.status==='ok'){ setTag('st-script','✓ CONNECTED','tok'); ls('rct_script_url',url); }
+    else throw new Error(data&&data.message||'No response');
+  }catch(e){ setTag('st-script','ERROR','tno'); showErr('Test failed: '+e.message); }
+}
+
+// ── COMPUTE ───────────────────────────────────────────────────────────────────
+function compute(rows,mult){
+  const dc=getDC();
+  return rows.map(r=>{
+    const bau   =r.bau_pipeline||0;
+    // TAT advantage: if air_tat missing → assume 1d advantage; if delta negative → use 1d
+    const surfTat=r.surface_tat||0;
+    const airTat =r.air_tat||0;
+    const tatAdv =!airTat ? 1 : Math.max(1, surfTat - airTat);
+    // Trigger base: BAU + tatAdv. If BAU also missing, use 999 (no data)
+    const trigBase=bau>0 ? (bau+tatAdv) : 999;
+    const trig  =trigBase*mult;
+    const active=activeCities.has(r.city);
+    const io    =r.outflow>0?r.inflow/r.outflow:0;
+    const totAge=(r.aging_1d||0)+(r.aging_2d||0)+(r.aging_3d||0)+(r.aging_4d||0)+(r.aging_5d||0)+(r.aging_gt5d||0);
+    const openPipeline=r.open_orders_pipeline||0;
+    const dbt=r.days_below_trigger;
+    let deactRdy=false;
+    if(active) deactRdy=(dbt!==undefined&&dbt!==null&&dbt!=='')?parseFloat(dbt)>=2:r.pipeline_days<trig;
+    const postDeactRag=r.pipeline_days>(trig*0.7)?'amber':'green';
+    // pRag: red=above trigger, amber=above 70% of trigger (approaching), green=below
+    const pRag=r.pipeline_days>trig?'red':r.pipeline_days>(trig*0.7)?'amber':'green';
+    // Normalise pct fields: Google Sheets may return 0.006 instead of 0.6%
+    const ltp=(+r.long_tail_pct||0)>1?(+r.long_tail_pct):((+r.long_tail_pct||0)*100);
+    const sbp=(+r.sla_breach_pct||0)>1?(+r.sla_breach_pct):((+r.sla_breach_pct||0)*100);
+    const lRag=ltp>8?'red':ltp>3?'amber':'green';
+    const sRag=sbp>12?'red':sbp>5?'amber':'green';
+    const ioRag=io>1.3?'red':io>1.1?'amber':'green';
+    const sec=active?'active':pRag;
+    const mtd=mtdData.find(m=>nc(m.city)===nc(r.city))||{};
+    const mtdOrders=mtd.mtd_bd_air_orders||0;
+    const mtdCost=mtdOrders*dc;
+    let action,actionCol;
+    if(active&&deactRdy){ action=postDeactRag==='amber'?'↓ Ready — Deactivate (→Watch)':'✅ Ready — Deactivate (→Normal)'; actionCol=postDeactRag==='amber'?'var(--amber)':'var(--green)'; }
+    else if(active)          { action='✈ Air Active — Monitor Spend'; actionCol='var(--blue)'; }
+    else if(pRag==='red')    { action='⚠ Activate Air';               actionCol='var(--red)'; }
+    else if(pRag==='amber')  { action='~ Watch — Approaching Trigger'; actionCol='var(--amber)'; }
+    else                     { action='✓ Normal Ops';                  actionCol='var(--green)'; }
+    return {...r,bau,tatAdv,trig,active,io,totAge,openPipeline,deactRdy,postDeactRag,pRag,lRag,sRag,ioRag,sec,action,actionCol,mtdOrders,mtdCost,ltp,sbp};
+  });
+}
+function filtered(rows){
+  // Exclude rows without pipeline_days (second-table rows from sheet)
+  const valid=rows.filter(r=>r.pipeline_days!==undefined&&r.pipeline_days!==''&&r.pipeline_days!==null);
+  const min=getOPD();
+  return min>0?valid.filter(r=>(r.inflow||0)>=min):valid;
+}
+function sorted(rows){
+  const o={active:0,red:1,amber:2,green:3};
+  return [...rows].sort((a,b)=>{
+    // First sort by section
+    const d=o[a.sec]-o[b.sec]; if(d!==0) return d;
+    // Within active: deact-ready first
+    if(a.sec==='active'){ if(a.deactRdy&&!b.deactRdy) return -1; if(b.deactRdy&&!a.deactRdy) return 1; }
+    // Within section: apply user sort
+    const col=ovSort.col, dir=ovSort.dir;
+    const av=col==='city'?a.city:(+a[col]||0);
+    const bv=col==='city'?b.city:(+b[col]||0);
+    if(col==='city') return dir*(av<bv?-1:av>bv?1:0);
+    return dir*(bv-av);
+  });
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────────────────────
+function remDays(){ const n=new Date(),l=new Date(n.getFullYear(),n.getMonth()+1,0).getDate(); return l-n.getDate(); }
+function daysInMonth(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth()+1,0).getDate(); }
+function getMonthName(){ return new Date().toLocaleDateString('en-IN',{month:'long',year:'numeric'}); }
+
+// ── FORECAST ──────────────────────────────────────────────────────────────────
+function calcForecast(rows,mult){
+  const dc=getDC(),rd=remDays();
+  let mtdTotal=0,predTotal=0;
+  const breakdown=rows.map(m=>{
+    const mtdO=m.mtdOrders||0, mtdC=mtdO*dc; mtdTotal+=mtdC;
+    // Only include Active cities and Critical (red) cities in forecast — not Watch
+    const incl=m.active||(m.pRag==='red');
+    const fcOPD=(fcData.find(f=>nc(f.city)===nc(m.city))||{}).expected_bd_air_orders||0;
+    const fcO=incl?fcOPD*rd:0, fcC=fcO*dc; predTotal+=fcC;
+    return {city:m.city,inflow:m.inflow,mtdO,mtdC,fcOPD,fcO,fcC,incl,active:m.active,pRag:m.pRag};
+  });
+  return {mtdTotal,predTotal,breakdown,rd};
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  try{
+  setDataDate(); updateFooter(); renderKPIs();
+  if(curTab==='ns')   renderNetworkSummary();
+  if(curTab==='ov')   renderOverview();
+  if(curTab==='sim')  renderSim();
+  if(curTab==='dump') renderDump();
+  if(curTab==='rep')  renderReplacement();
+  if(curTab==='pp')   renderPartnerPincode();
+  if(curTab==='log')  renderLog();
+  if(curTab==='logic')renderLogic();
+  }catch(e){
+    console.error('render() ERROR:',e.message,e.stack);
+    const eb=document.getElementById('err-bar');
+    if(eb){eb.textContent='⚠ Render error: '+e.message+' — check console for details';eb.style.display='block';}
+  }
+}
+
+function renderKPIs(){
+  const rows=sorted(filtered(compute(cityData,trigMult)));
+  const active=rows.filter(r=>r.active);
+  const rdyDeact=active.filter(r=>r.deactRdy);
+  const red=rows.filter(r=>r.pRag==='red'&&!r.active);
+  const amb=rows.filter(r=>r.pRag==='amber'&&!r.active);
+  const totMtdO=mtdLoaded?mtdData.reduce((s,m)=>s+(m.mtd_bd_air_orders||0),0):null;
+  const totMtdC=totMtdO!==null?totMtdO*getDC():null;
+  const {predTotal,breakdown}=calcForecast(rows,trigMult);
+  const kpiMtdO=totMtdO||0;
+  const kpiPredO=breakdown.filter(b=>b.incl).reduce((s,b)=>s+b.fcO,0);
+  const kpiTotO=kpiMtdO+kpiPredO;
+  const kpiTotC=kpiMtdO*getDC()+predTotal;
+  setText('k-active',active.length); setText('k-active-sub',active.length?active.slice(0,3).map(r=>r.city).join(', ')+(active.length>3?'…':''):'None');
+  setText('k-rdy',rdyDeact.length); setText('k-rdy-sub',rdyDeact.length?rdyDeact.map(r=>r.city).join(', '):'None ready');
+  setText('k-red',red.length); setText('k-red-sub',red.length?red.slice(0,3).map(r=>r.city).join(', ')+(red.length>3?'…':''):'—');
+  setText('k-amb',amb.length); setText('k-amb-sub',amb.length?amb.slice(0,3).map(r=>r.city).join(', ')+(amb.length>3?'…':''):'—');
+  const p5=orderDump.length>0?effectiveDumpCount():cityData.reduce((s,r)=>s+(r.aging_gt5d||0),0);
+  setText('k-aging5',p5||'—'); setText('k-aging5-sub',p5>0?'pan-india · click to view':'no 5+ day orders');
+  const adhD=adherence.denominator||0, adhN=Math.min(adherence.numerator||0,adhD);
+  const adhPct=adhD>0?Math.round(adhN/adhD*100):null;
+  const adhCol=adhPct===null?'var(--muted)':adhPct>=80?'var(--green)':adhPct>=50?'var(--amber)':'var(--red)';
+  const adhEl=document.getElementById('k-adh-pct'); if(adhEl){adhEl.textContent=adhPct!==null?adhPct:'—'; adhEl.style.color=adhCol;}
+  setText('k-adh-sub',adhD>0?adhN+' of '+adhD+' actioned':'no data');
+  setText('k-adh-reset',adherence.reset_date?'since '+adherence.reset_date:'');
+  setText('k-mtd-o',totMtdO!==null?totMtdO.toLocaleString('en-IN'):'—');
+  setText('k-mtd-c',totMtdC!==null?inr(totMtdC):'—');
+  setText('k-month-orders',(fcLoaded&&mtdLoaded)?kpiTotO.toLocaleString('en-IN'):(mtdLoaded?kpiMtdO.toLocaleString('en-IN'):'—'));
+  setText('k-month-cost',(fcLoaded&&mtdLoaded)?inr(kpiTotC):(mtdLoaded?inr(kpiMtdO*getDC()):'—'));
+  setText('k-month-cost-sub',(fcLoaded&&mtdLoaded)?getMonthName():(mtdLoaded?'MTD only':'—'));
+}
+
+
+// ── HEIMDALL METRICS TABLE ────────────────────────────────────────────────────
+let metricsExpanded={}; // month keys that are expanded to show weeks
+
+function toggleMetrics(mk){
+  if(metricsExpanded[mk]) metricsExpanded={};
+  else{ metricsExpanded={}; metricsExpanded[mk]=true; }
+  renderMetricsTable();
+}
+function renderMetricsTable(){
+  var el=document.getElementById('ns-metrics');
+  if(!el) return;
+  if(!metricsData.length){
+    el.innerHTML='<div class="metrics-table-wrap"><div class="metrics-title">Heimdall Success Metrics</div>'
+      +'<div style="font-size:12px;color:var(--muted);font-family:monospace">No data. SQL team must populate HEIMDALL_METRICS tab.</div></div>';
+    return;
+  }
+
+  var metricCols=['sla_breach_pct','long_tail_pct','avg_tat_days',
+    'closed_0_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d'];
+  var metricLabels=['SLA Breach%','Long Tail%','Avg TAT','0–5d','6–8d','9–10d','11–15d','>15d'];
+  var lowerBetter={sla_breach_pct:true,long_tail_pct:true,avg_tat_days:true,
+    closed_0_5d:true,closed_6_8d:true,closed_9_10d:true,closed_11_15d:true,closed_gt15d:true};
+
+  // Group by year+month
+  var byYearMonth={};
+  metricsData.forEach(function(r){
+    var key=String(r.year)+'_'+String(r.month||'').padStart(2,'0');
+    if(!byYearMonth[key]) byYearMonth[key]={year:+r.year,month:+r.month,name:r.month_name||key,weeks:[]};
+    byYearMonth[key].weeks.push(r);
+  });
+
+  // Find current year (max) and previous year
+  var years=[...new Set(metricsData.map(r=>+r.year))].sort();
+  var currYear=years[years.length-1];
+  var prevYear=years.length>1?years[years.length-2]:null;
+
+  function aggWeeks(weeks){
+    var agg={};
+    var n=Math.max(weeks.length,1);
+    metricCols.forEach(function(col){
+      var sum=weeks.reduce(function(s,r){return s+(+r[col]||0);},0);
+      // Average for rate/quality metrics; sum for volume counts
+      var isAvg=col.endsWith('_pct')||col==='avg_tat_days'||col==='total_orders';
+      agg[col]=isAvg?sum/n:sum;
+    });
+    return agg;
+  }
+
+  var bucketCols=['closed_0_5d','closed_6_8d','closed_9_10d','closed_11_15d','closed_gt15d'];
+  function fmtVal(col,v,row){
+    if(v===null||v===undefined||isNaN(+v)) return '—';
+    if(col.endsWith('_pct')) return ((+v)*100).toFixed(1)+'%';
+    if(col==='avg_tat_days') return (+v).toFixed(1)+'d';
+    if(bucketCols.indexOf(col)>=0) return Math.round(+v).toLocaleString('en-IN');
+    return Math.round(+v).toLocaleString('en-IN');
+  }
+
+  function deltaStr(col,vCurr,vPrev,rowCurr,rowPrev){
+    if(vPrev===null||vPrev===undefined||vCurr===null||vCurr===undefined) return '';
+    var raw=+vCurr-+vPrev;
+    // Explicit lookup: undefined treated as 'lower is better' by default for safety
+    var lb=lowerBetter[col];
+    var good=(lb===false)?(raw>=0):(raw<=0);
+    var sign=raw>0?'+':raw<0?'−':'';
+    var disp;
+    if(col.endsWith('_pct')){
+      // % point delta (multiply by 100 since stored as decimal)
+      disp=sign+(Math.abs(raw)*100).toFixed(1)+'pp';
+    } else if(col==='avg_tat_days'){
+      disp=sign+Math.abs(raw).toFixed(1)+'d';
+    } else if(bucketCols.indexOf(col)>=0){
+      // Absolute count delta
+      disp=sign+Math.round(Math.abs(raw)).toLocaleString('en-IN');
+    } else {
+      disp=sign+Math.round(Math.abs(raw)).toLocaleString('en-IN');
+    }
+    return '<span style="font-family:monospace;font-size:10px;margin-left:4px;color:'+(good?'var(--green)':'var(--red)')+'">('+(raw===0?'=':disp)+')</span>';
+  }
+
+  // Get current-year months sorted
+  var today=new Date();
+  // Filter weeks to completed only (week_end < today)
+  function isComplete(w){
+    var we=w.week_end||w.week_start||'';
+    if(!we) return true; // assume complete if no date
+    var d=new Date(String(we).split('/').reverse().join('-')||we);
+    return d<today;
+  }
+  var currMonths=Object.keys(byYearMonth).filter(function(k){
+    var m=byYearMonth[k];
+    if(m.year!==currYear) return false;
+    // Only include month if it has at least one completed week
+    return m.weeks.some(isComplete);
+  }).sort();
+
+  var html='<div class="metrics-table-wrap">';
+  html+='<div class="metrics-title">Heimdall Success Metrics — '+currYear+(prevYear?' vs '+prevYear:'')+'</div>';
+  html+='<table class="metrics-tbl"><thead><tr style="border-bottom:2px solid var(--border2)">';
+  html+='<th style="min-width:90px">Month</th>';
+  metricLabels.forEach(function(l){ html+='<th>'+l+'</th>'; });
+  html+='</tr></thead><tbody>';
+
+  currMonths.forEach(function(mk){
+    var mData=byYearMonth[mk];
+    mData.weeks.sort(function(a,b){return String(a.week_start||'').localeCompare(String(b.week_start||''));});
+    var completedWeeks=mData.weeks.filter(isComplete);
+    if(!completedWeeks.length) return;
+    var aCurr=aggWeeks(completedWeeks);
+    // Find matching prev year month
+    var prevMk=prevYear?String(prevYear)+'_'+String(mData.month).padStart(2,'0'):null;
+    var aPrev=prevMk&&byYearMonth[prevMk]?aggWeeks(byYearMonth[prevMk].weeks):null;
+    var isOpen=!!metricsExpanded[mk];
+
+    // Month row
+    html+='<tr class="expandable" data-mk="'+mk+'" onclick="toggleMetrics(this.dataset.mk)" style="background:var(--bg3);font-weight:600">';
+    html+='<td>'+mData.name+' '+(isOpen?'▾':'▸')+'</td>';
+    metricCols.forEach(function(col){
+      html+='<td>'+fmtVal(col,aCurr[col],aCurr)+(aPrev?deltaStr(col,aCurr[col],aPrev[col],aCurr,aPrev):'')+'</td>';
+    });
+    html+='</tr>';
+
+    // Week drill-down
+    if(isOpen){
+      var prevWeeks={};
+      if(aPrev&&prevMk&&byYearMonth[prevMk]){
+        byYearMonth[prevMk].weeks.forEach(function(w){prevWeeks[w.week_number]=w;});
+      }
+      completedWeeks.forEach(function(w,wi){
+        var pw=prevWeeks[w.week_number];
+        html+='<tr class="week-row">';
+        html+='<td style="padding-left:20px">W'+(wi+1)
+          +' <span style="color:var(--muted);font-size:9px">'+fmtDate(w.week_start||'')+'</span></td>';
+        metricCols.forEach(function(col){
+          html+='<td>'+fmtVal(col,w[col],w)+(pw?deltaStr(col,w[col],pw[col],w,pw):'')+'</td>';
+        });
+        html+='</tr>';
+      });
+    }
+  });
+
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+
+// ── NETWORK SUMMARY ───────────────────────────────────────────────────────────
+function renderNetworkSummary(){
+  const el=document.getElementById('ns-body'); if(!el) return;
+  const rows=sorted(filtered(compute(cityData,trigMult)));
+  if(!rows.length){
+    el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px"><div style="font-size:36px;margin-bottom:12px">🔌</div><div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px">No data loaded</div><div style="font-size:12px;color:var(--muted)">Add your Apps Script URL in Config and click Sync.</div></div>';
+    return;
+  }
+  const active  =rows.filter(r=>r.active);
+  const critical=rows.filter(r=>r.pRag==='red'&&!r.active);
+  const watch   =rows.filter(r=>r.pRag==='amber'&&!r.active);
+  const rdyDeact=active.filter(r=>r.deactRdy);
+  const p5=orderDump.length>0?effectiveDumpCount():cityData.reduce((s,r)=>s+(r.aging_gt5d||0),0);
+  const totMtdO=mtdLoaded?mtdData.reduce((s,m)=>s+(m.mtd_bd_air_orders||0),0):0;
+  const {predTotal}=calcForecast(rows,trigMult);
+  const adhD=adherence.denominator||0, adhN=Math.min(adherence.numerator||0,adhD);
+  const adhPct=adhD>0?Math.round(adhN/adhD*100):null;
+  const parts=[];
+  if(critical.length===0&&active.length===0) parts.push('Network is operating normally across all '+rows.length+' cities with no cities above trigger.');
+  else if(critical.length>0&&active.length>0) parts.push(critical.length+' '+(critical.length===1?'city requires':'cities require')+' BD Air activation and '+active.length+' already have Air active.');
+  else if(critical.length>0) parts.push(critical.length+' '+(critical.length===1?'city has':'cities have')+' crossed the trigger threshold. Air not yet active anywhere.');
+  else parts.push('BD Air is active in '+active.length+' '+(active.length===1?'city':'cities')+'. No new activations required today.');
+  if(critical.length>0){ const w=[...critical].sort((a,b)=>b.pipeline_days-a.pipeline_days).slice(0,3); parts.push('Critical: '+w.map(r=>r.city+' ('+r.pipeline_days.toFixed(1)+'d vs trigger '+r.trig.toFixed(1)+'d)').join(', ')+(critical.length>3?' +more.':'.')); }
+  if(rdyDeact.length>0) parts.push(rdyDeact.map(r=>r.city).join(', ')+' '+(rdyDeact.length===1?'is':'are')+' ready to deactivate.');
+  if(p5>0){
+    // Count per city from orderDump (actual orders), fall back to cityData aging_gt5d
+    const cityCount={};
+    if(orderDump.length>0){
+      orderDump.forEach(o=>{ const k=nc(o.city||''); cityCount[k]=(cityCount[k]||0)+1; });
+    } else {
+      rows.forEach(r=>{ if(r.aging_gt5d>0) cityCount[r.city]=r.aging_gt5d; });
+    }
+    const topA=Object.entries(cityCount).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    parts.push(p5+' orders are 5+ days old pan-India ('+topA.map(e=>e[0]+' '+e[1]).join(', ')+').');
+  }
+  if(totMtdO>0) parts.push('MTD Air spend: '+inr(totMtdO*getDC())+' ('+totMtdO.toLocaleString('en-IN')+' orders).'+(predTotal>0?' Projected additional: '+inr(predTotal)+' at '+trigMult.toFixed(2)+'×.':''));
+  if(watch.length>0) parts.push(watch.length+' '+(watch.length===1?'city is':'cities are')+' in Watch: '+watch.map(r=>r.city).join(', ')+'.');
+  if(adhPct!==null){ const col=adhPct>=80?'var(--green)':adhPct>=50?'var(--amber)':'var(--red)'; parts.push('Ageing adherence: <b style="color:'+col+'">'+adhPct+'%</b> ('+adhN+' of '+adhD+' orders actioned'+(adherence.reset_date?' since '+adherence.reset_date:'')+').'); }
+  const cityGrid=rows.map(r=>{
+    const col=r.active?'var(--blue)':r.pRag==='red'?'var(--red)':r.pRag==='amber'?'var(--amber)':'#22c55e66';
+    const status=r.active?'✈ Active':r.pRag==='red'?'🔴 Critical':r.pRag==='amber'?'🟡 Watch':'🟢 Normal';
+    const gt5=r.aging_gt5d||0;
+    return '<div class="ns-city-card" style="border-color:'+col+'" onclick="goToCityDD(\''+r.city+'\')"><div class="ns-city-name" style="color:'+col+'">'+r.city+'</div><div class="ns-city-meta">'+r.pipeline_days.toFixed(1)+'d · '+status+'</div><div class="ns-city-meta" style="margin-top:3px">'+r.inflow.toLocaleString('en-IN')+'/day'+(gt5>0?' · <span style="color:var(--red)">⚠'+gt5+' 5+d</span>':'')+'</div></div>';
+  }).join('');
+  el.innerHTML='<div class="ns-wrap"><div id="ns-metrics"></div><div class="ns-card"><div class="ns-lbl">📡 Network Summary — D-1</div><div class="ns-body">'+parts.join(' ')+'</div></div><div><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">All Cities — click to open drilldown</div><div class="ns-city-grid">'+cityGrid+'</div></div></div>';
+  setTimeout(renderMetricsTable, 0);
+}
+
+// ── CITY OVERVIEW ─────────────────────────────────────────────────────────────
+const secOpen={active:true,red:true,amber:true,green:true};
+let ovSort={col:'inflow',dir:-1};
+let dumpSort={col:'aging_days',dir:-1};    // High Ageing: oldest first
+let repSort={col:'actioned_on',dir:-1};    // Replaced: newest first
+let ppPartnerSort={col:'aging_gt5d_count',dir:-1};
+let ppPincodeSort={col:'aging_gt5d_count',dir:-1};
+function toggleSec(k){ secOpen[k]=!secOpen[k]; renderOverview(); }
+
+function sortRows(rows, col, dir){
+  return [...rows].sort(function(a,b){
+    var av=a[col], bv=b[col];
+    if(av===undefined||av===null||av==='') av=dir>0?'ZZZZ':-999999;
+    if(bv===undefined||bv===null||bv==='') bv=dir>0?'ZZZZ':-999999;
+    if(typeof av==='string'&&typeof bv==='string') return dir*(av<bv?-1:av>bv?1:0);
+    return dir*((+bv)-(+av));
+  });
+}
+
+function thSort(label,col,sortObj,fn){
+  var arrow=sortObj.col===col?(sortObj.dir>0?' ↑':' ↓'):'';
+  return '<th data-col="'+col+'" data-fn="'+fn+'" class="sortable-th" style="cursor:pointer;user-select:none">'+label+arrow+'</th>';
+}
+function setOvSort(col){
+  if(ovSort.col===col) ovSort.dir*=-1;
+  else ovSort={col,dir:-1};
+  renderOverview();
+}
+
+function storeTag(city){
+  var p=storePresence[nc(city)];
+  if(!p) return '';
+  var tags='';
+  if(p.marketplace==='Yes') tags+='<span style="font-family:\'DM Mono\';font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--purple);color:var(--purple);margin-left:3px">MP</span>';
+  if(p.retail==='Yes') tags+='<span style="font-family:\'DM Mono\';font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--teal);color:var(--teal);margin-left:3px">RT</span>';
+  return tags;
+}
+function agingBar(m){
+  var t=m.totAge||1;
+  var cols=['#f59e0b','#fb923c','#ef4444','#dc2626','#b91c1c','#7f1d1d'];
+  var vals=[m.aging_1d||0,m.aging_2d||0,m.aging_3d||0,m.aging_4d||0,m.aging_5d||0,m.aging_gt5d||0];
+  var bar='<div class="aging-bar">'+vals.map(function(v,i){return '<div style="width:'+((v/t)*100).toFixed(1)+'%;background:'+cols[i]+';height:9px;min-width:'+(v>0?2:0)+'px" title="'+v+'"></div>';}).join('')+'</div>';
+  var gt5=m.aging_gt5d||0;
+  var lnk=gt5>0?(' <span onclick="event.stopPropagation();goToDump(String.fromCharCode(39)+m.city+String.fromCharCode(39))" style="font-family:monospace;font-size:9px;color:var(--red);cursor:pointer">'+gt5+'</span>'):'';
+  return '<div style="display:flex;align-items:center;gap:4px">'+bar+'</div>';
+}
+
+function renderOverview(){
+  try{
+  const rows=sorted(filtered(compute(cityData,trigMult)));
+  // Show warning if BAU data is missing (all triggers = 999)
+  const allNoBau=rows.length>0&&rows.every(r=>r.trig>=999);
+  const warnEl=document.getElementById('ov-bau-warn');
+  if(warnEl) warnEl.style.display=allNoBau?'block':'none';
+  const secs=[
+    {key:'active',label:'Active',  icon:'✈',col:'var(--blue)', bg:'var(--s-active)',note:'deact-ready first'},
+    {key:'red',   label:'Critical',icon:'🔴',col:'var(--red)',  bg:'var(--s-red)',   note:'sorted by inflow ↓'},
+    {key:'amber', label:'Watch',   icon:'🟡',col:'var(--amber)',bg:'var(--s-amber)', note:'sorted by inflow ↓'},
+    {key:'green', label:'Normal',  icon:'🟢',col:'var(--green)',bg:'var(--s-green)', note:'sorted by inflow ↓'},
+  ];
+  let html='';
+  secs.forEach(s=>{
+    const srows=rows.filter(r=>r.sec===s.key);
+    const open=secOpen[s.key];
+    html+=`<tr class="sec-hdr" onclick="toggleSec('${s.key}')" style="background:${s.bg}"><td colspan="11"><div class="sec-inner"><span style="color:${s.col};font-family:'DM Mono';font-size:11px;font-weight:700">${open?'▾':'▸'} ${s.icon} ${s.label.toUpperCase()}</span><span class="sec-cnt">${srows.length} ${srows.length===1?'city':'cities'}</span><span class="sec-note">${s.note}</span></div></td></tr>`;
+    if(open){
+      if(!srows.length){
+        html+=`<tr><td colspan="11" style="padding:8px 12px;font-family:'DM Mono';font-size:11px;color:var(--muted)">No cities in this category</td></tr>`;
+      } else {
+        srows.forEach(m=>{
+          const dr=m.deactRdy&&m.active;
+          const rowCls=`data-row ${dr?'r-deact-'+m.postDeactRag:'r-'+m.sec} ${selCity===m.city?'sel':''}`;
+          const deactBtnCls=dr?(m.postDeactRag==='amber'?'act-deact-amber':'act-rdy'):'act-off';
+          const btnHtml=m.active
+            ?`<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Deactivate</button>`
+            :m.pRag==='red'
+            ?`<button class="act-btn act-on" onclick="event.stopPropagation();showCpModal('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Activate Air</button>`:'';
+          const gt5=m.aging_gt5d||0;
+          const gt5badge=gt5>0?`<span onclick="event.stopPropagation();goToDump('${m.city}')" style="font-family:'DM Mono';font-size:9px;color:var(--red);cursor:pointer;text-decoration:underline;display:block">⚠${gt5} 5+d</span>`:'';
+          html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
+            <td style="font-weight:600;color:var(--text)">${m.city}${gt5badge}${storeTag(m.city)}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
+            <td>${rag(m.pRag,(+m.pipeline_days||0).toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
+            <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">${m.trig>=999?'No BAU data':'&gt;'+(+m.trig||0).toFixed(1)+'d'}</td>
+            <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
+            <td>${rag(m.lRag,pct(m.ltp))}</td>
+            <td>${rag(m.sRag,pct(m.sbp))}</td>
+            <td>${agingBar(m)}</td>
+            <td style="font-family:'DM Mono';font-size:11px;color:${m.mtdOrders>0?'var(--purple)':'var(--muted)'}">${mtdLoaded?(m.mtdOrders>0?m.mtdOrders.toLocaleString('en-IN'):'—'):'—'}</td>
+            <td>${m.active?(rag('blue','ON')+(cpConfirmed.has(m.city)?'<span class="cp-badge done" title="Clickpost updated">✓ CP</span>':'<span class="cp-badge" onclick="event.stopPropagation();markCpDone(\''+m.city+'\')">CP Updated?</span>')):'<span style="color:var(--muted);font-size:11px">— OFF</span>'}</td>
+            <td style="font-size:11px;font-weight:600;color:${m.actionCol}">${m.action}</td>
+            <td>${btnHtml}</td>
+          </tr>`;
+          if(selCity===m.city) html+=`<tr class="dd-inline-row"><td colspan="11">${buildDDInline(m)}</td></tr>`;
+        });
+      }
+    }
+  });
+  document.getElementById('city-tbody').innerHTML=html;
+  }catch(e){console.error('renderOverview ERROR:',e.message,e.stack);document.getElementById('city-tbody').innerHTML='<tr><td colspan="11" style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">Render error: '+e.message+'</td></tr>';}
+}
+function toggleDD(city){
+  selCity=selCity===city?null:city;
+  renderOverview();
+  if(selCity) setTimeout(()=>{ const el=document.querySelector('.dd-inline-row'); if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'}); },40);
+}
+function buildDDInline(m){
+  const t=m.totAge||1;
+  const fcOPD=(fcData.find(f=>nc(f.city)===nc(m.city))||{}).expected_bd_air_orders||0;
+  const buckets=[{l:'1d',v:m.aging_1d,c:'#f59e0b'},{l:'2d',v:m.aging_2d,c:'#fb923c'},{l:'3d',v:m.aging_3d,c:'#ef4444'},{l:'4d',v:m.aging_4d||0,c:'#dc2626'},{l:'5d',v:m.aging_5d||0,c:'#b91c1c'},{l:'5+d',v:m.aging_gt5d||0,c:'#7f1d1d'}];
+  const agingCards=buckets.map(b=>{const p=t>0?((b.v||0)/t*100).toFixed(0):'0';return '<div class="dd-card" style="padding:10px"><div class="dd-ct" style="color:'+b.c+'">'+b.l+'</div><div style="font-family:\'Syne\';font-size:20px;font-weight:700;color:'+b.c+'">'+(b.v||0).toLocaleString('en-IN')+'</div><div style="font-family:\'DM Mono\';font-size:10px;color:var(--muted)">'+p+'%</div><div class="bkt-bg" style="margin-top:5px"><div class="bkt-fill" style="width:'+p+'%;background:'+b.c+'"></div></div></div>';}).join('');
+  const trigRows=[['BAU',m.bau+'d'],['Surface TAT',m.surface_tat+'d'],['Air TAT',m.air_tat+'d'],['TAT Adv',m.tatAdv+'d'],['Trigger',m.trig.toFixed(1)+'d'],['Pipeline',m.pipeline_days.toFixed(1)+'d'],['Open Pipeline',m.openPipeline||'—'],['Days Below Trig',(m.days_below_trigger!==undefined&&m.days_below_trigger!=='')?m.days_below_trigger+'d':'Fallback']];
+  const signals=[['Inflow/Day',m.inflow.toLocaleString('en-IN')],['I/O Ratio',m.io.toFixed(2)],['Long Tail%',pct(m.long_tail_pct)],['SLA Breach%',pct(m.sla_breach_pct)],['Air',m.active?'YES ✈':'NO']];
+  return '<div class="dd-inline-wrap">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<div style="font-family:\'Syne\';font-size:16px;font-weight:700">'+m.city+'<span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px">'+m.inflow.toLocaleString('en-IN')+' inflow/day · '+(m.active?'✈ Air Active':'Surface Only')+'</span></div>'
+    +'<button onclick="selCity=null;renderOverview()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer">×</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px">'+agingCards+'</div>'
+    +'<div class="dd-grid">'
+    +'<div class="dd-card"><div class="dd-ct">Trigger</div>'+trigRows.map(r=>'<div class="dd-row"><span class="dd-lbl">'+r[0]+'</span><span class="dd-val">'+r[1]+'</span></div>').join('')+'<hr class="dd-div"/><div class="dd-row"><span class="dd-lbl">Deact Ready?</span><span style="font-family:\'DM Mono\';color:'+(m.deactRdy?'var(--green)':'var(--muted)')+'">'+( m.active?(m.deactRdy?'YES (→'+m.postDeactRag+')':'Not yet'):'N/A')+'</span></div></div>'
+    +'<div class="dd-card"><div class="dd-ct">Signals</div>'+signals.map(r=>'<div class="dd-row"><span class="dd-lbl">'+r[0]+'</span><span class="dd-val">'+r[1]+'</span></div>').join('')+'</div>'
+    +'<div class="dd-card"><div class="dd-ct">MTD Cost</div><div class="dd-row"><span class="dd-lbl">MTD Orders</span><span class="dd-val" style="color:var(--purple)">'+(mtdLoaded?m.mtdOrders.toLocaleString('en-IN'):'—')+'</span></div><div class="dd-row"><span class="dd-lbl">MTD Cost</span><span class="dd-val" style="color:var(--teal)">'+(mtdLoaded?inr(m.mtdCost):'—')+'</span></div>'+(fcLoaded&&mtdLoaded?'<div class="dd-row"><span class="dd-lbl">Pred. rest</span><span class="dd-val" style="color:var(--amber)">'+inr(fcOPD*remDays()*getDC())+'</span></div>':'')+'</div>'
+    +'<div class="dd-card"><div class="dd-ct">Actions</div>'+(m.active?'<button class="act-btn act-off" style="width:100%;margin-bottom:6px;font-size:11px" onclick="doDeact(\''+m.city+'\','+m.pipeline_days.toFixed(1)+','+m.trig.toFixed(2)+')">Deactivate Air</button>':'')+(m.pRag==='red'&&!m.active?'<button class="act-btn act-on" style="width:100%;margin-bottom:6px;font-size:11px" onclick="doActiv(\''+m.city+'\','+m.pipeline_days.toFixed(1)+','+m.trig.toFixed(2)+')">Activate Air</button>':'')+'<button class="btn btn-ghost" style="width:100%;font-size:11px;padding:5px 0" onclick="goToDump(\''+m.city+'\')">View 5+ Day Orders ↗</button></div>'
+    +'</div></div>';
+}
+
+// ── TAB NAVIGATION ────────────────────────────────────────────────────────────
+var lastSyncTime=0;
+function switchTab(t,btn){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['ns','ov','sim','dump','rep','pp','log','logic'].forEach(id=>{
+    const el=document.getElementById('t-'+id);
+    if(el) el.style.display=id===t?'block':'none';
+  });
+  render();
+  // Auto-sync if data is stale (>60 seconds since last sync)
+  if(currentUser&&scriptURL()&&!syncRunning&&(Date.now()-lastSyncTime>60000)){
+    syncState();
+  }
+}
+function goToDump(city){
+  dumpCityFilter=city||'Pan-India';
+  curTab='dump';
+  document.querySelectorAll('.tab').forEach(b=>{ const oc=b.getAttribute('onclick')||''; b.classList.toggle('active',oc.includes("'dump'")); });
+  ['ns','ov','sim','dump','rep','pp','log','logic'].forEach(id=>{ const el=document.getElementById('t-'+id); if(el) el.style.display=id==='dump'?'block':'none'; });
+  renderDump();
+}
+function goToCityDD(city){
+  selCity=city; curTab='ov';
+  document.querySelectorAll('.tab').forEach(b=>{ const oc=b.getAttribute('onclick')||''; b.classList.toggle('active',oc.includes("'ov'")); });
+  ['ns','ov','sim','dump','rep','pp','log','logic'].forEach(id=>{ const el=document.getElementById('t-'+id); if(el) el.style.display=id==='ov'?'block':'none'; });
+  renderOverview();
+}
+function onTrigger(){
+  trigMult=parseFloat(document.getElementById('cfg-trig').value);
+  document.getElementById('tval').textContent=trigMult.toFixed(2)+'×';
+  document.getElementById('tdesc').textContent=tdesc(trigMult);
+  render();
+}
+
+// ── ACTIVATE / DEACTIVATE ─────────────────────────────────────────────────────
+function doActiv(city,pipe,trig){
+  activeCities.add(city); saveActive();
+  const e={ts:now(),action:'ACTIVATED',city,pipeline:pipe,trigger:trig,details:`Air activated for ${city}. Pipeline ${pipe}d > Trigger ${trig}d. By: ${actionedBy()}`};
+  addLog(e); writeLog(e); render();
+}
+function doDeact(city,pipe,trig){
+  activeCities.delete(city); saveActive();
+  const e={ts:now(),action:'DEACTIVATED',city,pipeline:pipe,trigger:trig,details:`Air deactivated for ${city}. Pipeline ${pipe}d. By: ${actionedBy()}`};
+  addLog(e); writeLog(e); render();
+}
+function addLog(e){ changeLog.unshift(e); if(changeLog.length>200) changeLog=changeLog.slice(0,200); saveLog(); }
+function writeLog(entry){
+  const url=scriptURL(); if(!url) return;
+  const p=new URLSearchParams({action:'log',ts:entry.ts,act:entry.action||'',city:entry.city||'',pipe:String(entry.pipeline||''),trig:String(entry.trigger||''),detail:entry.details||''});
+  apsFetch(url+'?'+p.toString()).then(()=>{}).catch(e=>console.warn('Log:',e.message));
+}
+
+// ── COST SIMULATOR ────────────────────────────────────────────────────────────
+function renderSim(){
+  const el=document.getElementById('sim-body');
+  if(!cityData.length){ el.innerHTML='<div class="notice notice-red">No city data loaded.</div>'; return; }
+  const rows=sorted(filtered(compute(cityData,trigMult)));
+  const {mtdTotal,predTotal,breakdown,rd}=calcForecast(rows,trigMult);
+  const grand=mtdTotal+predTotal,today=new Date().getDate(),dim=daysInMonth(),mn=getMonthName(),dc=getDC();
+  const notice=(!fcLoaded||!mtdLoaded)?`<div class="notice notice-amber">⚠ Connect BD_AIR_FORECAST and BD_AIR_MTD for full monthly forecast.</div>`:'';
+  const sumHTML=`<div class="sum-cards">
+    <div class="sum-card" style="border-color:var(--teal)"><div class="sum-lbl">MTD Spend</div><div class="sum-val" style="color:var(--teal)">${mtdLoaded?lakh(mtdTotal):'—'}</div><div class="sum-sub">${mtdLoaded?'Day 1–'+(today-1)+' of '+dim:'Connect BD_AIR_MTD'}</div></div>
+    <div class="sum-card" style="border-color:var(--amber)"><div class="sum-lbl">Predicted Spend</div><div class="sum-val" style="color:var(--amber)">${fcLoaded?lakh(predTotal):'—'}</div><div class="sum-sub">${fcLoaded?rd+'d × forecast OPD':'Connect BD_AIR_FORECAST'}</div></div>
+    <div class="sum-card" style="border-color:var(--blue)"><div class="sum-lbl">Total Month</div><div class="sum-val" style="color:var(--blue)">${(fcLoaded&&mtdLoaded)?lakh(grand):'—'}</div><div class="sum-sub">${mn}</div></div>
+    <div class="sum-card"><div class="sum-lbl">Month Progress</div><div class="sum-val" style="color:var(--purple)">${today-1}<span style="font-size:14px;font-weight:400;color:var(--muted)"> / ${dim}d</span></div><div class="sum-sub">${rd} days remaining</div></div>
+  </div>`;
+  const cityRows=[...breakdown].sort((a,b)=>(b.mtdC+b.fcC)-(a.mtdC+a.fcC)).map(b=>`
+    <tr><td style="padding:9px;font-weight:600">${b.city}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${b.inflow.toLocaleString('en-IN')}/day</span></td>
+    <td style="padding:9px;font-family:'DM Mono';font-size:11px;color:${b.active?'var(--blue)':b.pRag==='red'?'var(--red)':'var(--muted)'}">${b.active?'✈ Active':b.pRag==='red'?'⚠ Triggered':'—'}</td>
+    <td style="padding:9px"><div style="font-family:'DM Mono';font-size:12px;color:var(--teal)">${mtdLoaded?inr(b.mtdC):'—'}</div><div style="font-size:10px;color:var(--muted)">${mtdLoaded?b.mtdO.toLocaleString('en-IN')+' orders':'—'}</div></td>
+    <td style="padding:9px">${b.incl&&fcLoaded?`<div style="font-family:'DM Mono';font-size:12px;color:var(--amber)">${inr(b.fcC)}</div><div style="font-size:10px;color:var(--muted)">${b.fcO.toLocaleString('en-IN')} orders (${b.fcOPD}/d × ${rd}d)</div>`:`<div style="font-family:'DM Mono';font-size:11px;color:var(--muted)">—</div>`}</td>
+    <td style="padding:9px;font-family:'DM Mono';font-weight:700;color:var(--blue)">${(fcLoaded&&mtdLoaded)?inr(b.mtdC+b.fcC):(mtdLoaded?inr(b.mtdC):'—')}</td></tr>`).join('');
+  const mults=[0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0];
+  const multScenarios=mults.map(m2=>{ const sr=sorted(filtered(compute(cityData,m2))); const{mtdTotal:mt,predTotal:pt,breakdown:bd}=calcForecast(sr,m2); return{m2,mt,pt,bd}; });
+  const visCities=filtered(compute(cityData,1.0));
+  const totMtdO=breakdown.reduce((s,b)=>s+b.mtdO,0);
+  const totFcO=breakdown.filter(b=>b.incl).reduce((s,b)=>s+b.fcO,0);
+  const sensHeader=`<tr><th style="min-width:90px">City</th><th style="color:var(--purple)">MTD Orders</th><th style="color:var(--teal)">MTD Cost</th>${mults.map(m2=>{const cur=Math.abs(m2-trigMult)<0.01;return`<th style="color:${cur?'var(--blue)':'var(--muted)'};background:${cur?'var(--bg4)':''};font-weight:${cur?700:400}">${m2.toFixed(1)}×${cur?' ◀':''}</th>`;}).join('')}</tr>`;
+  const sensRows=visCities.map(vc=>{const mtdRow=mtdData.find(m=>nc(m.city)===nc(vc.city))||{};const mtdO=mtdRow.mtd_bd_air_orders||0,mtdC=mtdO*dc;return`<tr><td style="font-weight:600;color:var(--text)">${vc.city}</td><td style="font-family:'DM Mono';color:var(--purple)">${mtdLoaded?mtdO.toLocaleString('en-IN'):'—'}</td><td style="font-family:'DM Mono';color:var(--teal)">${mtdLoaded?inr(mtdC):'—'}</td>${multScenarios.map(({m2,bd})=>{const b=bd.find(b=>nc(b.city)===nc(vc.city)),cur=Math.abs(m2-trigMult)<0.01,incl=b&&b.incl;return`<td style="font-family:'DM Mono';color:${incl?'var(--amber)':'var(--muted)'};background:${cur?'var(--bg4)':''};font-size:11px">${incl?(b.fcOPD+'/d →'+inr(b.fcC)):'—'}</td>`;}).join('')}</tr>`;}).join('');
+  const sensTotal=`<tr style="background:var(--bg3);border-top:2px solid var(--border2)"><td style="font-weight:700">TOTAL</td><td style="font-family:'DM Mono';font-weight:700;color:var(--purple)">${mtdLoaded?totMtdO.toLocaleString('en-IN'):'—'}</td><td style="font-family:'DM Mono';font-weight:700;color:var(--teal)">${mtdLoaded?inr(totMtdO*dc):'—'}</td>${multScenarios.map(({m2,mt,pt})=>{const cur=Math.abs(m2-trigMult)<0.01;return`<td style="font-family:'DM Mono';font-weight:700;color:var(--blue);background:${cur?'var(--bg4)':''};font-size:11px">${(fcLoaded&&mtdLoaded)?inr(mt+pt):'—'}</td>`;}).join('')}</tr>`;
+  el.innerHTML=notice+sumHTML+`
+    <div class="sim-tbl-wrap"><div class="sim-tbl-title">City-Level Breakdown — ${mn}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="border-bottom:1px solid var(--border2)"><th style="padding:6px 9px;text-align:left;font-family:'DM Mono';font-size:10px;color:var(--muted)">City</th><th style="padding:6px 9px;font-family:'DM Mono';font-size:10px;color:var(--muted)">Air Status</th><th style="padding:6px 9px;font-family:'DM Mono';font-size:10px;color:var(--teal)">MTD Actual</th><th style="padding:6px 9px;font-family:'DM Mono';font-size:10px;color:var(--amber)">Predicted Rest</th><th style="padding:6px 9px;font-family:'DM Mono';font-size:10px;color:var(--blue)">Total Month</th></tr></thead>
+      <tbody>${cityRows}</tbody>
+      <tfoot><tr style="background:var(--bg3);border-top:2px solid var(--border2)"><td style="padding:9px;font-weight:700">TOTAL</td><td style="padding:9px;font-family:'DM Mono';font-size:11px;color:var(--muted)">${breakdown.filter(b=>b.incl).length} cities on Air</td><td style="padding:9px;font-family:'DM Mono';font-weight:700;color:var(--teal)">${mtdLoaded?inr(mtdTotal):'—'}<div style="font-size:10px;color:var(--muted)">${mtdLoaded?totMtdO.toLocaleString('en-IN')+' orders':'—'}</div></td><td style="padding:9px;font-family:'DM Mono';font-weight:700;color:var(--amber)">${fcLoaded?inr(predTotal):'—'}<div style="font-size:10px;color:var(--muted)">${fcLoaded?totFcO.toLocaleString('en-IN')+' orders':'—'}</div></td><td style="padding:9px;font-family:'DM Mono';font-weight:700;color:var(--blue);font-size:15px">${(fcLoaded&&mtdLoaded)?inr(grand):(mtdLoaded?inr(mtdTotal):'—')}</td></tr></tfoot>
+    </table></div>
+    <div class="sens-wrap"><div class="sens-title">Sensitivity Table — Cities (rows) vs Trigger Multiplier (cols) · Current: ${trigMult.toFixed(2)}× ◀</div>
+    <table class="sens-tbl"><thead>${sensHeader}</thead><tbody>${sensRows}${sensTotal}</tbody></table></div>`;
+}
+
+
+// ── CALLING DONE ──────────────────────────────────────────────────────────────
+function callCell(orderId){
+  var cl=callLog[orderId];
+  if(cl&&cl.done){
+    return '<td><span class="btn-call done">✓ Called</span>'
+      +(cl.remark?'<div style="font-family:monospace;font-size:10px;color:var(--teal);margin-top:2px;max-width:160px;word-break:break-word">'+escHtml(cl.remark)+'</div>':'')+'</td>';
+  }
+  return '<td>'
+    +'<button class="btn-call" data-oid="'+orderId+'" onclick="showCallInput(this)">📞 Calling Done</button>'
+    +'<div class="call-inp-wrap" style="display:none;margin-top:4px">'
+    +'<input class="call-inp" placeholder="Call remark..." />'
+    +'<button data-oid="'+orderId+'" onclick="saveCall(this)" style="margin-left:4px;background:var(--teal);border:none;color:#fff;font-family:monospace;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer">Save</button>'
+    +'</div></td>';
+}
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showCallInput(btn){
+  var td=btn.closest('td');
+  var d=td?td.querySelector('.call-inp-wrap'):null;
+  if(d){ d.style.display=d.style.display==='none'?'block':'none'; }
+}
+function saveCall(btn){
+  var orderId=btn.getAttribute('data-oid');
+  var inp=btn.previousElementSibling;
+  var remark=(inp?inp.value.trim():'');
+  if(!remark){ alert('Please enter a call remark.'); return; }
+  callLog[orderId]={done:true,remark,ts:now(),by:actionedBy()};
+  // Write to Apps Script CALL_LOG
+  var url=scriptURL(); if(!url){ renderDump(); return; }
+  var p=new URLSearchParams({action:'logCall',order_id:orderId,remark,ts:callLog[orderId].ts,by:callLog[orderId].by});
+  apsFetch(url+'?'+p.toString()).then(function(r){
+    console.log('Call logged:',r&&r.status);
+  }).catch(function(e){ console.warn('logCall:',e.message); });
+  renderDump();
+}
+// ── HIGH AGEING DUMP ──────────────────────────────────────────────────────────
+function effectiveDumpCount(){
+  // Orders in dump minus those already actioned (replaced or closed)
+  const actionedIds=new Set(Object.keys(dumpActioned));
+  return orderDump.filter(o=>!actionedIds.has(o.order_id)).length;
+}
+function setDumpSort(col){
+  if(dumpSort.col===col) dumpSort.dir*=-1; else dumpSort={col,dir:-1};
+  renderDump();
+}
+function renderDump(){
+  const el=document.getElementById('dump-body'); if(!el) return;
+  const cityMap=new Map();
+  orderDump.concat(cityData).forEach(r=>{ const k=nc(r.city||''); if(k) cityMap.set(k.toLowerCase(),k); });
+  const cities=['Pan-India'].concat([...cityMap.values()].sort());
+  const isPI=dumpCityFilter==='Pan-India';
+  const cityFiltered=isPI?orderDump:orderDump.filter(o=>nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase());
+  const storeFiltered=dumpStoreFilter==='FC'?cityFiltered.filter(o=>(o.store_type||'FC').toUpperCase()==='FC'):dumpStoreFilter==='MP'?cityFiltered.filter(o=>(o.store_type||'').toUpperCase()==='MP'):cityFiltered;
+  const fcCount=cityFiltered.filter(o=>(o.store_type||'FC').toUpperCase()==='FC').length;
+  const mpCount=cityFiltered.filter(o=>(o.store_type||'').toUpperCase()==='MP').length;
+  const closedIds=new Set(Object.keys(dumpActioned).filter(id=>dumpActioned[id].action==='CLOSED'));
+  const unactioned=sortRows(storeFiltered.filter(o=>!dumpPending[o.order_id]&&!dumpActioned[o.order_id]&&!closedIds.has(o.order_id)),dumpSort.col,dumpSort.dir);
+  const pending   =storeFiltered.filter(o=>!!dumpPending[o.order_id]);
+  const dumpLookup={}; orderDump.forEach(o=>{ dumpLookup[o.order_id]=o; });
+  const airActioned=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED').filter(p=>{ const o=dumpLookup[p[0]]; if(!o) return true; const st=(o.store_type||'FC').toUpperCase(); return dumpStoreFilter==='All'||dumpStoreFilter===st; }).filter(p=>{ const o=dumpLookup[p[0]]; return !o?isPI:isPI||nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase(); }).map(p=>dumpLookup[p[0]]||{order_id:p[0],city:'',pincode:'',partner_name:'',pickup_date:'',promised_delivery_date:'',current_status:'',aging_days:0,store_type:'FC'});
+  const closedRows=Object.entries(dumpActioned).filter(p=>p[1].action==='CLOSED').filter(p=>{ const o=dumpLookup[p[0]]; if(!o) return true; const st=(o.store_type||'FC').toUpperCase(); return dumpStoreFilter==='All'||dumpStoreFilter===st; }).filter(p=>{ const o=dumpLookup[p[0]]; return !o?isPI:isPI||nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase(); }).map(p=>dumpLookup[p[0]]||{order_id:p[0],city:'',pincode:'',partner_name:'',pickup_date:'',promised_delivery_date:'',current_status:'',aging_days:0,store_type:'FC'});
+  function stBadge(o){ const s=(o.store_type||'FC').toUpperCase(); return '<span class="st-badge '+(s==='MP'?'st-mp':'st-fc')+'">'+s+'</span>'; }
+  function agR(d){ return rag(d>=8?'red':d>=6?'amber':'green',d+'d'); }
+  function etaCell(o){ return fmtDate(o.promised_date||o.promised_delivery_date||''); }
+  function attCell(id){ const a=cpAttempts(id); return a!==null?String(a):'—'; }
+  const cityOpts=cities.map(c=>'<option value="'+c+'"'+(nc(c).toLowerCase()===nc(dumpCityFilter).toLowerCase()?' selected':'')+'>'+c+'</option>').join('');
+  const storeOpts=['All','FC','MP'].map(s=>'<option value="'+s+'"'+(s===dumpStoreFilter?' selected':'')+'>'+s+'</option>').join('');
+  const uRows=unactioned.length?unactioned.map(o=>{return '<tr class="data-row"><td><input type="checkbox" class="order-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px"></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+storeTag(o.city)+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'—')+'</td>'+callCell(o.order_id)+'</tr>';}).join(''):'<tr><td colspan="10" style="padding:14px;font-family:monospace;font-size:12px;color:var(--muted);text-align:center">No unactioned orders</td></tr>';
+  let pRows='';
+  if(pending.length){
+    pRows='<tr style="background:var(--bbg);border-top:2px solid var(--blue)"><td colspan="11" style="padding:8px 12px"><div style="display:flex;align-items:center;gap:12px;font-family:monospace;font-size:11px"><span style="color:var(--blue);font-weight:600">✈ PENDING ('+pending.length+')</span><span style="color:var(--muted)">Set all:</span><button onclick="setAllMode(\'AIR\')" style="background:var(--bbg);border:1px solid var(--blue);color:var(--blue);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Air</button><button onclick="setAllMode(\'SURFACE\')" style="background:var(--gbg);border:1px solid var(--green);color:var(--green);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Surface</button><button onclick="setAllMode(\'LOCAL\')" style="background:var(--abg);border:1px solid var(--amber);color:var(--amber);font-family:monospace;font-size:10px;padding:2px 10px;border-radius:4px;cursor:pointer">All Local</button></div></td></tr>';
+    pRows+=pending.map(o=>{const p=dumpPending[o.order_id]||{};const modeVal=p.mode||'AIR';return '<tr class="r-pending" id="prow-'+o.order_id+'"><td></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+storeTag(o.city)+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--blue);cursor:pointer;margin-right:8px"><input type="radio" name="mode-'+o.order_id+'" value="AIR" '+(modeVal==='AIR'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'AIR\'">Air</label><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--green);cursor:pointer"><input type="radio" name="mode-'+o.order_id+'" value="SURFACE" '+(modeVal==='SURFACE'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'SURFACE\'">Surface</label><label style="display:inline-flex;align-items:center;gap:4px;font-family:monospace;font-size:10px;color:var(--amber);cursor:pointer"><input type="radio" name="mode-'+o.order_id+'" value="LOCAL" '+(modeVal==='LOCAL'?'checked':'')+' onchange="dumpPending[\''+o.order_id+'\'].mode=\'LOCAL\'">Local</label></td><td><div style="display:flex;align-items:center;gap:6px"><input class="repl-inp'+(p.err?' err':'')+'" id="repl-'+o.order_id+'" data-oid="'+o.order_id+'" placeholder="Replacement Order ID" value="'+(p.repl||'')+'" oninput="onReplInput(this)"><button onclick="undoPending(\''+o.order_id+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">↩</button></div></td></tr>';}).join('');
+  }
+  let aRows='';
+  if(airActioned.length){
+    aRows='<tr style="background:var(--bbg);border-top:2px solid var(--border2)"><td colspan="11" style="padding:6px 10px;font-family:monospace;font-size:10px;color:var(--blue)">✓ REPLACED ('+airActioned.length+')</td></tr>';
+    aRows+=airActioned.map(o=>{const info=dumpActioned[o.order_id]||{};return '<tr class="r-actioned"><td></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td><td style="font-size:11px">'+(o.partner_name||'')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(info.repl||'')+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(info.by||'')+'</td></tr>';}).join('');
+  }
+  let cRows='';
+  if(closedRows.length){
+    cRows='<tr style="background:var(--gbg);border-top:2px solid var(--green)"><td colspan="11" style="padding:6px 10px;font-family:monospace;font-size:10px;color:var(--green)">✓ CLOSED ('+closedRows.length+')</td></tr>';
+    cRows+=closedRows.map(o=>{const info=dumpActioned[o.order_id]||{};return '<tr class="r-closed-row"><td></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'')+'</td><td style="font-size:11px">'+(o.partner_name||'')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td colspan="2" style="font-family:monospace;font-size:11px;color:var(--muted)">'+(info.by||'')+'</td></tr>';}).join('');
+  }
+  el.innerHTML='<div id="dump-msg" class="dump-msg" style="display:none"></div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">📤 Bulk CSV</span><div id="upload-msg" class="dump-msg" style="display:none;margin-bottom:0;padding:4px 10px"></div><button class="btn btn-ghost" onclick="document.getElementById(\'csv-file\').click()" style="font-size:11px">📁 Upload CSV</button><input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"><button class="btn btn-ghost" onclick="exportDumpCSV()" style="font-size:11px">⬇ Export CSV</button><span style="font-family:monospace;font-size:10px;color:var(--muted)">Columns: order_id, status (Replaced/Closed/Delivered/Cancelled), replacement_order_id, mode (AIR/SURFACE/LOCAL), calling_done (Yes/No), calling_remark — leave blank for no change</span></div></div>'
+    +'<div class="dump-bar"><select class="dump-sel" onchange="dumpCityFilter=this.value;renderDump()">'+cityOpts+'</select><select class="dump-sel" style="min-width:75px" onchange="dumpStoreFilter=this.value;renderDump()">'+storeOpts+'</select><span class="dump-info" id="dump-info-span">FC: <b>'+fcCount+'</b> · MP: <b>'+mpCount+'</b> · '+unactioned.length+' unactioned · '+pending.length+' pending</span><div class="dump-btns"><button class="btn-air" onclick="markSelectedForAir()">✈ Cancel &amp; Replace</button><button class="btn-close-action" onclick="markSelectedClosed()">✕ Mark as Closed</button><button class="btn-submit" onclick="submitDumpActions()">✓ Submit</button></div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll(\'.order-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th>'+thSort('Order ID','order_id',dumpSort,'setDumpSort')+thSort('City','city',dumpSort,'setDumpSort')+thSort('Pincode','pincode',dumpSort,'setDumpSort')+thSort('Partner','partner_name',dumpSort,'setDumpSort')+thSort('Pickup Date','pickup_date',dumpSort,'setDumpSort')+thSort('ETA','promised_delivery_date',dumpSort,'setDumpSort')+thSort('Aging','aging_days',dumpSort,'setDumpSort')+'<th>Attempts (CP)</th><th>Status</th><th>Calling</th></tr></thead><tbody id="dump-tbody">'+pRows+uRows+'</tbody></table></div>'
+    +(airActioned.length||closedRows.length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th></th><th>Order ID</th><th>City</th><th>Pincode</th><th>Partner</th><th>Pickup</th><th>ETA</th><th>Aging</th><th>Attempts</th><th>Replacement ID / Mode</th><th>By</th></tr></thead><tbody>'+pRows+aRows+cRows+'</tbody></table></div>':'');
+}
+function showDumpMsg(msg,type){ const el=document.getElementById('dump-msg'); if(!el) return; el.textContent=msg; el.className='dump-msg'+(type?' '+type:''); el.style.display=msg?'block':'none'; }
+function showUploadMsg(msg,type){ const el=document.getElementById('upload-msg'); if(!el) return; el.textContent=msg; el.className='dump-msg'+(type?' '+type:''); el.style.display=msg?'block':'none'; }
+function onReplInput(el){ const id=el.dataset.oid; if(id&&dumpPending[id]){ dumpPending[id].repl=el.value; dumpPending[id].err=false; el.classList.remove('err'); } }
+function setAllMode(mode){ Object.keys(dumpPending).forEach(id=>{ dumpPending[id].mode=mode; const r=document.querySelector('input[name="mode-'+id+'"][value="'+mode+'"]'); if(r) r.checked=true; }); }
+function undoPending(id){ delete dumpPending[id]; const pr=document.getElementById('prow-'+id); if(pr) pr.remove(); const cb=document.querySelector('[data-id="'+id+'"]'); if(cb) cb.checked=false; updateDumpInfo(); }
+function updateDumpInfo(){ const el=document.getElementById('dump-info-span'); if(!el) return; el.innerHTML='Pending: <b>'+Object.keys(dumpPending).length+'</b>'; }
+function markSelectedForAir(){
+  const checked=[...document.querySelectorAll('.order-chk:checked')].map(c=>c.dataset.id);
+  if(!checked.length){ showDumpMsg('Select at least one order first.','err'); return; }
+  let added=0;
+  checked.forEach(id=>{ if(!dumpActioned[id]&&!dumpPending[id]){ dumpPending[id]={repl:'',mode:'AIR',err:false}; added++; } });
+  if(!added){ showDumpMsg('Selected orders are already actioned.','err'); return; }
+  showDumpMsg('','');
+  renderDump(); // Re-render: pending rows appear at top of table
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function markSelectedClosed(){
+  const checked=[...document.querySelectorAll('.order-chk:checked')].map(c=>c.dataset.id);
+  if(!checked.length){ showDumpMsg('Select at least one order first.','err'); return; }
+  let added=0;
+  checked.forEach(id=>{ if(!dumpActioned[id]&&!dumpPending[id]){ dumpActioned[id]={action:'CLOSED',repl:'',mode:'',by:actionedBy(),ts:now()}; added++; const cb=document.querySelector('[data-id="'+id+'"]'); if(cb){cb.checked=false;const tr=cb.closest('tr');if(tr){tr.style.opacity='0.4';tr.style.textDecoration='line-through';}} } });
+  if(!added){ showDumpMsg('Already actioned.','err'); return; }
+  saveDumpActioned(); updateDumpInfo();
+  setTimeout(()=>renderDump(),200);
+}
+function submitDumpActions(){
+  Object.keys(dumpPending).forEach(id=>{
+    const inp=document.getElementById('repl-'+id); if(inp) dumpPending[id].repl=inp.value.trim();
+    const r=document.querySelector('input[name="mode-'+id+'"]:checked'); if(r) dumpPending[id].mode=r.value;
+  });
+  const pairs=Object.entries(dumpPending);
+  if(!pairs.length){ showDumpMsg('No pending orders.','err'); return; }
+  const ready=[],errors=[];
+  pairs.forEach(pair=>{
+    const id=pair[0],repl=(dumpPending[id].repl||'').trim(),mode=dumpPending[id].mode||'AIR';
+    if(repl.toLowerCase()==='closed') ready.push([id,{action:'CLOSED',repl:'',mode:''}]);
+    else if(repl) ready.push([id,{action:'REPLACED',repl,mode}]);
+    else { dumpPending[id].err=true; errors.push(id); }
+  });
+  if(!ready.length){ showDumpMsg('Enter replacement IDs (or type "closed" to close).','err'); return; }
+  if(errors.length) showDumpMsg('Submitting '+ready.length+' — missing IDs for: '+errors.join(', '),'err');
+  else showDumpMsg('','');
+  ready.forEach(pair=>delete dumpPending[pair[0]]);
+  finaliseDumpSubmit(ready);
+}
+async function finaliseDumpSubmit(pairs){
+  const ts=now(), who=actionedBy();
+  pairs.forEach(pair=>{
+    const id=pair[0],info=pair[1];
+    dumpActioned[id]={action:info.action,repl:info.repl,mode:info.mode||'',by:who,ts};
+  });
+  saveDumpActioned();
+  pairs.forEach(pair=>{
+    const id=pair[0],info=pair[1];
+    if(info.action==='REPLACED'&&!replacedOrders.find(x=>x.original_order_id===id)){
+      const o=orderDump.find(x=>x.order_id===id)||{};
+      replacedOrders.push({original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:'',actioned_on:ts,actioned_by:who,mode:info.mode||'AIR',eta:'',new_status:'',new_aging:''});
+    }
+  });
+  const url=scriptURL();
+  if(url){
+    const orders=pairs.map(pair=>{ const id=pair[0],info=pair[1]; const o=orderDump.find(x=>x.order_id===id)||{}; return {order_id:id,city:o.city||'',partner_name:'',store_type:o.store_type||'',aging_days:o.aging_days||0,action:info.action,replacement_order_id:info.repl||'',mode:info.mode||'',actioned_by:who}; });
+    const p=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(orders),actioned_by:who});
+    try{ const r=await apsFetch(url+'?'+p.toString()); showDumpMsg(r&&r.status==='ok'?'Done! '+pairs.length+' order(s) actioned.':'Error: '+(r&&r.message||'unknown'),r&&r.status==='ok'?'ok':'err'); }
+    catch(e){ showDumpMsg('Saved locally (script unreachable).','ok'); }
+  } else { showDumpMsg('Done (local only).','ok'); }
+  renderDump();
+}
+function exportDumpCSV(){
+  // Export ALL unactioned orders (FC + MP) for the current city filter
+  const closedSet=new Set(Object.keys(dumpActioned).filter(id=>dumpActioned[id].action==='CLOSED'));
+  const rows=(dumpCityFilter==='Pan-India'?orderDump:orderDump.filter(o=>nc(o.city).toLowerCase()===nc(dumpCityFilter).toLowerCase()))
+    .filter(o=>!dumpActioned[o.order_id]&&!closedSet.has(o.order_id));
+  if(!rows.length){ showDumpMsg('No unactioned orders to export.','err'); return; }
+  // Instructions row
+  const instructions=[
+    '# HEIMDALL BULK ACTION CSV — Instructions:',
+    '# status: leave blank (no action) | Closed | Delivered | Cancelled | Replaced',
+    '# replacement_order_id: REQUIRED only if status=Replaced',
+    '# mode: AIR / SURFACE / LOCAL — REQUIRED if status=Replaced',
+    '# calling_done: Yes / No',
+    '# calling_remark: REQUIRED if calling_done=Yes',
+    '# Leave any column blank to make no change to that field',
+    '#',
+  ].join('\n');
+  const hdr='order_id,city,pincode,partner_name,pickup_date,eta,current_status,aging_days,store_type,delivery_attempts,latest_cp_remark,replacement_order_id,mode,status,calling_done,calling_remark';
+  const lines=rows.map(o=>{
+    const att=cpAttempts(o.order_id);
+    const cpRem=cpStatus(o.order_id)||'';
+    const cl=callLog[o.order_id];
+    const callingDone=cl&&cl.done?'Yes':'';
+    const callingRem=cl&&cl.remark?cl.remark:'';
+    return [
+      o.order_id, o.city, o.pincode||'', o.partner_name||'',
+      o.pickup_date||'', o.promised_delivery_date||'',
+      o.current_status||'', o.aging_days||'', o.store_type||'FC',
+      att!==null?att:'', cpRem,
+      '','','', // replacement_order_id, mode, status
+      callingDone, callingRem
+    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(instructions+'\n'+hdr+'\n'+lines.join('\n'));
+  a.download='heimdall_dump_'+now().slice(0,10)+'.csv';
+  a.click();
+}
+function handleCSVUpload(evt){ const file=evt.target.files[0]; if(!file) return; evt.target.value=''; const reader=new FileReader(); reader.onload=e=>{ try{ processUploadCSV(e.target.result); }catch(ex){ showUploadMsg('Parse error: '+ex.message,'err'); } }; reader.readAsText(file); }
+function parseCSVLine(line){
+  // Handle quoted CSV fields properly
+  const result=[]; let cur='', inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(ch===','&&!inQ){result.push(cur.trim());cur='';}
+    else cur+=ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function processUploadCSV(text){
+  // Skip instruction lines starting with #
+  const allLines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
+  if(allLines.length<2){ showUploadMsg('CSV is empty.','err'); return; }
+  const hdrs=parseCSVLine(allLines[0]).map(h=>h.toLowerCase().replace(/"/g,'').trim());
+  const col=k=>hdrs.indexOf(k);
+  const idIdx=col('order_id');
+  if(idIdx<0){ showUploadMsg('CSV must have column: order_id','err'); return; }
+  const replIdx=col('replacement_order_id'), modeIdx=col('mode'), statusIdx=col('status');
+  const callingIdx=col('calling_done'), callingRemIdx=col('calling_remark');
+
+  const toAction=[], toCalling=[];
+  for(let i=1;i<allLines.length;i++){
+    const cols=parseCSVLine(allLines[i]);
+    const id=(cols[idIdx]||'').replace(/"/g,'').trim(); if(!id) continue;
+    const status=statusIdx>=0?(cols[statusIdx]||'').trim():'';
+    const repl=replIdx>=0?(cols[replIdx]||'').trim():'';
+    const mode=modeIdx>=0?(cols[modeIdx]||'').toUpperCase().trim():'';
+    const callingDone=callingIdx>=0?(cols[callingIdx]||'').trim().toLowerCase():'';
+    const callingRem=callingRemIdx>=0?(cols[callingRemIdx]||'').trim():'';
+
+    // Validate
+    const statusLower=status.toLowerCase();
+    const isReplaced=statusLower==='replaced';
+    const isClosed=['closed','delivered','cancelled'].includes(statusLower);
+    if(status&&!isReplaced&&!isClosed){ showUploadMsg('Row '+(i)+': status must be Replaced/Closed/Delivered/Cancelled or blank. Got: '+status,'err'); return; }
+    if(isReplaced&&!repl){ showUploadMsg('Row '+(i)+': replacement_order_id required when status=Replaced','err'); return; }
+    if(isReplaced&&mode&&!['AIR','SURFACE','LOCAL'].includes(mode)){ showUploadMsg('Row '+(i)+': mode must be AIR/SURFACE/LOCAL','err'); return; }
+    if(callingDone==='yes'&&!callingRem){ showUploadMsg('Row '+(i)+': calling_remark required when calling_done=Yes','err'); return; }
+
+    // Queue actions
+    if(status&&!dumpActioned[id]){
+      if(isReplaced) toAction.push({id,action:'REPLACED',repl,mode:mode||'AIR'});
+      else if(isClosed) toAction.push({id,action:'CLOSED',repl:'',mode:''});
+    }
+    if(callingDone==='yes'&&callingRem&&!callLog[id]){
+      toCalling.push({id,remark:callingRem});
+    }
+  }
+
+  if(!toAction.length&&!toCalling.length){ showUploadMsg('No actionable rows found (all blank or already actioned).','err'); return; }
+
+  // Apply actions
+  const ts=now(), who=actionedBy();
+  toAction.forEach(function(a){
+    dumpActioned[a.id]={action:a.action,repl:a.repl,mode:a.mode,by:who,ts};
+  });
+  toCalling.forEach(function(a){
+    callLog[a.id]={done:true,remark:a.remark,ts,by:who};
+    // Write call to Apps Script
+    const url=scriptURL(); if(!url) return;
+    const p=new URLSearchParams({action:'logCall',order_id:a.id,remark:a.remark,ts,by:who});
+    apsFetch(url+'?'+p.toString()).catch(e=>console.warn('logCall:',e.message));
+  });
+  saveDumpActioned();
+  if(toAction.length) finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+  showUploadMsg((toAction.length?toAction.length+' orders actioned. ':'')+(toCalling.length?toCalling.length+' calls logged.':''),'ok');
+  renderDump();
+}
+
+// ── REPLACED ORDERS ───────────────────────────────────────────────────────────
+// ── REPLACED ORDERS HELPERS (module-level to avoid strict-mode block scoping) ──
+function statusCell(o,isOpen){ return repStatusCell(o,isOpen); }
+function agingCell(o){ return repAgingCell(o); }
+function repIsTerminal(s){ const v=String(s||'').trim().toLowerCase(); return v==='delivered'||v==='cancelled'||v==='closed'; }
+function modeBadge(m){ const v=(m||'').toUpperCase(); if(v==='AIR') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--blue);color:var(--blue)">AIR</span>'; if(v==='SURFACE') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--green);color:var(--green)">SURFACE</span>'; if(v==='LOCAL') return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--amber);color:var(--amber)">LOCAL</span>'; return '<span style="color:var(--muted)">—</span>'; }
+function repStatusCell(o,isOpen){ const s=String(o.new_status||'').trim(); if(isOpen) return s?'<span style="font-size:11px;color:var(--text)">'+s+'</span>':'<span style="font-size:11px;color:var(--muted)">Awaiting SQL</span>'; const col=s.toLowerCase()==='delivered'?'var(--green)':s.toLowerCase()==='cancelled'?'var(--red)':'var(--muted)'; return '<span style="font-size:11px;font-weight:700;color:'+col+'">'+s+'</span>'; }
+function repAgingCell(o){ const a=String(o.new_aging||'').trim(); if(!a||isNaN(parseFloat(a))) return '<span style="color:var(--muted)">—</span>'; const n=parseFloat(a); return rag(n>=5?'red':n>=3?'amber':'green',n+'d'); }
+
+function setRepSort(col){
+  if(repSort.col===col) repSort.dir*=-1; else repSort={col,dir:-1};
+  renderReplacement();
+}
+function renderReplacement(){
+  const el=document.getElementById('rep-body'); if(!el) return;
+  try{
+  const sheetIds=new Set(replacedOrders.map(o=>o.original_order_id));
+  const localRows=Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED'&&p[1].ts&&!sheetIds.has(p[0])).map(pair=>{const id=pair[0],info=pair[1];const o=orderDump.find(x=>x.order_id===id)||{};return{original_order_id:id,replacement_order_id:info.repl,city:o.city||'',partner_name:'',actioned_on:info.ts||'',actioned_by:info.by||'',mode:info.mode||'',eta:'',new_status:'',new_aging:''};});
+  const all=replacedOrders.concat(localRows);
+  if(!all.length){ el.innerHTML='<div style="padding:40px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px"><div style="font-size:36px;margin-bottom:12px">📦</div><div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px">No replaced orders yet</div><div style="font-size:12px;color:var(--muted)">Cancel & Replace orders from the High Ageing Dump tab will appear here.</div></div>'; return; }
+  const open  =sortRows(all.filter(o=>{ const s=String(o.new_status||'').trim().toLowerCase(); return s===''||s==='under eta'||(!isNaN(parseFloat(s))&&s!==''); }),repSort.col,repSort.dir);
+  const closed=sortRows(all.filter(o=>repIsTerminal(o.new_status)),repSort.col,repSort.dir);
+  const thd='<tr>'+thSort('Original Order','original_order_id',repSort,'setRepSort')+thSort('Replacement Order','replacement_order_id',repSort,'setRepSort')+'<th>Mode</th>'+thSort('City','city',repSort,'setRepSort')+thSort('Partner','partner_name',repSort,'setRepSort')+thSort('Actioned On','actioned_on',repSort,'setRepSort')+'<th>By</th>'+thSort('ETA','eta',repSort,'setRepSort')+'<th>Status</th>'+thSort('Aging','new_aging',repSort,'setRepSort')+'</tr>';
+  function mkRow(o,isOpen){ return '<tr class="data-row"><td style="font-family:monospace;font-size:11px">'+o.original_order_id+'</td><td style="font-family:monospace;font-size:11px;color:var(--blue)">'+(o.replacement_order_id||'—')+'</td><td>'+modeBadge(o.mode)+'</td><td>'+o.city+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_on||'—')+'</td><td style="font-family:monospace;font-size:11px">'+(o.actioned_by||'—')+'</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">'+fmtDate(o.eta||'')+'</td><td>'+repStatusCell(o,isOpen)+'</td><td>'+repAgingCell(o)+'</td></tr>'; }
+  let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;overflow-x:auto">';
+  html+='<div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">📦 Open Replaced Orders ('+open.length+') — SQL updates ETA / Status / Aging nightly</div>';
+  html+=open.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+open.map(o=>mkRow(o,true)).join('')+'</tbody></table>':'<div style="font-size:12px;color:var(--muted)">No open replaced orders.</div>';
+  html+='</div>';
+  if(closed.length){ html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto"><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">✅ Closed — Delivered / Cancelled / Closed ('+closed.length+')</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead>'+thd+'</thead><tbody>'+closed.map(o=>mkRow(o,false)).join('')+'</tbody></table></div>'; }
+  el.innerHTML=html;
+  }catch(e){
+    console.error('renderReplacement ERROR:',e.message,e.stack);
+    el.innerHTML='<div style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">⚠ Render error: '+e.message+'</div>';
+  }
+}
+
+// ── PARTNER & PINCODE ─────────────────────────────────────────────────────────
+function setPPPartner(col){ setPPSort(col,false); }
+function setPPPincode(col){ setPPSort(col,true); }
+function setPPSort(col,isPin){
+  if(isPin){ if(ppPincodeSort.col===col) ppPincodeSort.dir*=-1; else ppPincodeSort={col,dir:-1}; }
+  else { if(ppPartnerSort.col===col) ppPartnerSort.dir*=-1; else ppPartnerSort={col,dir:-1}; }
+  renderPartnerPincode();
+}
+function renderPartnerPincode(){
+  const el=document.getElementById('pp-body'); if(!el) return;
+  const cityMap=new Map();
+  partnerData.concat(pincodeData).forEach(r=>{ const k=nc(r.city||''); if(k) cityMap.set(k.toLowerCase(),k); });
+  const cities=['All'].concat([...cityMap.values()].sort());
+  const cityOpts=cities.map(c=>'<option value="'+c+'"'+(nc(c).toLowerCase()===nc(ppCityFilter).toLowerCase()?' selected':'')+'>'+c+'</option>').join('');
+  const isAll=ppCityFilter==='All';
+  const fp=isAll?partnerData:partnerData.filter(p=>nc(p.city).toLowerCase()===nc(ppCityFilter).toLowerCase());
+  const fn=isAll?pincodeData:pincodeData.filter(p=>nc(p.city).toLowerCase()===nc(ppCityFilter).toLowerCase());
+  // Normalise: sheets may return decimal fractions (0.195 = 19.5%)
+  const normV=v=>(+v||0)>1?(+v):(+(+v||0)*100);
+  const tR=v=>(+v||0)>4?'red':(+v||0)>=3?'amber':'green';
+  const sR=v=>normV(v)>12?'red':normV(v)>=5?'amber':'green';
+  const lR=v=>normV(v)>8?'red':normV(v)>=3?'amber':'green';
+  const cR=v=>normV(v)>6?'red':normV(v)>=3?'amber':'green';
+  const aR=v=>+v>20?'red':+v>=5?'amber':'green';
+  const sp=sortRows(fp,ppPartnerSort.col,ppPartnerSort.dir);
+  const sn=sortRows(fn,ppPincodeSort.col,ppPincodeSort.dir);
+  const cc=isAll?'<th>City</th>':'';
+  const pRows=sp.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-weight:600">'+(p.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_delivered||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),normV(p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),normV(p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),normV(p.cancellation_pct).toFixed(1)+'%')+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td></tr>';}).join('');
+  const nRows=sn.map(p=>{const pl=p.open_orders_pipeline!==undefined&&p.open_orders_pipeline!==''?Number(p.open_orders_pipeline).toLocaleString('en-IN'):'—';const dp=[p.dominant_partner_1||p.dominant_partner||'',p.dominant_partner_2||''].filter(Boolean).join(' / ')||'—';return '<tr class="data-row">'+(isAll?'<td style="font-weight:600">'+p.city+'</td>':'')+'<td style="font-family:monospace;font-size:11px;font-weight:600">'+(p.pincode||'—')+'</td><td style="font-family:monospace;font-size:11px">'+((p.orders_assigned||0).toLocaleString('en-IN'))+'</td><td style="font-family:monospace;font-size:11px">'+pl+'</td><td>'+rag(tR(p.avg_tat),(isNaN(+p.avg_tat)?'—':(+p.avg_tat).toFixed(1)+'d'))+'</td><td>'+rag(sR(p.sla_breach_pct),normV(p.sla_breach_pct).toFixed(1)+'%')+'</td><td>'+rag(lR(p.long_tail_pct),normV(p.long_tail_pct).toFixed(1)+'%')+'</td><td>'+rag(cR(p.cancellation_pct),normV(p.cancellation_pct).toFixed(1)+'%')+'</td><td>'+rag(aR(p.aging_gt5d_count),p.aging_gt5d_count||0)+'</td><td style="font-size:11px;color:var(--muted)">'+dp+'</td></tr>';}).join('');
+  var partnerTitle='Partner Performance'+(isAll?'':' — '+ppCityFilter)+' ('+fp.length+')';
+  var pincodeTitle='Pincode Health'+(isAll?'':' — '+ppCityFilter)+' ('+fn.length+')';
+  el.innerHTML='<div class="dump-bar"><select class="dump-sel" onchange="ppCityFilter=this.value;renderPartnerPincode()">'+cityOpts+'</select><span class="dump-info">'+fp.length+' partner rows · '+fn.length+' pincode rows · sorted by 5+d aging ↓</span></div>'
+    +'<div class="pp-section">'
+      +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPartnerOpen=!ppPartnerOpen;renderPartnerPincode()">'
+        +(ppPartnerOpen?'▾':'▸')+' '+partnerTitle+'</div>'
+      +(ppPartnerOpen?(sp.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Partner','partner_name',ppPartnerSort,'setPPPartner')+thSort('Assigned','orders_assigned',ppPartnerSort,'setPPPartner')+thSort('Delivered','orders_delivered',ppPartnerSort,'setPPPartner')+thSort('Open Pipeline','open_orders_pipeline',ppPartnerSort,'setPPPartner')+thSort('Avg TAT','avg_tat',ppPartnerSort,'setPPPartner')+thSort('SLA Breach%','sla_breach_pct',ppPartnerSort,'setPPPartner')+thSort('Long Tail%','long_tail_pct',ppPartnerSort,'setPPPartner')+thSort('Cancel%','cancellation_pct',ppPartnerSort,'setPPPartner')+thSort('5+d Aging','aging_gt5d_count',ppPartnerSort,'setPPPartner')+'</tr></thead><tbody>'+pRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No partner data.</div>'):'')+'</div>'
+    +'<div class="pp-section">'
+      +'<div class="pp-lbl" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="ppPincodeOpen=!ppPincodeOpen;renderPartnerPincode()">'
+        +(ppPincodeOpen?'▾':'▸')+' '+pincodeTitle+'</div>'
+      +(ppPincodeOpen?(sn.length?'<div class="tbl-wrap"><table><thead><tr>'+cc+thSort('Pincode','pincode',ppPincodeSort,'setPPPincode')+thSort('Assigned','orders_assigned',ppPincodeSort,'setPPPincode')+thSort('Open Pipeline','open_orders_pipeline',ppPincodeSort,'setPPPincode')+thSort('Avg TAT','avg_tat',ppPincodeSort,'setPPPincode')+thSort('SLA Breach%','sla_breach_pct',ppPincodeSort,'setPPPincode')+thSort('Long Tail%','long_tail_pct',ppPincodeSort,'setPPPincode')+thSort('Cancel%','cancellation_pct',ppPincodeSort,'setPPPincode')+thSort('5+d Aging','aging_gt5d_count',ppPincodeSort,'setPPPincode')+'<th>Dominant Partners</th></tr></thead><tbody>'+nRows+'</tbody></table></div>':'<div style="font-size:12px;color:var(--muted);font-family:monospace;padding:8px">No pincode data.</div>'):'')+'</div>';
+}
+
+// ── CHANGE LOG ────────────────────────────────────────────────────────────────
+function renderLog(){
+  const tbody=document.getElementById('log-tbody'); if(!tbody) return;
+  if(!changeLog.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;font-family:\'DM Mono\';font-size:12px">No actions yet.</td></tr>'; return; }
+  tbody.innerHTML=changeLog.map(e=>{ const cls=e.action==='ACTIVATED'?'log-act':e.action==='DEACTIVATED'?'log-deact':e.action&&e.action.includes('CONFIG')?'log-cfg':'log-other'; return `<tr class="${cls}"><td>${e.ts}</td><td>${e.action}</td><td>${e.city||'—'}</td><td>${e.pipeline||'—'}</td><td>${e.trigger||'—'}</td><td>${e.details||'—'}</td></tr>`; }).join('');
+}
+
+// ── DECISION LOGIC ────────────────────────────────────────────────────────────
+function renderLogic(){
+  const stepsEl=document.getElementById('logic-steps'); if(!stepsEl) return;
+  stepsEl.innerHTML=[
+    {n:'01',t:'Morning Review (D-1)',b:'SQL runs nightly. Open Heimdall — data syncs automatically.',a:'Check Active section first.',c:'var(--blue)'},
+    {n:'02',t:'Activate Air for Critical Cities',b:'Pipeline > (BAU + TAT Advantage) × trigger multiplier.',a:'Click [Activate Air] → city moves to Active → logged.',c:'var(--red)'},
+    {n:'03',t:'Watch Cities',b:'Pipeline > BAU + 0.5 but below trigger.',a:'Monitor daily. Consider pre-emptive activation if I/O > 1.3.',c:'var(--amber)'},
+    {n:'04',t:'Deactivate Active Cities',b:'Button glows when pipeline drops below trigger for 2+ days.',a:'Click [Deactivate] → logged automatically.',c:'var(--green)'},
+    {n:'05',t:'Review Cost Simulator',b:'MTD actuals + predicted rest of month.',a:'Adjust trigger slider to model cost at different thresholds.',c:'var(--purple)'},
+    {n:'06',t:'High Ageing Dump',b:'Action 5+ day orders. Cancel & Replace (Air or Surface) or Mark Closed.',a:'Submit → logged to ORDER_ACTION_LOG and REPLACED_ORDERS.',c:'var(--teal)'},
+  ].map(s=>`<div class="step"><div class="step-n" style="background:${s.c}22;border:1px solid ${s.c}44;color:${s.c}">${s.n}</div><div><div class="step-title">${s.t}</div><div class="step-body">${s.b}</div><div class="step-action" style="color:${s.c}">→ ${s.a}</div></div></div>`).join('');
+  const tt=document.getElementById('thresh-tbl'); if(tt) tt.innerHTML=`<thead><tr><th>Metric</th><th style="color:var(--green)">Green</th><th style="color:var(--amber)">Amber</th><th style="color:var(--red)">Red</th></tr></thead><tbody>${[['Pipeline Days','< BAU+0.5','BAU+0.5 → trigger','> trigger'],['Long Tail %','< 3%','3%–8%','> 8%'],['SLA Breach %','< 5%','5%–12%','> 12%'],['I/O Ratio','0.9–1.1','1.1–1.3','> 1.3']].map(r=>`<tr><td style="font-weight:600;color:var(--text)">${r[0]}</td><td style="color:var(--green);font-family:'DM Mono';font-size:10px">${r[1]}</td><td style="color:var(--amber);font-family:'DM Mono';font-size:10px">${r[2]}</td><td style="color:var(--red);font-family:'DM Mono';font-size:10px">${r[3]}</td></tr>`).join('')}</tbody>`;
+  const constEl=document.getElementById('constrs'); if(constEl) constEl.innerHTML=['RAG driven by pipeline days vs BAU + TAT Advantage × trigger multiplier.','Sync reads live data via Apps Script — no CSV caching.','MTD cost = orders × ΔC (config).','Deactivation: 2 consecutive days below trigger.','CLOSED_ORDERS is SQL-only analytics. Heimdall never writes to it.'].map(c=>`<div class="constr"><span style="color:var(--green)">✓</span><span>${c}</span></div>`).join('');
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+function toggleCfg(){
+  cfgExpanded=!cfgExpanded;
+  document.getElementById('cfg-chev').textContent=cfgExpanded?'▾':'▸';
+  const body=document.getElementById('cfg-body');
+  if(cfgExpanded){
+    body.style.display='block';
+    if(!cfgUnlocked){ document.getElementById('cfg-unlock-msg').style.display='block'; document.getElementById('cfg-fields').style.display='none'; }
+    document.getElementById('cfg-lock-tag').textContent=cfgUnlocked?'🔓 UNLOCKED':'🔒 LOCKED — click to unlock';
+    document.getElementById('cfg-lock-tag').className='cfg-lock tag '+(cfgUnlocked?'tok':'tno');
+  } else {
+    body.style.display='none';
+    document.getElementById('cfg-lock-tag').textContent='🔒 LOCKED — click to expand';
+    document.getElementById('cfg-lock-tag').className='cfg-lock tag tno';
+  }
+}
+function togglePinVis(){ const inp=document.getElementById('cfg-pin'),btn=document.getElementById('pin-eye'); inp.type==='password'?(inp.type='text',btn.textContent='🙈'):(inp.type='password',btn.textContent='👁'); }
+function openPin(){ document.getElementById('pin-overlay').style.display='flex'; document.getElementById('pin-in').focus(); }
+function checkPin(){
+  const entered=document.getElementById('pin-in').value, correct=lsg('rct_pin')||DEFAULT_PIN;
+  if(entered===correct){
+    cfgUnlocked=true;
+    document.getElementById('pin-overlay').style.display='none'; document.getElementById('pin-in').value=''; document.getElementById('pin-err').style.display='none';
+    document.getElementById('cfg-unlock-msg').style.display='none'; document.getElementById('cfg-fields').style.display='block';
+    document.getElementById('cfg-lock-tag').textContent='🔓 UNLOCKED'; document.getElementById('cfg-lock-tag').className='cfg-lock tag tok';
+    cfgExpanded=true; document.getElementById('cfg-body').style.display='block'; document.getElementById('cfg-chev').textContent='▾';
+  } else { document.getElementById('pin-err').style.display='block'; }
+}
+async function saveConfig(){
+  ls('rct_dc',getDC()); ls('rct_opd',getOPD()); ls('rct_trig',trigMult); ls('rct_pin',getPin());
+  const url=scriptURL();
+  const entry={ts:now(),action:'CONFIG CHANGED',city:'',pipeline:'',trigger:'',details:`Trigger:${trigMult}×, ΔC:₹${getDC()}, MinOPD:${getOPD()}`};
+  addLog(entry);
+  if(url){ try{ const p=new URLSearchParams({action:'saveConfig',trigger_multiplier:trigMult,delta_c:getDC(),min_opd:getOPD()}); await apsFetch(url+'?'+p.toString()); showSave('✓ Saved to sheet + locally'); }catch(e){ showSave('✓ Saved locally'); } }
+  else showSave('✓ Saved locally');
+  render();
+}
+function showSave(msg){ const el=document.getElementById('save-msg'); el.textContent=msg; el.style.display='inline'; setTimeout(()=>el.style.display='none',3000); }
+
+// ── ADHERENCE ─────────────────────────────────────────────────────────────────
+function maybeAppendSeenOrders(){
+  const url=scriptURL(); if(!url) return;
+  // Once-per-day guard
+  const today=new Date().toISOString().slice(0,10);
+  const lastRun=lsg('rct_dump_seen_date');
+  if(lastRun===today&&adherence.denominator>0) return;
+  // Apps Script reads ORDER_DUMP directly — no large payload sent over URL
+  apsFetch(url+'?action=syncSeenOrders').then(r=>{
+    if(r&&r.status==='ok'){
+      ls('rct_dump_seen_date',today);
+      adherence.denominator=r.total||adherence.denominator;
+      renderKPIs();
+      console.log('Adherence: '+r.added+' new orders synced to DUMP_SEEN_ORDERS');
+    }
+  }).catch(e=>console.warn('syncSeenOrders:',e.message));
+}
+function resetAdherenceLocal(){
+  const url=scriptURL(); if(!url){ showErr('Connect Apps Script first.'); return; }
+  if(!confirm('Reset adherence counter from today?')) return;
+  apsFetch(url+'?action=resetAdherence').then(r=>{
+    if(r&&r.status==='ok'){
+      adherence={denominator:0,numerator:0,reset_date:r.reset_date};
+      ls('rct_adh_reset_date',r.reset_date);
+      ls('rct_dump_seen_date',''); // force re-run of appendSeenOrders
+      renderKPIs();
+      showSave('Adherence reset from '+r.reset_date);
+    }
+  }).catch(e=>showErr('Reset failed: '+e.message));
+}
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const h=document.documentElement, d=h.getAttribute('data-theme')==='dark';
+  h.setAttribute('data-theme',d?'light':'dark');
+  document.getElementById('theme-btn').textContent=d?'🌙':'☀️';
+  ls('rct_theme',d?'light':'dark');
+}
+
+// ── COUNTDOWN ─────────────────────────────────────────────────────────────────
+function resetCountdown(){ syncCountdown=5; }
+function startCountdown(){
+  if(syncTimer) clearInterval(syncTimer);
+  syncCountdown=5;
+  syncTimer=setInterval(()=>{
+    syncCountdown--;
+    const m=Math.floor(syncCountdown/60), s=String(syncCountdown%60).padStart(2,'0');
+    if(!document.getElementById('sync-btn').classList.contains('syncing')) setSyncNote('Auto-sync in '+m+':'+s);
+    if(syncCountdown<=0){ syncCountdown=5; syncState(); }
+  },1000);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function setTag(id,txt,cls){ const el=document.getElementById(id); if(el){ el.textContent=txt; el.className='tag '+cls; } }
+function setText(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+function showErr(msg){ const el=document.getElementById('err-bar'); el.textContent=msg; el.style.display=msg?'block':'none'; }
+function setDataDate(){ const d=new Date(); d.setDate(d.getDate()-1); document.getElementById('data-date').textContent='D-1: '+d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function setSyncNote(t){ document.getElementById('sync-note').textContent=t; }
+function updateFooter(){ document.getElementById('footer-r').textContent=[cityData.length?'CITY:'+cityData.length:'',fcLoaded?'FORECAST:✓':'',mtdLoaded?'MTD:✓':'',orderDump.length?'DUMP:'+orderDump.length:'',scriptURL()?'SCRIPT:✓':''].filter(Boolean).join(' · '); }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('click', function(e){
+  var th=e.target.closest('.sortable-th');
+  if(!th) return;
+  var col=th.getAttribute('data-col');
+  var fn=th.getAttribute('data-fn');
+  if(col&&fn){
+    try{ eval(fn+'("'+col+'")'); }catch(ex){ console.warn('sort err',ex); }
+  }
+});
+window.addEventListener('load', () => {
+  // Theme
+  const theme=lsg('rct_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',theme);
+  document.getElementById('theme-btn').textContent=theme==='dark'?'🌙':'☀️';
+  // Config values
+  const dc=lsg('rct_dc'), opd=lsg('rct_opd'), trig=lsg('rct_trig'), pin=lsg('rct_pin');
+  if(dc)  document.getElementById('cfg-dc').value=dc;
+  if(opd) document.getElementById('cfg-opd').value=opd;
+  if(pin) document.getElementById('cfg-pin').value=pin;
+  if(trig){ trigMult=parseFloat(trig); document.getElementById('cfg-trig').value=trig; document.getElementById('tval').textContent=trigMult.toFixed(2)+'×'; document.getElementById('tdesc').textContent=tdesc(trigMult); }
+  ls('rct_pin',pin||DEFAULT_PIN);
+  // URLs
+  const cu=lsg('rct_city_url')||DEFAULT_CITY_URL;
+  const fu=lsg('rct_fc_url')  ||DEFAULT_FC_URL;
+  const mu=lsg('rct_mtd_url') ||DEFAULT_MTD_URL;
+  const su=lsg('rct_script_url')||DEFAULT_SCRIPT_URL;
+  if(cu) document.getElementById('url-city').value=cu;
+  if(fu) document.getElementById('url-fc').value=fu;
+  if(mu) document.getElementById('url-mtd').value=mu;
+  if(su){ document.getElementById('url-script').value=su; setTag('st-script','CONNECTED','tok'); }
+  // Restore local state
+  loadActive(); loadLog(); loadDumpActioned();
+  // Default tab
+  ['ov','sim','dump','rep','pp','log','logic'].forEach(id=>{ const el=document.getElementById('t-'+id); if(el) el.style.display='none'; });
+  const nsEl=document.getElementById('t-ns'); if(nsEl) nsEl.style.display='block';
+  renderLogic();
+  // Session check
+  if(loadSession()){
+    document.getElementById('login-screen').style.display='none';
+    setUserBadge();
+    loadAll(); // loadAll calls startCountdown when done
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+  }
+});
+
+</script>
+</body>
+</html>
