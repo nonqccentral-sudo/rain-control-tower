@@ -317,7 +317,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
       <circle cx="27" cy="23" r="1.2" fill="#fff"/>
     </svg>
     <div class="login-title">Heimdall</div>
-    <div class="login-sub">Tata 1mg &middot; Rain Control Tower &middot; v2.2</div>
+    <div class="login-sub">Tata 1mg &middot; Rain Control Tower &middot; v2.3</div>
     <div class="login-field">
       <label>Email</label>
       <input id="login-email" type="email" placeholder="you@1mg.com" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"/>
@@ -577,7 +577,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymC2MWQBcGNhfR_zSolxHujt1UXJxzweqjusXJfIzeG0nPQTj7g4Cp_IO1yR-CYFRUbQ/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjJKtYngNZGDSNlGIMGLdF0eLL30WPhbQtkSj9aicHFcnsJFzPk0688bw1jV31forg/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -1111,7 +1111,23 @@ function renderMetricsTable(){
   }
 
   // Get current-year months sorted
-  var currMonths=Object.keys(byYearMonth).filter(function(k){return byYearMonth[k].year===currYear;}).sort();
+  var today=new Date();
+  // Filter weeks to completed only (week_end < today)
+  function isComplete(w,year){
+    // For previous years — all weeks are complete
+    if(+year<currYear) return true;
+    var we=w.week_end||w.week_start||'';
+    if(!we) return true;
+    // Parse ISO date (yyyy-mm-dd) or dd/mm/yyyy
+    var str=String(we);
+    var d=str.match(/^\d{4}-/)? new Date(str) : new Date(str.split('/').reverse().join('-'));
+    return d<=today;
+  }
+  var currMonths=Object.keys(byYearMonth).filter(function(k){
+    var m=byYearMonth[k];
+    if(m.year!==currYear) return false;
+    return m.weeks.some(function(w){return isComplete(w,currYear);});
+  }).sort();
 
   var html='<div class="metrics-table-wrap">';
   html+='<div class="metrics-title">Heimdall Success Metrics — '+currYear+(prevYear?' vs '+prevYear:'')+'</div>';
@@ -1122,10 +1138,21 @@ function renderMetricsTable(){
 
   currMonths.forEach(function(mk){
     var mData=byYearMonth[mk];
-    var aCurr=aggWeeks(mData.weeks);
+    mData.weeks.sort(function(a,b){return String(a.week_start||'').localeCompare(String(b.week_start||''));});
+    var completedWeeks=mData.weeks.filter(function(w){return isComplete(w,mData.year);});
+    if(!completedWeeks.length) return;
+    var aCurr=aggWeeks(completedWeeks);
     // Find matching prev year month
     var prevMk=prevYear?String(prevYear)+'_'+String(mData.month).padStart(2,'0'):null;
-    var aPrev=prevMk&&byYearMonth[prevMk]?aggWeeks(byYearMonth[prevMk].weeks):null;
+    // Only compare equivalent completed weeks — match by week index (W1 vs W1, W2 vs W2)
+    // to avoid comparing 2 weeks of 2026 vs 4 weeks of 2025
+    var aPrev=null;
+    if(prevMk&&byYearMonth[prevMk]){
+      var prevAllWeeks=byYearMonth[prevMk].weeks.slice().sort(function(a,b){return String(a.week_start||'').localeCompare(String(b.week_start||''));});
+      // Take only as many prev weeks as there are completed current weeks
+      var prevMatchedWeeks=prevAllWeeks.slice(0,completedWeeks.length);
+      if(prevMatchedWeeks.length) aPrev=aggWeeks(prevMatchedWeeks);
+    }
     var isOpen=!!metricsExpanded[mk];
 
     // Month row
@@ -1142,7 +1169,7 @@ function renderMetricsTable(){
       if(aPrev&&prevMk&&byYearMonth[prevMk]){
         byYearMonth[prevMk].weeks.forEach(function(w){prevWeeks[w.week_number]=w;});
       }
-      mData.weeks.forEach(function(w,wi){
+      completedWeeks.forEach(function(w,wi){
         var pw=prevWeeks[w.week_number];
         html+='<tr class="week-row">';
         html+='<td style="padding-left:20px">W'+(wi+1)
@@ -1491,7 +1518,7 @@ function renderDump(){
   function stBadge(o){ const s=(o.store_type||'FC').toUpperCase(); return '<span class="st-badge '+(s==='MP'?'st-mp':'st-fc')+'">'+s+'</span>'; }
   function agR(d){ return rag(d>=8?'red':d>=6?'amber':'green',d+'d'); }
   function etaCell(o){ return fmtDate(o.promised_date||o.promised_delivery_date||''); }
-  function attCell(id){ const a=cpAttempts(id); const s=cpStatus(id); var out=a!==null?String(a):'—'; if(s) out+='<div style="font-family:monospace;font-size:9px;color:var(--muted);margin-top:1px">'+s+'</div>'; return out; }
+  function attCell(id){ const a=cpAttempts(id); return a!==null?String(a):'—'; }
   const cityOpts=cities.map(c=>'<option value="'+c+'"'+(nc(c).toLowerCase()===nc(dumpCityFilter).toLowerCase()?' selected':'')+'>'+c+'</option>').join('');
   const storeOpts=['All','FC','MP'].map(s=>'<option value="'+s+'"'+(s===dumpStoreFilter?' selected':'')+'>'+s+'</option>').join('');
   const uRows=unactioned.length?unactioned.map(o=>{return '<tr class="data-row"><td><input type="checkbox" class="order-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px"></td><td style="font-family:monospace;font-size:11px">'+stBadge(o)+' '+o.order_id+'</td><td style="font-weight:600">'+o.city+storeTag(o.city)+'</td><td style="font-family:monospace;font-size:11px">'+(o.pincode||'—')+'</td><td style="font-size:11px">'+(o.partner_name||'—')+'</td><td style="font-family:monospace;font-size:11px">'+fmtDate(o.pickup_date||'')+'</td><td style="font-family:monospace;font-size:11px">'+etaCell(o)+'</td><td>'+agR(o.aging_days||0)+'</td><td style="font-family:monospace;font-size:11px;text-align:center">'+attCell(o.order_id)+'</td><td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.current_status||'—')+'</td>'+callCell(o.order_id)+'</tr>';}).join(''):'<tr><td colspan="10" style="padding:14px;font-family:monospace;font-size:12px;color:var(--muted);text-align:center">No unactioned orders</td></tr>';
@@ -1578,12 +1605,23 @@ async function finaliseDumpSubmit(pairs){
   });
   const url=scriptURL();
   if(url){
+    // Batch in groups of 5 to avoid GET URL length limit
     const orders=pairs.map(pair=>{ const id=pair[0],info=pair[1]; const o=orderDump.find(x=>x.order_id===id)||{}; return {order_id:id,city:o.city||'',partner_name:'',store_type:o.store_type||'',aging_days:o.aging_days||0,action:info.action,replacement_order_id:info.repl||'',mode:info.mode||'',actioned_by:who}; });
-    const p=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(orders),actioned_by:who});
-    try{ const r=await apsFetch(url+'?'+p.toString()); showDumpMsg(r&&r.status==='ok'?'Done! '+pairs.length+' order(s) actioned.':'Error: '+(r&&r.message||'unknown'),r&&r.status==='ok'?'ok':'err'); }
-    catch(e){ showDumpMsg('Saved locally (script unreachable).','ok'); }
-  } else { showDumpMsg('Done (local only).','ok'); }
+    const batchSize=5;
+    let totalReplaced=0,totalClosed=0,hadError=false;
+    for(let b=0;b<orders.length;b+=batchSize){
+      const batch=orders.slice(b,b+batchSize);
+      const p=new URLSearchParams({action:'actionOrders',orders:JSON.stringify(batch),actioned_by:who});
+      try{
+        const r=await apsFetch(url+'?'+p.toString());
+        if(r&&r.status==='ok'){ totalReplaced+=(r.replaced||0); totalClosed+=(r.closed||0); }
+        else{ hadError=true; console.error('actionOrders error:',r&&r.message); showDumpMsg('Sheet error: '+(r&&r.message||'unknown'),'err'); }
+      }catch(e){ hadError=true; console.error('actionOrders failed:',e.message); showDumpMsg('Network error — data saved locally only','err'); }
+    }
+    if(!hadError) showDumpMsg('Done! '+pairs.length+' actioned. Replaced: '+totalReplaced+', Closed: '+totalClosed,'ok');
+  } else { showDumpMsg('Done (local only — no Apps Script connected).','ok'); }
   renderDump();
+  if(curTab==='rep') renderReplacement();
 }
 function exportDumpCSV(){
   // Export ALL unactioned orders (FC + MP) for the current city filter
@@ -1614,7 +1652,7 @@ function exportDumpCSV(){
       o.pickup_date||'', o.promised_delivery_date||'',
       o.current_status||'', o.aging_days||'', o.store_type||'FC',
       att!==null?att:'', cpRem,
-      '','','','', // replacement_order_id, mode, status, calling_done
+      '','','', // replacement_order_id, mode, status
       callingDone, callingRem
     ].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
   });
@@ -1637,7 +1675,7 @@ function parseCSVLine(line){
   return result;
 }
 
-function processUploadCSV(text){
+async function processUploadCSV(text){
   // Skip instruction lines starting with #
   const allLines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
   if(allLines.length<2){ showUploadMsg('CSV is empty.','err'); return; }
@@ -1692,7 +1730,10 @@ function processUploadCSV(text){
     apsFetch(url+'?'+p.toString()).catch(e=>console.warn('logCall:',e.message));
   });
   saveDumpActioned();
-  if(toAction.length) finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+  if(toAction.length){
+    await finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+    if(toAction.some(a=>a.action==='REPLACED')) renderReplacement();
+  }
   showUploadMsg((toAction.length?toAction.length+' orders actioned. ':'')+(toCalling.length?toCalling.length+' calls logged.':''),'ok');
   renderDump();
 }
