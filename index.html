@@ -901,10 +901,10 @@ function compute(rows,mult){
   const dc=getDC();
   return rows.map(r=>{
     const bau   =r.bau_pipeline||0;
-    // TAT advantage: if air_tat missing → assume 1d advantage; if delta negative → use 1d
+    // TAT advantage: if air_tat missing → use 1d; if delta negative → use 1d; else use actual delta
     const surfTat=r.surface_tat||0;
     const airTat =r.air_tat||0;
-    const tatAdv =!airTat ? 1 : Math.max(1, surfTat - airTat);
+    const tatAdv =!airTat ? 1 : (surfTat - airTat < 0 ? 1 : surfTat - airTat);
     // Trigger base: BAU + tatAdv. If BAU also missing, use 999 (no data)
     const trigBase=bau>0 ? (bau+tatAdv) : 999;
     const trig  =trigBase*mult;
