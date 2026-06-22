@@ -1165,12 +1165,10 @@ function renderMetricsTable(){
 
     // Week drill-down
     if(isOpen){
-      var prevWeeks={};
-      if(aPrev&&prevMk&&byYearMonth[prevMk]){
-        byYearMonth[prevMk].weeks.forEach(function(w){prevWeeks[w.week_number]=w;});
-      }
+      // Use the SAME position-based pairing as month-level total (prevMatchedWeeks)
+      // so week-level deltas always sum to the month-level delta.
       completedWeeks.forEach(function(w,wi){
-        var pw=prevWeeks[w.week_number];
+        var pw=prevMatchedWeeks[wi]||null;
         html+='<tr class="week-row">';
         html+='<td style="padding-left:20px">W'+(wi+1)
           +' <span style="color:var(--muted);font-size:9px">'+fmtDate(w.week_start||'')+'</span></td>';
@@ -1391,7 +1389,7 @@ function goToCityDD(city){
   renderOverview();
 }
 function onTrigger(){
-  trigMult=parseFloat(document.getElementById('cfg-trig').value);
+  trigMult=Math.max(0.4,parseFloat(document.getElementById('cfg-trig').value)||1.0);
   document.getElementById('tval').textContent=trigMult.toFixed(2)+'×';
   document.getElementById('tdesc').textContent=tdesc(trigMult);
   render();
@@ -1957,7 +1955,7 @@ window.addEventListener('load', () => {
   if(dc)  document.getElementById('cfg-dc').value=dc;
   if(opd) document.getElementById('cfg-opd').value=opd;
   if(pin) document.getElementById('cfg-pin').value=pin;
-  if(trig){ trigMult=parseFloat(trig); document.getElementById('cfg-trig').value=trig; document.getElementById('tval').textContent=trigMult.toFixed(2)+'×'; document.getElementById('tdesc').textContent=tdesc(trigMult); }
+  if(trig){ trigMult=Math.max(0.4,parseFloat(trig)||1.0); document.getElementById('cfg-trig').value=trigMult; document.getElementById('tval').textContent=trigMult.toFixed(2)+'×'; document.getElementById('tdesc').textContent=tdesc(trigMult); }
   ls('rct_pin',pin||DEFAULT_PIN);
   // URLs
   const cu=lsg('rct_city_url')||DEFAULT_CITY_URL;
