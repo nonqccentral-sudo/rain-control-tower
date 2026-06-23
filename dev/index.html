@@ -684,7 +684,9 @@ function actionedBy(){ return currentUser ? currentUser.display_name : 'Unknown'
 
 // ── CP (CLICKPOST) CONFIRMATION ───────────────────────────────────────────────
 let cpPendingCity=null, cpPendingPipe=null, cpPendingTrig=null;
-const cpConfirmed=new Set(); // cities where CP has been confirmed this session
+let cpConfirmed=new Set(); // cities where CP has been confirmed — persisted
+function loadCpConfirmed(){ try{ var s=lsg('rct_cp_confirmed'); if(s) cpConfirmed=new Set(JSON.parse(s)); }catch(e){} }
+function saveCpConfirmed(){ try{ ls('rct_cp_confirmed', JSON.stringify([...cpConfirmed])); }catch(e){} }
 
 function showCpModal(city, pipe, trig){
   cpPendingCity=city; cpPendingPipe=pipe; cpPendingTrig=trig;
@@ -707,6 +709,7 @@ function cpModalConfirm(){
 }
 function markCpDone(city){
   cpConfirmed.add(city);
+  saveCpConfirmed();
   // Log CP done
   const e={ts:now(),action:'CP CONFIRMED',city,pipeline:'',trigger:'',
     details:'Clickpost confirmed updated for '+city+' by '+actionedBy()};
@@ -1061,6 +1064,19 @@ function renderMetricsTable(){
     if(!byYearMonth[key]) byYearMonth[key]={year:+r.year,month:+r.month,name:r.month_name||key,weeks:[]};
     byYearMonth[key].weeks.push(r);
   });
+  // Exclude boundary weeks where week_start's calendar month doesn't match the
+  // assigned month (e.g. a week starting May 26 tagged as June causes misalignment
+  // in week-by-week year-over-year comparison). Keep weeks whose start date is
+  // actually within the assigned month.
+  Object.keys(byYearMonth).forEach(function(key){
+    var entry=byYearMonth[key];
+    var expectedMonthStr=String(entry.month).padStart(2,'0');
+    entry.weeks=entry.weeks.filter(function(w){
+      var ws=String(w.week_start||'');
+      var wsMonth=ws.length>=7?ws.slice(5,7):null;
+      return !wsMonth||wsMonth===expectedMonthStr;
+    });
+  });
 
   // Find current year (max) and previous year
   var years=[...new Set(metricsData.map(r=>+r.year))].sort();
@@ -1308,8 +1324,7 @@ function renderOverview(){
           const deactBtnCls=dr?(m.postDeactRag==='amber'?'act-deact-amber':'act-rdy'):'act-off';
           const btnHtml=m.active
             ?`<button class="act-btn ${deactBtnCls}" onclick="event.stopPropagation();doDeact('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Deactivate</button>`
-            :m.pRag==='red'
-            ?`<button class="act-btn act-on" onclick="event.stopPropagation();showCpModal('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Activate Air</button>`:'';
+            :`<button class="act-btn act-on" onclick="event.stopPropagation();showCpModal('${m.city}',${(+m.pipeline_days||0).toFixed(1)},${(+m.trig||0).toFixed(2)})">Activate Air</button>`;
           const gt5=m.aging_gt5d||0;
           const gt5badge=gt5>0?`<span onclick="event.stopPropagation();goToDump('${m.city}')" style="font-family:'DM Mono';font-size:9px;color:var(--red);cursor:pointer;text-decoration:underline;display:block">⚠${gt5} 5+d</span>`:'';
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
@@ -1402,6 +1417,7 @@ function doActiv(city,pipe,trig){
   addLog(e); writeLog(e); render();
 }
 function doDeact(city,pipe,trig){
+  cpConfirmed.delete(city); saveCpConfirmed();
   activeCities.delete(city); saveActive();
   const e={ts:now(),action:'DEACTIVATED',city,pipeline:pipe,trigger:trig,details:`Air deactivated for ${city}. Pipeline ${pipe}d. By: ${actionedBy()}`};
   addLog(e); writeLog(e); render();
@@ -1967,7 +1983,7 @@ window.addEventListener('load', () => {
   if(mu) document.getElementById('url-mtd').value=mu;
   if(su){ document.getElementById('url-script').value=su; setTag('st-script','CONNECTED','tok'); }
   // Restore local state
-  loadActive(); loadLog(); loadDumpActioned();
+  loadActive(); loadLog(); loadDumpActioned(); loadCpConfirmed();
   // Default tab
   ['ov','sim','dump','rep','pp','log','logic'].forEach(id=>{ const el=document.getElementById('t-'+id); if(el) el.style.display='none'; });
   const nsEl=document.getElementById('t-ns'); if(nsEl) nsEl.style.display='block';
