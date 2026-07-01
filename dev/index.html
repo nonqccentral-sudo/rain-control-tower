@@ -909,9 +909,15 @@ function compute(rows,mult){
     const surfTat=r.surface_tat||0;
     const airTat =r.air_tat||0;
     const tatAdv =!airTat ? 1 : (surfTat - airTat < 0 ? 1 : surfTat - airTat);
-    // Trigger base: BAU + tatAdv. If BAU also missing, use 999 (no data)
-    const trigBase=bau>0 ? (bau+tatAdv) : 999;
+    // Trigger base: BAU + tatAdv
+    // If BAU missing (0/null) but pipeline_days exists → use pipeline_days as proxy
+    // Only fall back to 999 if both are missing
+    const bauBase=bau>0?bau:(+r.pipeline_days>0?(+r.pipeline_days):0);
+    const trigBase=bauBase>0 ? (bauBase+tatAdv) : 999;
     const trig  =trigBase>0 ? trigBase*mult : 999; // guard: never produce 0 trigger
+    if(trig>=999 && bauBase>0) console.warn('Trigger=999 city='+r.city+' bau='+bau+' bauBase='+bauBase+' surfTat='+r.surface_tat+' airTat='+r.air_tat+' pipeline='+r.pipeline_days);
+    // DEBUG: log cities where trig >= 999 but bau > 0
+    if(trig>=999 && bau>0) console.warn('Trigger=999 but bau='+bau+' for city='+r.city+' surfTat='+r.surface_tat+' airTat='+r.air_tat+' pipeline='+r.pipeline_days+' bau_pipeline='+r.bau_pipeline);
     const active=activeCities.has(r.city);
     const io    =r.outflow>0?r.inflow/r.outflow:0;
     const totAge=(r.aging_1d||0)+(r.aging_2d||0)+(r.aging_3d||0)+(r.aging_4d||0)+(r.aging_5d||0)+(r.aging_gt5d||0);
@@ -1149,7 +1155,6 @@ function renderMetricsTable(){
   var html='<div class="metrics-table-wrap">';
   html+='<div class="metrics-title">Heimdall Success Metrics — '+currYear+(prevYear?' vs '+prevYear:'')+'</div>';
   html+='<table class="metrics-tbl"><thead><tr style="border-bottom:2px solid var(--border2)">';
-  html+='<th style="min-width:70px;color:var(--blue)">🌧 Rain (mm)</th>';
   html+='<th style="min-width:90px">Month</th>';
   metricLabels.forEach(function(l){ html+='<th>'+l+'</th>'; });
   html+='</tr></thead><tbody>';
@@ -1174,10 +1179,7 @@ function renderMetricsTable(){
     var isOpen=!!metricsExpanded[mk];
 
     // Month row
-    var rainVals=completedWeeks.map(function(w){return +w.rainfall_mm;}).filter(function(v){return !isNaN(v)&&v!==null;});
-    var rainAvg=rainVals.length?(rainVals.reduce(function(s,v){return s+v;},0)/rainVals.length):null;
     html+='<tr class="expandable" data-mk="'+mk+'" onclick="toggleMetrics(this.dataset.mk)" style="background:var(--bg3);font-weight:600">';
-    html+='<td style="color:var(--blue)">'+(rainAvg!==null?rainAvg.toFixed(1)+'mm':'—')+'</td>';
     html+='<td>'+mData.name+' '+(isOpen?'▾':'▸')+'</td>';
     metricCols.forEach(function(col){
       html+='<td>'+fmtVal(col,aCurr[col],aCurr)+(aPrev?deltaStr(col,aCurr[col],aPrev[col],aCurr,aPrev):'')+'</td>';
@@ -1191,7 +1193,6 @@ function renderMetricsTable(){
       completedWeeks.forEach(function(w,wi){
         var pw=prevMatchedWeeks[wi]||null;
         html+='<tr class="week-row">';
-        html+='<td style="color:var(--blue);opacity:.8">'+(w.rainfall_mm!==undefined&&w.rainfall_mm!==null&&w.rainfall_mm!==''?(+w.rainfall_mm).toFixed(1)+'mm':'—')+'</td>';
         html+='<td style="padding-left:20px">W'+(wi+1)
           +' <span style="color:var(--muted);font-size:9px">'+fmtDate(w.week_start||'')+'</span></td>';
         metricCols.forEach(function(col){
@@ -1337,7 +1338,7 @@ function renderOverview(){
           const gt5=m.aging_gt5d||0;
           const gt5badge=gt5>0?`<span onclick="event.stopPropagation();goToDump('${m.city}')" style="font-family:'DM Mono';font-size:9px;color:var(--red);cursor:pointer;text-decoration:underline;display:block">⚠${gt5} 5+d</span>`:'';
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
-            <td style="font-weight:600;color:var(--text)">${m.city}${isAirport(m.city)?'<span style="font-size:11px;margin-left:4px" title="Airport city">✈</span>':''}${gt5badge}${storeTag(m.city)}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
+            <td style="font-weight:600;color:var(--text)">${m.city}${isAirport(m.city)?'<span style="font-size:15px;margin-left:5px" title="Airport city">✈</span>':''}${gt5badge}${storeTag(m.city)}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
             <td>${rag(m.pRag,(+m.pipeline_days||0).toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
             <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">${m.trig>=999?'No BAU data':'&gt;'+(+m.trig||0).toFixed(1)+'d'}</td>
             <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
