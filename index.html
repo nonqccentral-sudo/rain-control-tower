@@ -591,7 +591,7 @@ let syncCountdown=5, syncTimer=null;
 let cfgExpanded=false, cfgUnlocked=false;
 // v2.2 state
 let currentUser=null;
-let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[], storePresence={};
+let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[], storePresence={}, airportCities=new Set();
 let dumpCityFilter='Pan-India', dumpStoreFilter='All';
 let dumpPending={}, dumpActioned={}, callLog={};
 let ppCityFilter='All', ppPartnerOpen=true, ppPincodeOpen=true;
@@ -874,6 +874,7 @@ async function syncState(){
   try{ const od=await apsFetch(url+'?action=getOrderDump'); if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
+  try{ const ac=await apsFetch(url+'?action=getAirportCities'); if(ac&&ac.status!=='error'&&Array.isArray(ac.cities)){ airportCities=new Set(ac.cities.map(function(x){return String(x).trim().toLowerCase();})); } }catch(e){}
   try{ const sp=await apsFetch(url+'?action=getStorePresence'); if(sp&&sp.status!=='error'&&sp.data){ storePresence=sp.data; } }catch(e){}
   try{ const mx=await apsFetch(url+'?action=getMetrics'); if(mx&&mx.status!=='error'&&Array.isArray(mx.rows)) metricsData=mx.rows; }catch(e){}
   try{ const calls=await apsFetch(url+'?action=getCallLog'); if(calls&&calls.status!=='error'&&Array.isArray(calls.rows)){calls.rows.forEach(r=>{if(r.order_id&&!callLog[r.order_id])callLog[r.order_id]={done:true,remark:r.remark||'',ts:r.ts||'',by:r.by||''};});}  }catch(e){}
@@ -908,9 +909,15 @@ function compute(rows,mult){
     const surfTat=r.surface_tat||0;
     const airTat =r.air_tat||0;
     const tatAdv =!airTat ? 1 : (surfTat - airTat < 0 ? 1 : surfTat - airTat);
-    // Trigger base: BAU + tatAdv. If BAU also missing, use 999 (no data)
-    const trigBase=bau>0 ? (bau+tatAdv) : 999;
-    const trig  =trigBase*mult;
+    // Trigger base: BAU + tatAdv
+    // If BAU missing (0/null) but pipeline_days exists → use pipeline_days as proxy
+    // Only fall back to 999 if both are missing
+    const bauBase=bau>0?bau:(+r.pipeline_days>0?(+r.pipeline_days):0);
+    const trigBase=bauBase>0 ? (bauBase+tatAdv) : 999;
+    const trig  =trigBase>0 ? trigBase*mult : 999; // guard: never produce 0 trigger
+    if(trig>=999 && bauBase>0) console.warn('Trigger=999 city='+r.city+' bau='+bau+' bauBase='+bauBase+' surfTat='+r.surface_tat+' airTat='+r.air_tat+' pipeline='+r.pipeline_days);
+    // DEBUG: log cities where trig >= 999 but bau > 0
+    if(trig>=999 && bau>0) console.warn('Trigger=999 but bau='+bau+' for city='+r.city+' surfTat='+r.surface_tat+' airTat='+r.air_tat+' pipeline='+r.pipeline_days+' bau_pipeline='+r.bau_pipeline);
     const active=activeCities.has(r.city);
     const io    =r.outflow>0?r.inflow/r.outflow:0;
     const totAge=(r.aging_1d||0)+(r.aging_2d||0)+(r.aging_3d||0)+(r.aging_4d||0)+(r.aging_5d||0)+(r.aging_gt5d||0);
@@ -957,8 +964,8 @@ function sorted(rows){
     const col=ovSort.col, dir=ovSort.dir;
     const av=col==='city'?a.city:(+a[col]||0);
     const bv=col==='city'?b.city:(+b[col]||0);
-    if(col==='city') return dir*(av<bv?-1:av>bv?1:0);
-    return dir*(bv-av);
+    if(col==='city') return dir*(av>bv?-1:av<bv?1:0);
+    return dir*(av-bv); // dir:-1=descending
   });
 }
 
@@ -1263,8 +1270,8 @@ function sortRows(rows, col, dir){
     var av=a[col], bv=b[col];
     if(av===undefined||av===null||av==='') av=dir>0?'ZZZZ':-999999;
     if(bv===undefined||bv===null||bv==='') bv=dir>0?'ZZZZ':-999999;
-    if(typeof av==='string'&&typeof bv==='string') return dir*(av<bv?-1:av>bv?1:0);
-    return dir*((+bv)-(+av));
+    if(typeof av==='string'&&typeof bv==='string') return dir*(av>bv?-1:av<bv?1:0);
+    return dir*((+av)-(+bv)); // dir:-1=descending(bigger first), dir:1=ascending
   });
 }
 
@@ -1278,6 +1285,9 @@ function setOvSort(col){
   renderOverview();
 }
 
+function isAirport(city){
+  return airportCities.has(String(city||'').trim().toLowerCase());
+}
 function storeTag(city){
   var p=storePresence[nc(city)];
   if(!p) return '';
@@ -1328,7 +1338,7 @@ function renderOverview(){
           const gt5=m.aging_gt5d||0;
           const gt5badge=gt5>0?`<span onclick="event.stopPropagation();goToDump('${m.city}')" style="font-family:'DM Mono';font-size:9px;color:var(--red);cursor:pointer;text-decoration:underline;display:block">⚠${gt5} 5+d</span>`:'';
           html+=`<tr class="${rowCls}" onclick="toggleDD('${m.city}')">
-            <td style="font-weight:600;color:var(--text)">${m.city}${gt5badge}${storeTag(m.city)}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
+            <td style="font-weight:600;color:var(--text)">${m.city}${isAirport(m.city)?'<span style="font-size:15px;margin-left:5px" title="Airport city">✈</span>':''}${gt5badge}${storeTag(m.city)}<span style="display:block;font-family:'DM Mono';font-size:10px;color:var(--muted)">${m.inflow.toLocaleString('en-IN')} inflow/day</span></td>
             <td>${rag(m.pRag,(+m.pipeline_days||0).toFixed(1)+'d')} <span style="font-size:10px;color:var(--muted);margin-left:4px">BAU:${m.bau}</span></td>
             <td style="font-family:'DM Mono';font-size:11px;color:var(--muted)">${m.trig>=999?'No BAU data':'&gt;'+(+m.trig||0).toFixed(1)+'d'}</td>
             <td style="font-family:'DM Mono';font-size:12px;color:var(--text)">${m.openPipeline>0?m.openPipeline.toLocaleString('en-IN'):'—'}</td>
