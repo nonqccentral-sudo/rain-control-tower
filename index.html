@@ -530,7 +530,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     <table>
       <thead><tr>
         <th onclick="setOvSort('city')" style="cursor:pointer;user-select:none">City</th><th onclick="setOvSort('pipeline_days')" style="cursor:pointer;user-select:none">Pipeline Days</th><th>Trigger At</th>
-        <th onclick="setOvSort('openPipeline')" style="cursor:pointer;user-select:none">Open Pipeline</th><th onclick="setOvSort('ltp')" style="cursor:pointer;user-select:none">Long Tail %</th><th onclick="setOvSort('sbp')" style="cursor:pointer;user-select:none">SLA Breach %</th><th onclick="setOvSort('totAge')" style="cursor:pointer;user-select:none">Aging →</th>
+        <th onclick="setOvSort('openPipeline')" style="cursor:pointer;user-select:none">Open Pipeline</th><th onclick="setOvSort('ltp')" style="cursor:pointer;user-select:none">Long Tail %</th><th onclick="setOvSort('sbp')" style="cursor:pointer;user-select:none">SLA Breach %</th><th>Canc GMV%</th><th onclick="setOvSort('totAge')" style="cursor:pointer;user-select:none">Aging →</th>
         <th onclick="setOvSort('mtdOrders')" style="cursor:pointer;user-select:none">MTD Air Orders</th><th>Air</th>
         <th>Proposed Action</th><th>Action</th>
       </tr></thead>
@@ -577,7 +577,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjJKtYngNZGDSNlGIMGLdF0eLL30WPhbQtkSj9aicHFcnsJFzPk0688bw1jV31forg/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwWfCrL3LY-9mggTD_-ZbQzZbC3xGZdoSZtiY2-bRLorLot8SQhRVRAi-ritrXymhx0Iw/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -591,7 +591,7 @@ let syncCountdown=5, syncTimer=null;
 let cfgExpanded=false, cfgUnlocked=false;
 // v2.2 state
 let currentUser=null;
-let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[], storePresence={}, airportCities=new Set();
+let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[], storePresence={}, airportCities=new Set(), cancelledGmv={};
 let dumpCityFilter='Pan-India', dumpStoreFilter='All';
 let dumpPending={}, dumpActioned={}, callLog={};
 let ppCityFilter='All', ppPartnerOpen=true, ppPincodeOpen=true;
@@ -874,6 +874,7 @@ async function syncState(){
   try{ const od=await apsFetch(url+'?action=getOrderDump'); if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
+  try{ const cg=await apsFetch(url+'?action=getCancelledGmv'); if(cg&&cg.status!=='error'&&cg.data){ cancelledGmv=cg.data; } }catch(e){}
   try{ const ac=await apsFetch(url+'?action=getAirportCities'); if(ac&&ac.status!=='error'&&Array.isArray(ac.cities)){ airportCities=new Set(ac.cities.map(function(x){return String(x).trim().toLowerCase();})); } }catch(e){}
   try{ const sp=await apsFetch(url+'?action=getStorePresence'); if(sp&&sp.status!=='error'&&sp.data){ storePresence=sp.data; } }catch(e){}
   try{ const mx=await apsFetch(url+'?action=getMetrics'); if(mx&&mx.status!=='error'&&Array.isArray(mx.rows)) metricsData=mx.rows; }catch(e){}
@@ -1250,7 +1251,8 @@ function renderNetworkSummary(){
     const col=r.active?'var(--blue)':r.pRag==='red'?'var(--red)':r.pRag==='amber'?'var(--amber)':'#22c55e66';
     const status=r.active?'✈ Active':r.pRag==='red'?'🔴 Critical':r.pRag==='amber'?'🟡 Watch':'🟢 Normal';
     const gt5=r.aging_gt5d||0;
-    return '<div class="ns-city-card" style="border-color:'+col+'" onclick="goToCityDD(\''+r.city+'\')"><div class="ns-city-name" style="color:'+col+'">'+r.city+'</div><div class="ns-city-meta">'+r.pipeline_days.toFixed(1)+'d · '+status+'</div><div class="ns-city-meta" style="margin-top:3px">'+r.inflow.toLocaleString('en-IN')+'/day'+(gt5>0?' · <span style="color:var(--red)">⚠'+gt5+' 5+d</span>':'')+'</div></div>';
+    var cgPct=getCancelledGmvPct(r.city);
+    return '<div class="ns-city-card" style="border-color:'+col+'" onclick="goToCityDD(\''+r.city+'\')">'      +'<div class="ns-city-name" style="color:'+col+'">'+r.city+'</div>'      +'<div class="ns-city-meta">'+r.pipeline_days.toFixed(1)+'d · '+status+'</div>'      +'<div class="ns-city-meta" style="margin-top:3px">'+(gt5>0?'<span style="color:var(--red)">⚠'+gt5+' 5+d</span> · ':'')+r.inflow.toLocaleString('en-IN')+'/day</div>'      +(cgPct!==null?'<div class="ns-city-meta" style="margin-top:3px;color:#991b1b;font-weight:600">✕ GMV Canc: '+cgPct+'</div>':'')      +'</div>';
   }).join('');
   el.innerHTML='<div class="ns-wrap"><div id="ns-metrics"></div><div class="ns-card"><div class="ns-lbl">📡 Network Summary — D-1</div><div class="ns-body">'+parts.join(' ')+'</div></div><div><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">All Cities — click to open drilldown</div><div class="ns-city-grid">'+cityGrid+'</div></div></div>';
   setTimeout(renderMetricsTable, 0);
@@ -1285,6 +1287,10 @@ function setOvSort(col){
   renderOverview();
 }
 
+function getCancelledGmvPct(city){
+  const key=String(city||'').trim().toLowerCase();
+  return cancelledGmv[key]||null;
+}
 function isAirport(city){
   return airportCities.has(String(city||'').trim().toLowerCase());
 }
