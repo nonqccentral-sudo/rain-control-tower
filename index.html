@@ -1289,7 +1289,16 @@ function setOvSort(col){
 
 function getCancelledGmvPct(city){
   const key=String(city||'').trim().toLowerCase();
-  return cancelledGmv[key]||null;
+  const val=cancelledGmv[key]!==undefined?cancelledGmv[key]:null;
+  if(val===null) return null;
+  // Convert decimal fraction to % string if needed (e.g. 0.069 → "6.9%")
+  const n=parseFloat(val);
+  if(!isNaN(n)){
+    if(n>0&&n<=1) return (n*100).toFixed(1)+'%'; // decimal fraction
+    if(n>1) return n.toFixed(1)+'%';              // already a percentage number
+  }
+  // Already a string like "8.7%" — return as-is
+  return String(val);
 }
 function isAirport(city){
   return airportCities.has(String(city||'').trim().toLowerCase());
