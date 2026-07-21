@@ -530,7 +530,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
     <table>
       <thead><tr>
         <th onclick="setOvSort('city')" style="cursor:pointer;user-select:none">City</th><th onclick="setOvSort('pipeline_days')" style="cursor:pointer;user-select:none">Pipeline Days</th><th>Trigger At</th>
-        <th onclick="setOvSort('openPipeline')" style="cursor:pointer;user-select:none">Open Pipeline</th><th onclick="setOvSort('ltp')" style="cursor:pointer;user-select:none">Long Tail %</th><th onclick="setOvSort('sbp')" style="cursor:pointer;user-select:none">SLA Breach %</th><th>Canc GMV%</th><th onclick="setOvSort('totAge')" style="cursor:pointer;user-select:none">Aging →</th>
+        <th onclick="setOvSort('openPipeline')" style="cursor:pointer;user-select:none">Open Pipeline</th><th onclick="setOvSort('ltp')" style="cursor:pointer;user-select:none">Long Tail %</th><th onclick="setOvSort('sbp')" style="cursor:pointer;user-select:none">SLA Breach %</th><th onclick="setOvSort('totAge')" style="cursor:pointer;user-select:none">Aging →</th>
         <th onclick="setOvSort('mtdOrders')" style="cursor:pointer;user-select:none">MTD Air Orders</th><th>Air</th>
         <th>Proposed Action</th><th>Action</th>
       </tr></thead>
@@ -1252,7 +1252,7 @@ function renderNetworkSummary(){
     const status=r.active?'✈ Active':r.pRag==='red'?'🔴 Critical':r.pRag==='amber'?'🟡 Watch':'🟢 Normal';
     const gt5=r.aging_gt5d||0;
     var cgPct=getCancelledGmvPct(r.city);
-    return '<div class="ns-city-card" style="border-color:'+col+'" onclick="goToCityDD(\''+r.city+'\')">'      +'<div class="ns-city-name" style="color:'+col+'">'+r.city+'</div>'      +'<div class="ns-city-meta">'+r.pipeline_days.toFixed(1)+'d · '+status+'</div>'      +'<div class="ns-city-meta" style="margin-top:3px">'+(gt5>0?'<span style="color:var(--red)">⚠'+gt5+' 5+d</span> · ':'')+r.inflow.toLocaleString('en-IN')+'/day</div>'      +(cgPct!==null?'<div class="ns-city-meta" style="margin-top:3px;color:#991b1b;font-weight:600">✕ GMV Canc: '+cgPct+'</div>':'')      +'</div>';
+    return '<div class="ns-city-card" style="border-color:'+col+'" onclick="goToCityDD(\''+r.city+'\')">'      +'<div class="ns-city-name" style="color:'+col+'">'+r.city+'</div>'      +'<div class="ns-city-meta">'+r.pipeline_days.toFixed(1)+'d · '+status+'</div>'      +'<div class="ns-city-meta" style="margin-top:3px">'+(gt5>0?'<span style="color:var(--red)">⚠'+gt5+' 5+d</span> · ':'')+r.inflow.toLocaleString('en-IN')+'/day</div>'      +(cgPct!==null?'<div class="ns-city-meta" style="margin-top:3px;color:#991b1b;font-weight:600">✕ Loss GMV: '+cgPct+'</div>':'')      +'</div>';
   }).join('');
   el.innerHTML='<div class="ns-wrap"><div id="ns-metrics"></div><div class="ns-card"><div class="ns-lbl">📡 Network Summary — D-1</div><div class="ns-body">'+parts.join(' ')+'</div></div><div><div style="font-family:\'DM Mono\';font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">All Cities — click to open drilldown</div><div class="ns-city-grid">'+cityGrid+'</div></div></div>';
   setTimeout(renderMetricsTable, 0);
