@@ -492,7 +492,8 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
   <div class="kpi" style="border-color:#a78bfa44">
     <div class="kpi-lbl">Ageing Adherence</div>
     <div><span class="kpi-val" id="k-adh-pct" style="color:var(--green)">&#x2014;</span><span class="kpi-unit">%</span></div>
-    <div class="kpi-sub" id="k-adh-sub">actioned / seen</div>
+    <div class="kpi-sub" id="k-adh-sub" style="font-size:9px">Dump: <span id="k-adh-dump">—</span></div>
+    <div class="kpi-sub" id="k-adh-hr" style="font-size:9px">HR: <span id="k-adh-hr-val">—</span></div>
     <div class="kpi-sub" id="k-adh-reset" style="font-size:9px;margin-top:2px"></div>
   </div>
   <div class="kpi" style="border-color:#a78bfa44">
@@ -515,6 +516,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 <div class="tabs">
   <button class="tab" onclick="switchTab('ns',this)">&#x1F310; Network Summary</button>
   <button class="tab" onclick="switchTab('ov',this)">City Overview</button>
+  <button class="tab" onclick="switchTab('hr',this)" style="color:var(--red)">⚠ High Risk Orders</button>
   <button class="tab" onclick="switchTab('sim',this)">Cost Simulator</button>
   <button class="tab" onclick="switchTab('dump',this)">High Ageing Dump</button>
   <button class="tab" onclick="switchTab('rep',this)">Replaced Orders</button>
@@ -539,6 +541,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
   </div>
 </div>
 <div id="t-sim" style="display:none"><div id="sim-body"></div></div>
+<div id="t-hr" style="display:none"><div id="hr-body"></div></div>
 <div id="t-dump" style="display:none"><div id="dump-body"></div></div>
 <div id="t-rep" style="display:none"><div id="rep-body"></div></div>
 <div id="t-pp" style="display:none"><div id="pp-body"></div></div>
@@ -577,7 +580,7 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
 const DEFAULT_CITY_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=451316645&single=true&output=csv';
 const DEFAULT_FC_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1293883504&single=true&output=csv';
 const DEFAULT_MTD_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9SBeqlncjWNC25E5wHNNaTwtoJd1N3qiNdly9EljDim7BndvOkIMr5QX9QUResUPf2Usz-wLtEfwv/pub?gid=1347024561&single=true&output=csv';
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwWfCrL3LY-9mggTD_-ZbQzZbC3xGZdoSZtiY2-bRLorLot8SQhRVRAi-ritrXymhx0Iw/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwrt5Dg-oUrVBNAU05MOYA57nVHUSE0mkxoBDR5LEWnEQ6B9W36jeUtlUQqwevlUHMXLQ/exec';
 const DEFAULT_PIN        = '1mg2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -593,6 +596,8 @@ let cfgExpanded=false, cfgUnlocked=false;
 let currentUser=null;
 let partnerData=[], pincodeData=[], orderDump=[], replacedOrders=[], closedOrders=[], cpDump=[], metricsData=[], storePresence={}, airportCities=new Set(), cancelledGmv={};
 let dumpCityFilter='Pan-India', dumpStoreFilter='All';
+let hrData=[], hrActioned={}, hrCityFilter='Pan-India', hrStoreFilter='All';
+let hrSort={col:'eta_aging_days',dir:-1}; // default: ETA aging descending
 let dumpPending={}, dumpActioned={}, callLog={};
 let ppCityFilter='All', ppPartnerOpen=true, ppPincodeOpen=true;
 let adherence={denominator:0, numerator:0, reset_date:null};
@@ -874,6 +879,7 @@ async function syncState(){
   try{ const od=await apsFetch(url+'?action=getOrderDump'); if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
+  try{ const hr=await apsFetch(url+'?action=getHighRiskOrders'); if(hr&&hr.status!=='error'&&Array.isArray(hr.orders)){ hrData=hr.orders; if(curTab==='hr') renderHR(); } }catch(e){}
   try{ const cg=await apsFetch(url+'?action=getCancelledGmv'); if(cg&&cg.status!=='error'&&cg.data){ cancelledGmv=cg.data; } }catch(e){}
   try{ const ac=await apsFetch(url+'?action=getAirportCities'); if(ac&&ac.status!=='error'&&Array.isArray(ac.cities)){ airportCities=new Set(ac.cities.map(function(x){return String(x).trim().toLowerCase();})); } }catch(e){}
   try{ const sp=await apsFetch(url+'?action=getStorePresence'); if(sp&&sp.status!=='error'&&sp.data){ storePresence=sp.data; } }catch(e){}
@@ -1032,7 +1038,15 @@ function renderKPIs(){
   const adhPct=adhD>0?Math.round(adhN/adhD*100):null;
   const adhCol=adhPct===null?'var(--muted)':adhPct>=80?'var(--green)':adhPct>=50?'var(--amber)':'var(--red)';
   const adhEl=document.getElementById('k-adh-pct'); if(adhEl){adhEl.textContent=adhPct!==null?adhPct:'—'; adhEl.style.color=adhCol;}
-  setText('k-adh-sub',adhD>0?adhN+' of '+adhD+' actioned':'no data');
+  // Dump adherence
+  const dumpSeen=new Set(Object.keys(hrActioned));
+  const dumpActionedCount=Object.keys(dumpActioned).filter(id=>dumpActioned[id]&&(dumpActioned[id].action==='REPLACED'||dumpActioned[id].action==='CLOSED')).length;
+  const hrActionedCount=Object.keys(hrActioned).filter(id=>hrActioned[id]&&(hrActioned[id].action==='REPLACED'||hrActioned[id].action==='CLOSED')).length;
+  const dumpPct=adhD>0?Math.round((adhN-hrActionedCount)/adhD*100):null;
+  const hrTotal=hrData.filter(o=>(+o.number_of_delivery_attempts||0)===0).length;
+  const hrPct=hrTotal>0?Math.round(hrActionedCount/hrTotal*100):null;
+  setText('k-adh-dump','Dump: '+(dumpPct!==null?dumpPct+'%':'—'));
+  setText('k-adh-hr-val','HR: '+(hrPct!==null?hrPct+'% ('+hrActionedCount+'/'+hrTotal+')':'—'));
   setText('k-adh-reset',adherence.reset_date?'since '+adherence.reset_date:'');
   setText('k-mtd-o',totMtdO!==null?totMtdO.toLocaleString('en-IN'):'—');
   setText('k-mtd-c',totMtdC!==null?inr(totMtdC):'—');
@@ -1208,6 +1222,160 @@ function renderMetricsTable(){
   el.innerHTML=html;
 }
 
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HIGH RISK ORDERS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function saveHRActioned(){ try{ls('rct_hr_actioned',JSON.stringify(hrActioned));}catch(e){} }
+function loadHRActioned(){ try{const s=lsg('rct_hr_actioned');if(s)hrActioned=JSON.parse(s);}catch(e){} }
+
+function renderHR(){
+  const el=document.getElementById('hr-body'); if(!el) return;
+  try{
+  const cities=['Pan-India',...new Set(hrData.map(o=>nc(o.city||'')).filter(Boolean))].sort();
+  const cityOpts=cities.map(c=>'<option'+(c===hrCityFilter?' selected':'')+'>'+c+'</option>').join('');
+  const storeOpts=['All','FC','MP'].map(s=>'<option'+(s===hrStoreFilter?' selected':'')+'>'+s+'</option>').join('');
+  const filtered=hrData.filter(o=>{
+    if((+o.number_of_delivery_attempts||0)!==0) return false;
+    if(hrCityFilter!=='Pan-India'&&nc(o.city||'').toLowerCase()!==hrCityFilter.toLowerCase()) return false;
+    if(hrStoreFilter!=='All'&&(o.store_type||'').toUpperCase()!==hrStoreFilter) return false;
+    return true;
+  });
+  const rows=sortRows(filtered,hrSort.col,hrSort.dir);
+  const actionedIds=new Set(Object.keys(hrActioned));
+  const unactioned=rows.filter(o=>!actionedIds.has(o.order_id));
+
+  function hrTh(label,col){ var arr=hrSort.col===col?(hrSort.dir<0?' ↓':' ↑'):''; return '<th data-col="'+col+'" data-fn="setHRSort" class="sortable-th" style="cursor:pointer;user-select:none">'+label+arr+'</th>'; }
+  const thead='<tr><th style="width:36px"><input type="checkbox" id="hr-chk-all" onchange="document.querySelectorAll(\'.hr-chk\').forEach(function(c){c.checked=this.checked;}.bind(this))" style="accent-color:var(--blue);width:14px;height:14px"></th>'+hrTh('Order ID','order_id')+hrTh('City','city')+hrTh('State','state')+hrTh('Store','store_type')+hrTh('Partner','delivery_partner')+hrTh('MDQ Aging','mdq_aging_days')+hrTh('Last Scan Aging','last_scan_aging_days')+hrTh('ETA Aging','eta_aging_days')+hrTh('Attempts','number_of_delivery_attempts')+'<th>Action</th><th>Calling</th></tr>';
+
+  function etaCol(v){ const n=+v||0; return n>10?'var(--red)':n>5?'var(--amber)':'var(--text)'; }
+
+  const uRows=unactioned.length?unactioned.map(o=>{
+    const eta=o.eta_aging_days!==undefined&&o.eta_aging_days!==''?o.eta_aging_days:'—';
+    const actBtns='<div style="display:flex;gap:3px;flex-wrap:wrap">'
+      +'<button class="act-btn act-on" style="font-size:9px;padding:2px 5px" onclick="hrAction(\''+o.order_id+'\',\'AIR\')">✈ Air</button>'
+      +'<button class="act-btn" style="font-size:9px;padding:2px 5px;background:var(--gbg);border-color:var(--green);color:var(--green)" onclick="hrAction(\''+o.order_id+'\',\'SURFACE\')">↗ Surf</button>'
+      +'<button class="act-btn" style="font-size:9px;padding:2px 5px;background:var(--abg);border-color:var(--amber);color:var(--amber)" onclick="hrAction(\''+o.order_id+'\',\'LOCAL\')">⚑ Local</button>'
+      +'<button class="act-btn" style="font-size:9px;padding:2px 5px;background:var(--rbg);border-color:var(--red);color:var(--red)" onclick="hrClose(\''+o.order_id+'\')">✕ Close</button>'
+      +'</div>';
+    return '<tr class="data-row"><td><input type="checkbox" class="hr-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px"></td>'
+      +'<td style="font-family:monospace;font-size:11px">'+o.order_id+'</td>'
+      +'<td style="font-weight:600">'+nc(o.city||'—')+storeTag(o.city)+'</td>'
+      +'<td style="font-size:11px">'+nc(o.state||'—')+'</td>'
+      +'<td style="font-family:monospace;font-size:10px;padding:1px 5px">'+(o.store_type||'—')+'</td>'
+      +'<td style="font-size:11px">'+(o.delivery_partner||'—')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.mdq_aging_days||'—')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px;color:var(--muted)">'+(o.last_scan_aging_days||'—')+'</td>'
+      +'<td style="font-family:monospace;font-size:11px;font-weight:700;color:'+etaCol(o.eta_aging_days||0)+'">'+eta+'</td>'
+      +'<td style="font-family:monospace;font-size:11px;text-align:center">'+(o.number_of_delivery_attempts||0)+'</td>'
+      +'<td>'+actBtns+'</td>'
+      +'<td>'+callCell(o.order_id)+'</td></tr>';
+  }).join(''):'<tr><td colspan="12" style="padding:20px;text-align:center;color:var(--muted);font-family:monospace;font-size:12px">No high-risk orders matching filters</td></tr>';
+
+  const actRows=rows.filter(o=>actionedIds.has(o.order_id));
+  const actSection=actRows.length?'<div style="margin-top:14px;font-family:\'DM Mono\';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">'+actRows.length+' actioned orders (this session)</div>'
+    +'<div class="tbl-wrap"><table><thead>'+thead+'</thead><tbody>'
+    +actRows.map(o=>{
+      const act=hrActioned[o.order_id];
+      const actCol=act&&act.action==='REPLACED'?'var(--blue)':'var(--green)';
+      return '<tr style="opacity:0.55"><td></td><td style="font-family:monospace;font-size:11px;text-decoration:line-through">'+o.order_id+'</td>'
+        +'<td>'+nc(o.city||'—')+'</td><td style="font-size:11px">'+nc(o.state||'—')+'</td>'
+        +'<td style="font-size:10px">'+(o.store_type||'—')+'</td><td style="font-size:11px">'+(o.delivery_partner||'—')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px">'+(o.mdq_aging_days||'—')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px">'+(o.last_scan_aging_days||'—')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px">'+(o.eta_aging_days||'—')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px;text-align:center">'+(o.number_of_delivery_attempts||0)+'</td>'
+        +'<td colspan="2"><span style="font-size:11px;font-weight:700;color:'+actCol+'">'+( act?act.action+(act.repl?' → '+act.repl:''):'')+'</span></td></tr>';
+    }).join('')+'</tbody></table></div>':'';
+
+  el.innerHTML='<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">'
+    +'<select style="background:var(--input-bg);border:1px solid var(--border2);color:var(--text);font-family:\'DM Mono\';font-size:11px;padding:5px 9px;border-radius:4px" onchange="hrCityFilter=this.value;renderHR()">'+cityOpts+'</select>'
+    +'<select style="background:var(--input-bg);border:1px solid var(--border2);color:var(--text);font-family:\'DM Mono\';font-size:11px;padding:5px 9px;border-radius:4px" onchange="hrStoreFilter=this.value;renderHR()">'+storeOpts+'</select>'
+    +'<span style="font-family:\'DM Mono\';font-size:11px;color:var(--muted)">'+unactioned.length+' orders · 0 delivery attempts</span>'
+    +'<div style="margin-left:auto;display:flex;gap:8px">'
+    +'<button class="btn btn-ghost" style="font-size:11px" onclick="exportHRCSV()">⬇ Export CSV</button>'
+    +'<label class="btn btn-ghost" style="font-size:11px;cursor:pointer">⬆ Upload CSV<input type="file" accept=".csv" style="display:none" onchange="handleHRCSVUpload(event)"></label>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead>'+thead+'</thead><tbody>'+uRows+'</tbody></table></div>'
+    +actSection;
+  }catch(e){
+    el.innerHTML='<div style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">⚠ Render error: '+e.message+'</div>';
+    console.error('renderHR:',e.message,e.stack);
+  }
+}
+
+function setHRSort(col){ if(hrSort.col===col) hrSort.dir*=-1; else hrSort={col,dir:-1}; renderHR(); }
+
+function hrAction(orderId,mode){
+  const repl=prompt('Replacement Order ID ('+mode+'):');
+  if(!repl) return;
+  const ts=now(),who=actionedBy();
+  hrActioned[orderId]={action:'REPLACED',repl:repl.trim(),mode,ts,by:who};
+  saveHRActioned();
+  const o=hrData.find(x=>x.order_id===orderId)||{};
+  const url=scriptURL(); if(!url){renderHR();return;}
+  const batch=[{order_id:orderId,city:o.city||'',partner_name:o.delivery_partner||'',store_type:o.store_type||'',aging_days:o.eta_aging_days||0,action:'REPLACED',replacement_order_id:repl.trim(),mode,actioned_by:who}];
+  apsFetch(url+'?'+new URLSearchParams({action:'actionOrders',orders:JSON.stringify(batch),actioned_by:who}).toString()).catch(e=>console.warn('hrAction:',e.message));
+  renderHR();
+}
+function hrClose(orderId){
+  const ts=now(),who=actionedBy();
+  hrActioned[orderId]={action:'CLOSED',repl:'',mode:'',ts,by:who};
+  saveHRActioned();
+  const o=hrData.find(x=>x.order_id===orderId)||{};
+  const url=scriptURL(); if(!url){renderHR();return;}
+  const batch=[{order_id:orderId,city:o.city||'',partner_name:o.delivery_partner||'',store_type:o.store_type||'',aging_days:o.eta_aging_days||0,action:'CLOSED',replacement_order_id:'',mode:'',actioned_by:who}];
+  apsFetch(url+'?'+new URLSearchParams({action:'actionOrders',orders:JSON.stringify(batch),actioned_by:who}).toString()).catch(e=>console.warn('hrClose:',e.message));
+  renderHR();
+}
+
+function exportHRCSV(){
+  const rows=hrData.filter(o=>!hrActioned[o.order_id]&&(+o.number_of_delivery_attempts||0)===0);
+  if(!rows.length){alert('No unactioned high-risk orders.');return;}
+  const instr=['# HIGH RISK ORDERS BULK ACTION CSV','# status: Closed | Delivered | Cancelled | Replaced (leave blank = no change)','# replacement_order_id: REQUIRED if status=Replaced','# mode: AIR/SURFACE/LOCAL — REQUIRED if status=Replaced','# calling_done: Yes/No   calling_remark: REQUIRED if calling_done=Yes','#'].join('\n');
+  const hdr='order_id,city,state,store_type,delivery_partner,mdq_aging_days,last_scan_aging_days,eta_aging_days,number_of_delivery_attempts,status,replacement_order_id,mode,calling_done,calling_remark';
+  const lines=rows.map(o=>{
+    const cl=callLog[o.order_id];
+    return [o.order_id,nc(o.city||''),nc(o.state||''),o.store_type||'',o.delivery_partner||'',o.mdq_aging_days||'',o.last_scan_aging_days||'',o.eta_aging_days||'',o.number_of_delivery_attempts||0,'','','',cl&&cl.done?'Yes':'',cl&&cl.remark?cl.remark:''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(instr+'\n'+hdr+'\n'+lines.join('\n'));
+  a.download='heimdall_high_risk_'+now().slice(0,10)+'.csv'; a.click();
+}
+function handleHRCSVUpload(evt){ const f=evt.target.files[0]; if(!f) return; evt.target.value=''; const r=new FileReader(); r.onload=e=>processHRCSV(e.target.result); r.readAsText(f); }
+async function processHRCSV(text){
+  const allLines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
+  if(allLines.length<2){alert('CSV empty.');return;}
+  const hdrs=parseCSVLine(allLines[0]).map(h=>h.toLowerCase().replace(/"/g,'').trim());
+  const col=k=>hdrs.indexOf(k);
+  const idIdx=col('order_id'); if(idIdx<0){alert('Missing order_id column.');return;}
+  const statusIdx=col('status'),replIdx=col('replacement_order_id'),modeIdx=col('mode'),callingIdx=col('calling_done'),callingRemIdx=col('calling_remark');
+  const toAction=[],toCalling=[];
+  for(let i=1;i<allLines.length;i++){
+    const cols=parseCSVLine(allLines[i]);
+    const id=(cols[idIdx]||'').replace(/"/g,'').trim(); if(!id) continue;
+    const status=statusIdx>=0?(cols[statusIdx]||'').trim():'';
+    const repl=replIdx>=0?(cols[replIdx]||'').trim():'';
+    const mode=modeIdx>=0?(cols[modeIdx]||'').toUpperCase().trim():'';
+    const callingDone=callingIdx>=0?(cols[callingIdx]||'').trim().toLowerCase():'';
+    const callingRem=callingRemIdx>=0?(cols[callingRemIdx]||'').trim():'';
+    const sl=status.toLowerCase();
+    const isR=sl==='replaced',isC=['closed','delivered','cancelled'].includes(sl);
+    if(status&&!isR&&!isC){alert('Row '+i+': invalid status: '+status);return;}
+    if(isR&&!repl){alert('Row '+i+': replacement_order_id required.');return;}
+    if(callingDone==='yes'&&!callingRem){alert('Row '+i+': calling_remark required.');return;}
+    if(status&&!hrActioned[id]) toAction.push({id,action:isR?'REPLACED':'CLOSED',repl,mode:mode||'AIR'});
+    if(callingDone==='yes'&&callingRem&&!callLog[id]) toCalling.push({id,remark:callingRem});
+  }
+  const ts=now(),who=actionedBy();
+  toAction.forEach(a=>{hrActioned[a.id]={action:a.action,repl:a.repl,mode:a.mode,ts,by:who};});
+  toCalling.forEach(a=>{ callLog[a.id]={done:true,remark:a.remark,ts,by:who}; const url=scriptURL(); if(!url) return; apsFetch(url+'?'+new URLSearchParams({action:'logCall',order_id:a.id,remark:a.remark,ts,by:who}).toString()).catch(e=>console.warn('logCall:',e.message)); });
+  saveHRActioned();
+  if(toAction.length) await finaliseDumpSubmit(toAction.map(a=>[a.id,{action:a.action,repl:a.repl,mode:a.mode}]));
+  alert((toAction.length?toAction.length+' actioned. ':'')+( toCalling.length?toCalling.length+' calls logged.':''));
+  renderHR();
+}
 
 // ── NETWORK SUMMARY ───────────────────────────────────────────────────────────
 function renderNetworkSummary(){
@@ -1405,7 +1573,7 @@ function switchTab(t,btn){
   curTab=t;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  ['ns','ov','sim','dump','rep','pp','log','logic'].forEach(id=>{
+  ['ns','ov','sim','hr','dump','rep','pp','log','logic'].forEach(id=>{
     const el=document.getElementById('t-'+id);
     if(el) el.style.display=id===t?'block':'none';
   });
@@ -2008,7 +2176,7 @@ window.addEventListener('load', () => {
   if(mu) document.getElementById('url-mtd').value=mu;
   if(su){ document.getElementById('url-script').value=su; setTag('st-script','CONNECTED','tok'); }
   // Restore local state
-  loadActive(); loadLog(); loadDumpActioned(); loadCpConfirmed();
+  loadActive(); loadLog(); loadDumpActioned(); loadCpConfirmed(); loadHRActioned();
   // Default tab
   ['ov','sim','dump','rep','pp','log','logic'].forEach(id=>{ const el=document.getElementById('t-'+id); if(el) el.style.display='none'; });
   const nsEl=document.getElementById('t-ns'); if(nsEl) nsEl.style.display='block';
