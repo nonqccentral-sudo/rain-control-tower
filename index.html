@@ -89,12 +89,12 @@ h1{font-family:'Syne';font-size:27px;font-weight:800;color:var(--text);letter-sp
 .tsmp{background:var(--abg);color:var(--amber);border:1px solid var(--amber);}
 .cfg-actions{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;}
 .save-msg{font-family:'DM Mono';font-size:11px;color:var(--green);}
-.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
-.kpi{background:var(--card);border-radius:8px;padding:12px 14px;border:1px solid var(--border);}
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;overflow:hidden;}
+.kpi{background:var(--card);border-radius:8px;padding:12px 14px;border:1px solid var(--border);min-width:0;overflow:hidden;}
 .kpi-lbl{font-family:'DM Mono';font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:5px;}
 .kpi-val{font-family:'Syne';font-size:23px;font-weight:700;line-height:1.1;}
 .kpi-unit{font-size:11px;color:var(--muted);margin-left:3px;}
-.kpi-sub{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi-sub{font-family:'DM Mono';font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
 .kpi-cost{font-family:'DM Mono';font-size:11px;margin-top:4px;}
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'DM Sans';font-size:13px;font-weight:500;padding:7px 15px;cursor:pointer;margin-bottom:-1px;transition:all .15s;}
@@ -502,7 +502,8 @@ tr.r-closed-row td{background:var(--gbg)!important;opacity:.7;}
   <div class="kpi clickable" style="border-color:#ef444466" onclick="goToDump('Pan-India')">
     <div class="kpi-lbl">5+ Day Aging &#x2197;</div>
     <div><span class="kpi-val" style="color:var(--red)" id="k-aging5">&#x2014;</span><span class="kpi-unit">orders</span></div>
-    <div class="kpi-sub" id="k-aging5-sub">pan-india</div>
+    <div class="kpi-sub" id="k-aging5-sub">pan-india · click to view</div>
+    <div class="kpi-sub" id="k-aging5-hr" style="font-size:9px;color:var(--red)">HR: —</div>
   </div>
   <div class="kpi" style="border-color:#a78bfa44">
     <div class="kpi-lbl">Ageing Adherence</div>
@@ -868,6 +869,7 @@ async function syncState(){
     if(Array.isArray(sd.mtd)&&sd.mtd.length>0){ mtdData=sd.mtd.map(r=>({...r,city:nc(r.city||'')})); mtdLoaded=true; setTag('st-mtd','✓ '+mtdData.length,'tok'); }
     if(Array.isArray(sd.partner)) partnerData=sd.partner.map(r=>({...r,city:nc(r.city||'')}));
     if(Array.isArray(sd.pincode)) pincodeData=sd.pincode.map(r=>({...r,city:nc(r.city||'')}));
+      if(Array.isArray(sd.highRisk)){ hrData=sd.highRisk.map(r=>({...r,city:nc(r.city||'')})); if(curTab==='hr') renderHR(); }
   }catch(e){
     setSyncNote('⚠ Sync failed: '+e.message.slice(0,50));
     syncRunning=false; btn.classList.remove('syncing'); btn.textContent='⟳ Sync';
@@ -894,7 +896,6 @@ async function syncState(){
   try{ const od=await apsFetch(url+'?action=getOrderDump'); if(od&&od.status!=='error'&&Array.isArray(od.orders)) orderDump=od.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const rp=await apsFetch(url+'?action=getReplacedOrders'); if(rp&&rp.status!=='error'&&Array.isArray(rp.orders)) replacedOrders=rp.orders.map(r=>({...r,city:nc(r.city||'')})); }catch(e){}
   try{ const cl=await apsFetch(url+'?action=getClosedOrders'); if(cl&&cl.status!=='error'&&Array.isArray(cl.orders)) closedOrders=cl.orders; }catch(e){}
-  try{ const hr=await apsFetch(url+'?action=getHighRiskOrders'); if(hr&&hr.status!=='error'&&Array.isArray(hr.orders)){ hrData=hr.orders; if(curTab==='hr') renderHR(); } }catch(e){}
   try{ const cg=await apsFetch(url+'?action=getCancelledGmv'); if(cg&&cg.status!=='error'&&cg.data){ cancelledGmv=cg.data; } }catch(e){}
   try{ const ac=await apsFetch(url+'?action=getAirportCities'); if(ac&&ac.status!=='error'&&Array.isArray(ac.cities)){ airportCities=new Set(ac.cities.map(function(x){return String(x).trim().toLowerCase();})); } }catch(e){}
   try{ const sp=await apsFetch(url+'?action=getStorePresence'); if(sp&&sp.status!=='error'&&sp.data){ storePresence=sp.data; } }catch(e){}
@@ -1049,6 +1050,7 @@ function renderKPIs(){
   setText('k-amb',amb.length); setText('k-amb-sub',amb.length?amb.slice(0,3).map(r=>r.city).join(', ')+(amb.length>3?'…':''):'—');
   const p5=orderDump.length>0?effectiveDumpCount():cityData.reduce((s,r)=>s+(r.aging_gt5d||0),0);
   setText('k-aging5',p5||'—'); setText('k-aging5-sub',p5>0?'pan-india · click to view':'no 5+ day orders');
+  const hrActionedIds=new Set(Object.keys(hrActioned)); const hrUnactioned=hrData.filter(o=>(+o.number_of_delivery_attempts||0)===0&&!hrActionedIds.has(o.order_id)).length; setText('k-aging5-hr','HR: '+hrUnactioned.toLocaleString('en-IN')+' orders');
   const adhD=adherence.denominator||0, adhN=Math.min(adherence.numerator||0,adhD);
   const adhPct=adhD>0?Math.round(adhN/adhD*100):null;
   const adhCol=adhPct===null?'var(--muted)':adhPct>=80?'var(--green)':adhPct>=50?'var(--amber)':'var(--red)';
@@ -1332,12 +1334,12 @@ function renderHR(){
     // Action buttons — matching High Ageing Dump style
     const actBtns='<div style="display:flex;flex-direction:column;gap:4px">'
       +'<div style="display:flex;gap:4px">'
-      +'<button class="act-btn act-on" data-oid="'+o.order_id+'" data-mode="AIR" onclick="event.stopPropagation();hrModalOpen(this)">✈ Replace Air</button>'
+      +'<button class="act-btn act-on" data-oid="'+o.order_id+'" data-mode="AIR" onclick="event.stopPropagation();hrModalOpen(this)">✈ Air</button>'
       +'<button class="act-btn" style="background:var(--gbg);border-color:var(--green);color:var(--green)" data-oid="'+o.order_id+'" data-mode="SURFACE" onclick="event.stopPropagation();hrModalOpen(this)">↗ Surface</button>'
       +'</div>'
       +'<div style="display:flex;gap:4px">'
       +'<button class="act-btn" style="background:var(--abg);border-color:var(--amber);color:var(--amber)" data-oid="'+o.order_id+'" data-mode="LOCAL" onclick="event.stopPropagation();hrModalOpen(this)">⚑ Local</button>'
-      +'<button class="act-btn" style="background:var(--rbg);border-color:var(--red);color:var(--red)" data-oid="'+o.order_id+'" onclick="event.stopPropagation();hrCloseBtn(this)">✕ Mark Closed</button>'
+      +'<button class="act-btn" style="background:var(--rbg);border-color:var(--red);color:var(--red)" data-oid="'+o.order_id+'" onclick="event.stopPropagation();if(confirm(\'Mark this order as Closed? This cannot be undone.\'))hrCloseBtn(this)">✕ Mark Closed</button>'
       +'</div>'
       +'</div>';
     return '<tr class="data-row">'
@@ -1744,9 +1746,11 @@ function callCell(orderId){
     +'<div class="call-inp-wrap" style="display:none;margin-top:4px">'
     +'<input class="call-inp" placeholder="Call remark..." />'
     +'<button data-oid="'+orderId+'" onclick="saveCall(this)" style="margin-left:4px;background:var(--teal);border:none;color:#fff;font-family:monospace;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer">Save</button>'
+    +'<button onclick="cancelCallInput(this)" style="margin-left:4px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted);font-family:monospace;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer">Cancel</button>'
     +'</div></td>';
 }
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cancelCallInput(btn){ var w=btn.closest('.call-inp-wrap'); if(w){ var inp=w.querySelector('.call-inp'); if(inp) inp.value=''; w.style.display='none'; } }
 function showCallInput(btn){
   var td=btn.closest('td');
   var d=td?td.querySelector('.call-inp-wrap'):null;
