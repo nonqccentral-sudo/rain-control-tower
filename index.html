@@ -1344,7 +1344,10 @@ function renderHR(){
     if(hrStoreFilter!=='All'&&(o.store_type||'').toUpperCase()!==hrStoreFilter.toUpperCase()) return false;
     return true;
   });
-  const rows=sortRows(filtered,hrSort.col,hrSort.dir);
+  // Priority orders first, then by user-selected sort
+  const withPri=filtered.filter(o=>String(o.priority||'').trim().toLowerCase()==='priority');
+  const withoutPri=filtered.filter(o=>String(o.priority||'').trim().toLowerCase()!=='priority');
+  const rows=[...sortRows(withPri,hrSort.col,hrSort.dir),...sortRows(withoutPri,hrSort.col,hrSort.dir)];
   const actionedIds=new Set(Object.keys(hrActioned));
   const unactioned=rows.filter(o=>!actionedIds.has(o.order_id));
 
@@ -1375,7 +1378,7 @@ function renderHR(){
       +'</div>';
     return '<tr class="data-row">'
       +'<td><input type="checkbox" class="hr-chk" data-id="'+o.order_id+'" style="accent-color:var(--blue);width:14px;height:14px"></td>'
-      +'<td style="font-family:monospace;font-size:11px">'+stBadgeHR(o)+o.order_id+'</td>'
+      +'<td style="font-family:monospace;font-size:11px">'+stBadgeHR(o)+(String(o.priority||'').trim().toLowerCase()==='priority'?'<span style="font-family:monospace;font-size:9px;padding:1px 5px;border-radius:3px;background:#7f1d1d;color:#fca5a5;margin-right:4px">P1</span>':'')+o.order_id+'</td>'
       +'<td style="font-weight:600">'+nc(o.city||'—')+storeTag(o.city)+'</td>'
       +'<td style="font-size:11px">'+nc(o.state||'—')+'</td>'
       +'<td style="font-family:monospace;font-size:10px">'+(o.store_type||'—')+'</td>'
@@ -1435,13 +1438,15 @@ function renderHR(){
 }
 
 function exportHRCSV(){
-  const rows=hrData.filter(o=>!hrActioned[o.order_id]&&(+o.number_of_delivery_attempts||0)===0);
+  const hrUnact=hrData.filter(o=>!hrActioned[o.order_id]&&(+o.number_of_delivery_attempts||0)===0);
+  const hrPriFirst=[...hrUnact.filter(o=>String(o.priority||'').trim().toLowerCase()==='priority'),...hrUnact.filter(o=>String(o.priority||'').trim().toLowerCase()!=='priority')];
+  const rows=hrPriFirst;
   if(!rows.length){alert('No unactioned high-risk orders.');return;}
   const instr=['# HIGH RISK ORDERS BULK ACTION CSV','# status: Cancelled | Replaced | Closed (leave blank = no change)','# replacement_order_id + mode: REQUIRED if status=Replaced','# calling_done: Yes/No  calling_remark: REQUIRED if calling_done=Yes','#'].join('\n');
-  const hdr='order_id,city,state,store_type,delivery_partner,mdq_aging_days,last_scan_aging_days,eta_aging_days,number_of_delivery_attempts,status,replacement_order_id,mode,calling_done,calling_remark';
+  const hdr='priority,order_id,city,state,store_type,delivery_partner,mdq_aging_days,last_scan_aging_days,eta_aging_days,number_of_delivery_attempts,status,replacement_order_id,mode,calling_done,calling_remark';
   const lines=rows.map(o=>{
     const cl=callLog[o.order_id];
-    return [o.order_id,nc(o.city||''),nc(o.state||''),o.store_type||'',o.delivery_partner||'',
+    return [String(o.priority||''),o.order_id,nc(o.city||''),nc(o.state||''),o.store_type||'',o.delivery_partner||'',
       o.mdq_aging_days||'',o.last_scan_aging_days||'',o.eta_aging_days||'',o.number_of_delivery_attempts||0,
       '','','',cl&&cl.done?'Yes':'',cl&&cl.remark?cl.remark:''
     ].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
@@ -1489,12 +1494,22 @@ async function processHRCSV(text){
   renderHR(); if(curTab==='can') renderCan();
 }
 
+
+function exportCanCSV(){
+  if(!cancelledOrders.length){alert('No cancelled orders to export.');return;}
+  const hdr='order_id,status,customer_city,cancellation_date';
+  const lines=cancelledOrders.map(o=>[o.order_id||'',o.status||'Cancelled',nc(o.customer_city||''),o.cancellation_date||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(hdr+'\n'+lines.join('\n'));
+  a.download='heimdall_cancelled_orders_'+now().slice(0,10)+'.csv'; a.click();
+}
 // ── CANCELLED ORDERS TAB ──────────────────────────────────────────────────────
 function renderCan(){
   const el=document.getElementById('can-body'); if(!el) return;
   try{
+  const canToolbar='<div style="margin-bottom:12px"><button class="btn btn-ghost" style="font-size:11px" onclick="exportCanCSV()">⬇ Export CSV</button></div>';
   if(!cancelledOrders.length){
-    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-family:monospace;font-size:12px">No cancelled orders yet.</div>';
+    el.innerHTML=canToolbar+'<div style="padding:20px;text-align:center;color:var(--muted);font-family:monospace;font-size:12px">No cancelled orders yet.</div>';
     return;
   }
   const rows=sortRows(cancelledOrders,'cancellation_date',-1);
@@ -1509,7 +1524,7 @@ function renderCan(){
       +'</tr>'
     ).join('')
     +'</tbody></table></div>';
-  el.innerHTML=html;
+  el.innerHTML=canToolbar+html;
   }catch(e){
     el.innerHTML='<div style="padding:20px;color:var(--red);font-family:monospace;font-size:12px">⚠ Render error: '+e.message+'</div>';
     console.error('renderCan:',e.message,e.stack);
@@ -2088,6 +2103,20 @@ async function processUploadCSV(text){
 }
 
 // ── REPLACED ORDERS ───────────────────────────────────────────────────────────
+
+function exportRepCSV(){
+  const all=[...replacedOrders,...Object.entries(dumpActioned).filter(p=>p[1].action==='REPLACED').map(p=>{
+    const id=p[0],info=p[1];
+    const o=orderDump.find(x=>x.order_id===id)||{};
+    return {original_order_id:id,replacement_order_id:info.repl||'',city:o.city||'',partner_name:'',actioned_on:info.ts||'',actioned_by:info.by||'',mode:info.mode||'',eta:'',new_status:'',new_aging:''};
+  })];
+  if(!all.length){alert('No replaced orders to export.');return;}
+  const hdr='original_order_id,replacement_order_id,city,partner_name,actioned_on,actioned_by,mode,eta,new_status,new_aging';
+  const lines=all.map(o=>[o.original_order_id||'',o.replacement_order_id||'',nc(o.city||''),o.partner_name||'',o.actioned_on||'',o.actioned_by||'',o.mode||'',o.eta||'',o.new_status||'',o.new_aging||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(hdr+'\n'+lines.join('\n'));
+  a.download='heimdall_replaced_orders_'+now().slice(0,10)+'.csv'; a.click();
+}
 // ── REPLACED ORDERS HELPERS (module-level to avoid strict-mode block scoping) ──
 function statusCell(o,isOpen){ return repStatusCell(o,isOpen); }
 function agingCell(o){ return repAgingCell(o); }
